@@ -45,6 +45,14 @@ sudo -u "$APP_USER" npm ci --omit=dev --ignore-scripts
 # Prisma's postinstall is skipped by --ignore-scripts, so generate explicitly.
 sudo -u "$APP_USER" npx prisma generate
 
+# --- Stop the app before touching the schema ---------------------------------
+# SQLite gives the running process a lock that blocks the exclusive lock the
+# migration engine needs, so migrating against a live app fails with
+# "database is locked". Stopping first costs the build's worth of downtime and
+# is the only reliable order on a single-file database.
+echo "==> Stopping the app for migration"
+systemctl stop avkvisions || true
+
 echo "==> Applying database migrations"
 # `migrate deploy`, never `migrate dev`. The dev command can reset the database
 # when it sees drift; deploy only ever applies pending migrations forward.
@@ -57,8 +65,8 @@ sudo -u "$APP_USER" npx prisma generate
 sudo -u "$APP_USER" env NODE_OPTIONS=--max-old-space-size=2048 npm run build
 sudo -u "$APP_USER" npm prune --omit=dev
 
-echo "==> Restarting"
-systemctl restart avkvisions
+echo "==> Starting"
+systemctl start avkvisions
 
 # --- Health check -------------------------------------------------------------
 echo "==> Waiting for the app to answer"
