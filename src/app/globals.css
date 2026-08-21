@@ -1,0 +1,280 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * AVK Visions — design tokens.
+ *
+ * Light theme is defined on `:root`; dark theme only *overrides* the tokens it
+ * changes. Never give a colour its sole definition inside the `.dark` block,
+ * otherwise light mode falls back to an inherited/unset value.
+ */
+@layer base {
+  :root {
+    /* Surfaces ---------------------------------------------------------- */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --muted: 220 20% 96%;
+    --muted-foreground: 220 12% 45%;
+
+    --border: 220 18% 90%;
+    --input: 220 18% 88%;
+    --ring: 245 58% 51%;
+
+    /* Brand ------------------------------------------------------------- */
+    --primary: 245 58% 51%;
+    --primary-foreground: 0 0% 100%;
+    --primary-muted: 245 60% 96%;
+    --brand-gradient-to: 265 62% 55%;
+
+    --secondary: 220 20% 96%;
+    --secondary-foreground: 222 40% 18%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 26 60% 14%;
+
+    /* Semantic ---------------------------------------------------------- */
+    --success: 152 62% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 48%;
+    --warning-foreground: 26 60% 14%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 205 85% 45%;
+    --info-foreground: 0 0% 100%;
+
+    /* Exam question-palette states -------------------------------------- */
+    --exam-answered: 152 62% 38%;
+    --exam-unanswered: 0 72% 51%;
+    --exam-unvisited: 220 14% 62%;
+    --exam-review: 265 62% 55%;
+    --exam-review-answered: 190 80% 38%;
+
+    /* Analytics chart ramp ---------------------------------------------- */
+    --chart-1: 245 58% 55%;
+    --chart-2: 190 80% 40%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 152 62% 40%;
+    --chart-5: 330 70% 55%;
+    --chart-6: 265 62% 58%;
+
+    /* Geometry & type ---------------------------------------------------- */
+    --radius: 0.75rem;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  .dark {
+    --background: 224 42% 7%;
+    --foreground: 210 30% 96%;
+
+    --card: 224 38% 10%;
+    --card-foreground: 210 30% 96%;
+
+    --popover: 224 38% 10%;
+    --popover-foreground: 210 30% 96%;
+
+    --muted: 223 30% 15%;
+    --muted-foreground: 218 14% 65%;
+
+    --border: 223 26% 19%;
+    --input: 223 26% 22%;
+    --ring: 245 70% 68%;
+
+    --primary: 245 70% 66%;
+    --primary-foreground: 224 45% 8%;
+    --primary-muted: 245 40% 18%;
+    --brand-gradient-to: 265 66% 66%;
+
+    --secondary: 223 30% 16%;
+    --secondary-foreground: 210 30% 94%;
+
+    --accent: 38 92% 58%;
+    --accent-foreground: 26 60% 12%;
+
+    --success: 152 55% 46%;
+    --success-foreground: 150 60% 8%;
+    --warning: 38 92% 58%;
+    --warning-foreground: 26 60% 12%;
+    --destructive: 0 70% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 205 80% 58%;
+    --info-foreground: 205 60% 10%;
+
+    --exam-answered: 152 55% 46%;
+    --exam-unanswered: 0 70% 58%;
+    --exam-unvisited: 220 12% 42%;
+    --exam-review: 265 66% 66%;
+    --exam-review-answered: 190 70% 48%;
+
+    --chart-1: 245 70% 68%;
+    --chart-2: 190 70% 52%;
+    --chart-3: 38 92% 60%;
+    --chart-4: 152 55% 50%;
+    --chart-5: 330 68% 66%;
+    --chart-6: 265 66% 70%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible, consistent focus ring for keyboard users only. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Respect OS-level reduced-motion preference across the whole product. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Chrome/Safari number inputs: hide spinners in numerical-answer fields. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  /**
+   * Applied to the exam shell only. Copy-protection is intentionally scoped:
+   * the rest of the product stays fully selectable and accessible.
+   */
+  .exam-no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Thin, unobtrusive scrollbar used in dense admin tables and palettes. */
+  .scrollbar-slim {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-slim::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-slim::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  .scrollbar-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Skeleton shimmer used by all loading placeholders. */
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .skeleton-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--foreground) / 0.06) 50%,
+      transparent 100%
+    );
+    animation: shimmer 1.8s infinite;
+  }
+
+  /* Rich-text rendered from question explanations / blog content. */
+  .prose-avk {
+    @apply text-[0.975rem] leading-7 text-foreground/90;
+  }
+  .prose-avk :where(p):not(:last-child) {
+    @apply mb-4;
+  }
+  .prose-avk :where(h2) {
+    @apply mb-3 mt-8 text-xl font-semibold tracking-tight text-foreground;
+  }
+  .prose-avk :where(h3) {
+    @apply mb-2 mt-6 text-lg font-semibold tracking-tight text-foreground;
+  }
+  .prose-avk :where(ul) {
+    @apply mb-4 list-disc space-y-1.5 pl-5;
+  }
+  .prose-avk :where(ol) {
+    @apply mb-4 list-decimal space-y-1.5 pl-5;
+  }
+  .prose-avk :where(a) {
+    @apply font-medium text-primary underline underline-offset-4;
+  }
+  .prose-avk :where(code) {
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em];
+  }
+  .prose-avk :where(blockquote) {
+    @apply my-4 border-l-2 border-primary/40 pl-4 italic text-muted-foreground;
+  }
+  .prose-avk :where(img) {
+    @apply my-4 max-w-full rounded-lg border border-border;
+  }
+  .prose-avk :where(table) {
+    @apply my-4 w-full border-collapse text-sm;
+  }
+  .prose-avk :where(th, td) {
+    @apply border border-border px-3 py-2 text-left;
+  }
+}
+
+@layer utilities {
+  /* Content-visibility hint for very long question lists / admin tables. */
+  .contain-list {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 320px;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* Print: invoices and result sheets should print cleanly without chrome. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}

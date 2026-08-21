@@ -1,0 +1,84 @@
+import { AUDIT_ACTIONS, audit } from '@/server/audit';
+import { parseBody, route } from '@/server/api-handler';
+import { requireAdmin } from '@/server/auth/guards';
+import { db } from '@/server/db';
+import { questionSchema } from '@/validations/admin';
+
+/**
+ * POST /api/admin/questions — create a question.
+ *
+ * The schema refuses anything unscoreable (no correct option, two correct
+ * options on a single-correct item), so a mis-keyed question cannot reach the
+ * bank through this path.
+ */
+export const POST = route(async ({ request, ip }) => {
+  const admin = await requireAdmin();
+  const input = await parseBody(request, questionSchema);
+
+  // Human-readable, collision-checked code. Sequence is per-exam.
+  const exam = await db.exam.findUniqueOrThrow({
+    where: { id: input.examId },
+    select: { shortName: true },
+  });
+  const count = await db.question.count({ where: { examId: input.examId } });
+
+  let code = `${exam.shortName}-Q${String(count + 1).padStart(4, '0')}`;
+  let suffix = 1;
+  while (await db.question.findUnique({ where: { code }, select: { id: true } })) {
+    code = `${exam.shortName}-Q${String(count + 1 + suffix).padStart(4, '0')}`;
+    suffix += 1;
+  }
+
+  const question = await db.question.create({
+    data: {
+      code,
+      examId: input.examId,
+      subjectId: input.subjectId,
+      chapterId: input.chapterId ?? null,
+      topicId: input.topicId ?? null,
+      type: input.type,
+      difficulty: input.difficulty,
+      status: input.status,
+      body: input.body,
+      passage: input.passage ?? null,
+      imageUrl: input.imageUrl || null,
+      marks: input.marks,
+      negativeMarks: input.negativeMarks,
+      numericalAnswer: input.numericalAnswer ?? null,
+      numericalTolerance: input.numericalTolerance ?? null,
+      explanation: input.explanation ?? null,
+      detailedSolution: input.detailedSolution ?? null,
+      concept: input.concept ?? null,
+      source: input.source ?? null,
+      examYear: input.examYear ?? null,
+      reviewNote: input.reviewNote ?? null,
+      createdById: admin.id,
+      publishedAt: input.status === 'PUBLISHED' ? new Date() : null,
+      options: {
+        create: input.options.map((option, index) => ({
+          label: String.fromCharCode(65 + index),
+          body: option.body,
+          isCorrect: option.isCorrect,
+          sortOrder: index,
+        })),
+      },
+      stat: { create: {} },
+    },
+    select: { id: true, code: true },
+  });
+
+  await audit({
+    actor: { id: admin.id, email: admin.email, role: admin.role },
+    action: AUDIT_ACTIONS.QUESTION_CREATED,
+    entityType: 'Question',
+    entityId: question.id,
+    meta: { code: question.code, status: input.status },
+    ipAddress: ip,
+  });
+
+  return {
+    data: { id: question.id, code: question.code },
+    message: `Question ${question.code} created.`,
+    status: 201,
+  };
+});

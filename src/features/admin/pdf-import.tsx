@@ -1,0 +1,763 @@
+'use client';
+
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  FileUp,
+  Loader2,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input, Textarea } from '@/components/ui/input';
+import { FormField } from '@/components/ui/label';
+import { InlineError } from '@/components/ui/states';
+import { ApiClientError, api } from '@/lib/api-client';
+import { cn } from '@/lib/utils';
+
+/**
+ * PDF import.
+ *
+ * Three steps, and the middle one is the point of the whole feature: upload →
+ * **review** → commit. A parser working on arbitrary PDFs will get things
+ * wrong, and a wrong answer key is invisible until a student is marked
+ * incorrectly. So nothing is written until a human has looked at every
+ * question, and any question whose key could not be resolved blocks the import
+ * until it is set by hand.
+ */
+interface ParsedOption {
+  marker: string;
+  body: string;
+}
+
+interface ParsedQuestion {
+  number: number;
+  body: string;
+  options: ParsedOption[];
+  correctIndex: number | null;
+  rawAnswer: string | null;
+  warnings: string[];
+}
+
+interface ParseResponse {
+  fileName: string;
+  pageCount: number;
+  questions: ParsedQuestion[];
+  stats: { found: number; withAnswer: number; withoutAnswer: number; withWarnings: number };
+  documentWarnings: string[];
+  extractedText: string;
+}
+
+export interface ImportTarget {
+  exams: {
+    id: string;
+    name: string;
+    shortName: string;
+    subjects: { id: string; name: string }[];
+  }[];
+  series: { id: string; name: string; track: string }[];
+  tests: { id: string; title: string }[];
+}
+
+type Step = 'upload' | 'review' | 'done';
+
+export function PdfImport({ exams, series, tests }: ImportTarget) {
+  const router = useRouter();
+
+  const [step, setStep] = React.useState<Step>('upload');
+  const [parsing, setParsing] = React.useState(false);
+  const [committing, setCommitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [parsed, setParsed] = React.useState<ParseResponse | null>(null);
+  const [questions, setQuestions] = React.useState<ParsedQuestion[]>([]);
+  const [showText, setShowText] = React.useState(false);
+  const [result, setResult] = React.useState<{ created: number; testId: string | null } | null>(null);
+
+  // --- Destination -------------------------------------------------------
+  const [examId, setExamId] = React.useState(exams[0]?.id ?? '');
+  const [subjectId, setSubjectId] = React.useState(exams[0]?.subjects[0]?.id ?? '');
+  const [target, setTarget] = React.useState<'NEW_TEST' | 'EXISTING_TEST' | 'BANK_ONLY'>('NEW_TEST');
+  const [testId, setTestId] = React.useState(tests[0]?.id ?? '');
+  const [title, setTitle] = React.useState('');
+  const [testSeriesId, setTestSeriesId] = React.useState('');
+  const [category, setCategory] = React.useState('PREVIOUS_YEAR');
+  const [accessType, setAccessType] = React.useState('FREE');
+  const [durationMinutes, setDurationMinutes] = React.useState(120);
+  const [marks, setMarks] = React.useState(1);
+  const [negativeMarks, setNegativeMarks] = React.useState(0.25);
+  const [source, setSource] = React.useState('');
+  const [examYear, setExamYear] = React.useState<string>('');
+  const [publish, setPublish] = React.useState(false);
+
+  const exam = exams.find((e) => e.id === examId);
+
+  const unresolved = questions.filter((q) => q.correctIndex === null).length;
+  const invalid = questions.filter((q) => q.options.length < 2 || !q.body.trim()).length;
+
+  // --- Upload ------------------------------------------------------------
+  async function upload(file: File) {
+    setParsing(true);
+    setError(null);
+
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      // Not `api.post` — this is multipart, so the JSON content-type must not
+      // be set; the browser supplies the boundary.
+      const response = await fetch('/api/admin/import/parse', {
+        method: 'POST',
+        body: form,
+        credentials: 'same-origin',
+      });
+      const payload = await response.json();
+
+      if (!payload.success) {
+        setError(payload.error?.message ?? 'That file could not be read.');
+        return;
+      }
+
+      const data = payload.data as ParseResponse;
+      setParsed(data);
+      setQuestions(data.questions);
+      if (!title) setTitle(data.fileName.replace(/\.pdf$/i, ''));
+      if (!source) setSource(data.fileName.replace(/\.pdf$/i, ''));
+      setStep('review');
+    } catch {
+      setError('Upload failed. Check your connection and try again.');
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  // --- Review editing ----------------------------------------------------
+  function updateQuestion(index: number, patch: Partial<ParsedQuestion>) {
+    setQuestions((previous) =>
+      previous.map((question, i) => (i === index ? { ...question, ...patch } : question)),
+    );
+  }
+
+  function updateOption(qIndex: number, oIndex: number, body: string) {
+    setQuestions((previous) =>
+      previous.map((question, i) =>
+        i === qIndex
+          ? {
+              ...question,
+              options: question.options.map((option, j) =>
+                j === oIndex ? { ...option, body } : option,
+              ),
+            }
+          : question,
+      ),
+    );
+  }
+
+  function removeQuestion(index: number) {
+    setQuestions((previous) => previous.filter((_, i) => i !== index));
+  }
+
+  // --- Commit ------------------------------------------------------------
+  async function commit() {
+    if (unresolved > 0 || invalid > 0) return;
+
+    setCommitting(true);
+    setError(null);
+
+    try {
+      const data = await api.post<{ created: number; testId: string | null }>(
+        '/api/admin/import/commit',
+        {
+          examId,
+          subjectId,
+          target,
+          ...(target === 'EXISTING_TEST' ? { testId } : {}),
+          ...(target === 'NEW_TEST'
+            ? {
+                title,
+                ...(testSeriesId ? { testSeriesId } : {}),
+                category,
+                accessType,
+                durationMinutes,
+              }
+            : {}),
+          marks,
+          negativeMarks,
+          ...(source ? { source } : {}),
+          ...(examYear ? { examYear: Number(examYear) } : {}),
+          publish,
+          questions: questions.map((q) => ({
+            number: q.number,
+            body: q.body,
+            options: q.options.map((o) => ({ body: o.body })),
+            correctIndex: q.correctIndex!,
+          })),
+        },
+      );
+
+      setResult(data);
+      setStep('done');
+      router.refresh();
+    } catch (caught) {
+      setError(
+        caught instanceof ApiClientError
+          ? (Object.values(caught.fieldErrors ?? {})[0]?.[0] ?? caught.message)
+          : 'The import failed. Nothing was saved.',
+      );
+    } finally {
+      setCommitting(false);
+    }
+  }
+
+  // =======================================================================
+  if (step === 'done' && result) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-success/10 text-success">
+            <CheckCircle2 className="size-7" aria-hidden="true" />
+          </span>
+          <h2 className="mt-4 text-xl font-semibold tracking-tight">
+            Imported {result.created} question{result.created === 1 ? '' : 's'}
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
+            {publish
+              ? 'The questions are published.'
+              : 'The questions were created as drafts — publish them when you are happy.'}
+            {result.testId &&
+              ' The test was created as a draft; open it to review and publish when ready.'}
+          </p>
+
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            {result.testId && (
+              <Button asChild>
+                <a href={`/admin/tests/${result.testId}`}>Open the test</a>
+              </Button>
+            )}
+            <Button asChild variant="outline">
+              <a href="/admin/questions">View question bank</a>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStep('upload');
+                setParsed(null);
+                setQuestions([]);
+                setResult(null);
+              }}
+            >
+              Import another
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // =======================================================================
+  if (step === 'upload') {
+    return (
+      <div className="space-y-5">
+        {error && <InlineError message={error} />}
+
+        <Card>
+          <CardContent className="p-6">
+            <label
+              className={cn(
+                'flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border px-6 py-14 text-center transition-colors',
+                'hover:border-primary/50 hover:bg-muted/30',
+                parsing && 'pointer-events-none opacity-60',
+              )}
+            >
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                className="sr-only"
+                disabled={parsing}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void upload(file);
+                  event.target.value = '';
+                }}
+              />
+
+              {parsing ? (
+                <>
+                  <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
+                  <p className="mt-3 font-medium">Reading the PDF…</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    A 100-question paper takes a few seconds.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <span className="flex size-14 items-center justify-center rounded-full bg-primary-muted text-primary">
+                    <FileUp className="size-6" aria-hidden="true" />
+                  </span>
+                  <p className="mt-4 font-medium">Choose a question paper PDF</p>
+                  <p className="mt-1 max-w-sm text-pretty text-sm text-muted-foreground">
+                    Questions, options and the answer key are extracted. You review everything
+                    before anything is saved.
+                  </p>
+                </>
+              )}
+            </label>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5 sm:p-6">
+            <h2 className="font-semibold tracking-tight">What the parser understands</h2>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Question markers
+                </p>
+                <ul className="mt-1.5 space-y-0.5 font-mono text-xs text-muted-foreground">
+                  <li>Q1. / Q.1 / Question 1</li>
+                  <li>1. / 1)</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Option markers
+                </p>
+                <ul className="mt-1.5 space-y-0.5 font-mono text-xs text-muted-foreground">
+                  <li>1. 2. 3. 4.</li>
+                  <li>(a) (b) (c) (d)</li>
+                  <li>A) B) C) D)</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Answer lines
+                </p>
+                <ul className="mt-1.5 space-y-0.5 font-mono text-xs text-muted-foreground">
+                  <li>CORRECT ANSWER: 1</li>
+                  <li>Answer: A / Ans: (a)</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Not supported
+                </p>
+                <ul className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                  <li>Scanned PDFs — they hold images, not text, and need OCR first</li>
+                  <li>Diagrams and images inside questions</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // =======================================================================
+  return (
+    <div className="space-y-5">
+      {error && <InlineError message={error} />}
+
+      {/* Parse summary --------------------------------------------------- */}
+      <Card variant={unresolved > 0 ? 'accent' : 'default'}>
+        <CardContent className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold tracking-tight">{parsed?.fileName}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {parsed?.pageCount} pages · {questions.length} questions to import
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="success">{questions.length - unresolved} keyed</Badge>
+              {unresolved > 0 && <Badge variant="danger">{unresolved} need an answer</Badge>}
+              {parsed && parsed.stats.withWarnings > 0 && (
+                <Badge variant="warning">{parsed.stats.withWarnings} with warnings</Badge>
+              )}
+            </div>
+          </div>
+
+          {parsed && parsed.documentWarnings.length > 0 && (
+            <ul className="mt-4 space-y-1.5">
+              {parsed.documentWarnings.map((warning) => (
+                <li
+                  key={warning}
+                  className="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning"
+                >
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  {warning}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {unresolved > 0 && (
+            <p className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {unresolved} question{unresolved === 1 ? '' : 's'} still {unresolved === 1 ? 'has' : 'have'} no
+              correct answer set. The parser will not guess one — set them below, or remove those
+              questions, before importing.
+            </p>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-3"
+            onClick={() => setShowText((v) => !v)}
+          >
+            {showText ? 'Hide' : 'Show'} extracted text
+          </Button>
+
+          {showText && (
+            <pre className="scrollbar-slim mt-3 max-h-64 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs">
+              {parsed?.extractedText}
+            </pre>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Destination ------------------------------------------------------ */}
+      <Card>
+        <CardContent className="space-y-4 p-5 sm:p-6">
+          <h2 className="font-semibold tracking-tight">Where do these go?</h2>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(
+              [
+                ['NEW_TEST', 'Create a new test', 'Best for a PYQ paper'],
+                ['EXISTING_TEST', 'Add to an existing test', 'Appends to the end'],
+                ['BANK_ONLY', 'Question bank only', 'Attach to a test later'],
+              ] as const
+            ).map(([value, label, hint]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTarget(value)}
+                aria-pressed={target === value}
+                className={cn(
+                  'rounded-xl border p-3.5 text-left transition-colors',
+                  target === value ? 'border-primary bg-primary-muted' : 'border-border hover:bg-muted/50',
+                )}
+              >
+                <span className="block text-sm font-medium">{label}</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{hint}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Exam" htmlFor="i-exam" required>
+              <select
+                id="i-exam"
+                value={examId}
+                onChange={(event) => {
+                  const next = exams.find((e) => e.id === event.target.value);
+                  setExamId(event.target.value);
+                  setSubjectId(next?.subjects[0]?.id ?? '');
+                }}
+                className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                {exams.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="Subject" htmlFor="i-subject" required hint="All imported questions get this subject">
+              <select
+                id="i-subject"
+                value={subjectId}
+                onChange={(event) => setSubjectId(event.target.value)}
+                className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                {(exam?.subjects ?? []).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          </div>
+
+          {target === 'NEW_TEST' && (
+            <>
+              <FormField label="Test title" htmlFor="i-title" required>
+                <Input value={title} onChange={(event) => setTitle(event.target.value)} />
+              </FormField>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <FormField label="Test series" htmlFor="i-series" hint="Optional">
+                  <select
+                    id="i-series"
+                    value={testSeriesId}
+                    onChange={(event) => setTestSeriesId(event.target.value)}
+                    className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">Standalone</option>
+                    {series.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+                <FormField label="Category" htmlFor="i-cat">
+                  <select
+                    id="i-cat"
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                    className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                  >
+                    {['PREVIOUS_YEAR', 'FULL_MOCK', 'SECTIONAL', 'TOPIC', 'CUSTOM'].map((c) => (
+                      <option key={c} value={c}>
+                        {c.replace(/_/g, ' ')}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+                <FormField label="Duration (min)" htmlFor="i-dur">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={durationMinutes}
+                    onChange={(event) => setDurationMinutes(Number(event.target.value))}
+                  />
+                </FormField>
+              </div>
+
+              <FormField label="Access" htmlFor="i-access">
+                <select
+                  id="i-access"
+                  value={accessType}
+                  onChange={(event) => setAccessType(event.target.value)}
+                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                >
+                  {['FREE', 'PAID', 'SUBSCRIPTION'].map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            </>
+          )}
+
+          {target === 'EXISTING_TEST' && (
+            <FormField label="Test" htmlFor="i-test" required>
+              <select
+                id="i-test"
+                value={testId}
+                onChange={(event) => setTestId(event.target.value)}
+                className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                {tests.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-4">
+            <FormField label="Marks" htmlFor="i-marks">
+              <Input
+                type="number"
+                step="0.25"
+                min={0.25}
+                value={marks}
+                onChange={(event) => setMarks(Number(event.target.value))}
+              />
+            </FormField>
+            <FormField label="Negative" htmlFor="i-neg">
+              <Input
+                type="number"
+                step="0.25"
+                min={0}
+                value={negativeMarks}
+                onChange={(event) => setNegativeMarks(Number(event.target.value))}
+              />
+            </FormField>
+            <FormField label="Source" htmlFor="i-source">
+              <Input value={source} onChange={(event) => setSource(event.target.value)} />
+            </FormField>
+            <FormField label="Exam year" htmlFor="i-year">
+              <Input
+                type="number"
+                min={1950}
+                max={2100}
+                value={examYear}
+                onChange={(event) => setExamYear(event.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <label className="flex items-start gap-3 border-t border-border pt-4">
+            <input
+              type="checkbox"
+              checked={publish}
+              onChange={(event) => setPublish(event.target.checked)}
+              className="mt-1 size-4 rounded border-input"
+            />
+            <span>
+              <span className="block text-sm font-medium">Publish the questions immediately</span>
+              <span className="block text-xs text-muted-foreground">
+                Off by default. Drafts let you check the import before students can see anything.
+              </span>
+            </span>
+          </label>
+        </CardContent>
+      </Card>
+
+      {/* Review ----------------------------------------------------------- */}
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Review every question
+        </h2>
+
+        <ul className="mt-3 space-y-3">
+          {questions.map((question, qIndex) => {
+            const needsKey = question.correctIndex === null;
+
+            return (
+              <li
+                key={`${question.number}-${qIndex}`}
+                className={cn(
+                  'rounded-xl border bg-card p-4',
+                  needsKey ? 'border-destructive/40' : 'border-border',
+                )}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Q{question.number}
+                  </span>
+                  {needsKey ? (
+                    <Badge variant="danger" size="sm">
+                      Set the correct answer
+                    </Badge>
+                  ) : (
+                    <Badge variant="success" size="sm">
+                      Answer: {String.fromCharCode(65 + question.correctIndex!)}
+                    </Badge>
+                  )}
+                  {question.rawAnswer && (
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {question.rawAnswer}
+                    </span>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="ml-auto text-muted-foreground hover:text-destructive"
+                    onClick={() => removeQuestion(qIndex)}
+                    aria-label={`Remove question ${question.number} from this import`}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </div>
+
+                {question.warnings.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {question.warnings.map((warning) => (
+                      <li key={warning} className="flex items-start gap-1.5 text-xs text-warning">
+                        <AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
+                        {warning}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <Textarea
+                  value={question.body}
+                  onChange={(event) => updateQuestion(qIndex, { body: event.target.value })}
+                  rows={2}
+                  className="mt-3"
+                  aria-label={`Question ${question.number} text`}
+                />
+
+                <ul className="mt-2.5 space-y-2">
+                  {question.options.map((option, oIndex) => (
+                    <li key={oIndex} className="flex items-start gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => updateQuestion(qIndex, { correctIndex: oIndex })}
+                        aria-pressed={question.correctIndex === oIndex}
+                        aria-label={`Mark option ${String.fromCharCode(65 + oIndex)} correct`}
+                        className={cn(
+                          'mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-colors',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          question.correctIndex === oIndex
+                            ? 'border-success bg-success text-white'
+                            : 'border-input text-muted-foreground hover:border-success/50',
+                        )}
+                      >
+                        {question.correctIndex === oIndex ? (
+                          <Check className="size-3.5" strokeWidth={3} aria-hidden="true" />
+                        ) : (
+                          String.fromCharCode(65 + oIndex)
+                        )}
+                      </button>
+
+                      <Textarea
+                        value={option.body}
+                        onChange={(event) => updateOption(qIndex, oIndex, event.target.value)}
+                        rows={1}
+                        className="min-h-[40px] flex-1 text-sm"
+                        aria-label={`Option ${String.fromCharCode(65 + oIndex)}`}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* Commit ------------------------------------------------------------ */}
+      <div className="sticky bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-4 shadow-elevated backdrop-blur">
+        <div className="text-sm">
+          {unresolved > 0 ? (
+            <span className="text-destructive">
+              {unresolved} question{unresolved === 1 ? '' : 's'} still need an answer
+            </span>
+          ) : invalid > 0 ? (
+            <span className="text-destructive">{invalid} question(s) are incomplete</span>
+          ) : (
+            <span className="text-muted-foreground">
+              {questions.length} questions ready to import
+            </span>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setStep('upload')} disabled={committing}>
+            Start over
+          </Button>
+          <Button
+            onClick={commit}
+            loading={committing}
+            loadingText="Importing…"
+            disabled={unresolved > 0 || invalid > 0 || questions.length === 0}
+          >
+            <Upload aria-hidden="true" />
+            Import {questions.length}
+            <ArrowRight aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
