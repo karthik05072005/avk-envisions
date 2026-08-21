@@ -10,6 +10,18 @@ import { defaultRouteForRole } from '@/server/auth/permissions';
  * "Dashboard" call to action immediately, with no post-hydration flip from
  * "Sign in" to "Dashboard".
  */
+/**
+ * Every page in this segment is rendered per request.
+ *
+ * The layout below reads the session cookie to render the header, which makes
+ * static rendering impossible. Without this, the routes that declare
+ * `generateStaticParams` (/pyq/[slug], /courses/[track], /exams/[slug],
+ * /blog/[slug], /test-series/[slug], /[slug]) are treated as static, hit the
+ * cookie read at render time and fail with DYNAMIC_SERVER_USAGE — a 500 on
+ * every one of those pages.
+ */
+export const dynamic = 'force-dynamic';
+
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
 

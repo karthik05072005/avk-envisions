@@ -7,6 +7,7 @@ import {
   Brain,
   CheckCircle2,
   ClipboardList,
+  FileText,
   Gauge,
   LineChart,
   ShieldCheck,
@@ -22,8 +23,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EXAM_CATEGORY_LABELS, type ExamCategory } from '@/lib/enums';
-import { formatCompactNumber, formatPaise } from '@/lib/utils';
-import { getCourseTracks } from '@/server/services/catalogue-service';
+import { formatCompactNumber, formatDuration, formatPaise } from '@/lib/utils';
+import { getCourseTracks, getPyqPaper } from '@/server/services/catalogue-service';
 import {
   getFaqs,
   getFeaturedExams,
@@ -48,21 +49,28 @@ export const metadata: Metadata = {
  * without a deploy. Sections whose data has not been populated yet are omitted
  * entirely rather than rendering an empty shell.
  */
+/** The previous-year paper offered free, so visitors can try a real paper first. */
+const FREE_PAPER_SLUG = 'kas-pyq-2011';
+
 export default async function HomePage() {
-  const [tracks, exams, series, stats, plans, testimonials, stories, faqs] = await Promise.all([
-    getCourseTracks(),
-    getFeaturedExams(8),
-    getFeaturedTestSeries(3),
-    getPlatformStats(),
-    getPublishedPlans(),
-    getTestimonials(3),
-    getSuccessStories(3),
-    getFaqs(undefined, 6),
-  ]);
+  const [tracks, exams, series, stats, plans, testimonials, stories, faqs, freePaper] =
+    await Promise.all([
+      getCourseTracks(),
+      getFeaturedExams(8),
+      getFeaturedTestSeries(3),
+      getPlatformStats(),
+      getPublishedPlans(),
+      getTestimonials(3),
+      getSuccessStories(3),
+      getFaqs(undefined, 6),
+      // The free sample paper. Null if it has not been seeded.
+      getPyqPaper(FREE_PAPER_SLUG),
+    ]);
 
   return (
     <>
       <Hero />
+      <FreePaperCta paper={freePaper} />
       <TrackChooser tracks={tracks} />
       {stats.questions > 0 && <StatsStrip stats={stats} />}
       {exams.length > 0 && <ExamCategories exams={exams} />}
@@ -77,6 +85,70 @@ export default async function HomePage() {
       {faqs.length > 0 && <Faqs faqs={faqs} />}
       <FinalCta />
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Promotes the free previous-year paper.
+ *
+ * Renders nothing unless the paper is actually seeded, genuinely free and has
+ * questions loaded — an advert for a test that 404s or asks for payment is
+ * worse than no advert at all.
+ */
+function FreePaperCta({ paper }: { paper: Awaited<ReturnType<typeof getPyqPaper>> }) {
+  if (!paper || paper.priceInPaise !== 0) return null;
+
+  const test = paper.fullLength.find((t) => t.isReady);
+  if (!test) return null;
+
+  const label = paper.sessionLabel ? `${paper.sessionLabel} ${paper.examYear}` : `${paper.examYear}`;
+
+  return (
+    <section className="border-y border-border bg-primary/5" aria-labelledby="free-paper-heading">
+      <div className="container flex flex-col gap-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:py-10">
+        <div className="flex items-start gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <FileText className="size-6" aria-hidden="true" />
+          </span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary">Free</Badge>
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                No payment required
+              </span>
+            </div>
+            <h2 id="free-paper-heading" className="mt-1.5 text-balance text-xl font-semibold tracking-tight">
+              Attempt the {label} KAS Prelims paper free
+            </h2>
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <ClipboardList className="size-4" aria-hidden="true" />
+                {test.totalQuestions} questions
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Timer className="size-4" aria-hidden="true" />
+                {formatDuration(test.durationMinutes * 60)}
+              </span>
+              <span>Real exam timing and marking</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
+          <Button asChild size="lg" variant="brand">
+            <Link href={`/test/${test.id}`}>
+              Start free test
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href={`/pyq/${paper.slug}`}>View paper</Link>
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
 

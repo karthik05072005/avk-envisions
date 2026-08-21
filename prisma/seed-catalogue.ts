@@ -47,8 +47,10 @@ const KAS_SUBJECTS: { name: string; questions: number; icon: string; color: stri
 ];
 
 /** Previous-year papers KPSC has actually conducted. */
-const PYQ_YEARS: { year: number; session?: string; papers: number[] }[] = [
-  { year: 2011, papers: [1, 2] },
+const PYQ_YEARS: { year: number; session?: string; papers: number[]; free?: boolean }[] = [
+  // 2011 is the free sample: a complete, genuine KAS paper a student can
+  // attempt end to end before paying for anything.
+  { year: 2011, papers: [1, 2], free: true },
   { year: 2014, papers: [1, 2] },
   { year: 2015, papers: [1, 2] },
   { year: 2020, papers: [1, 2] },
@@ -325,6 +327,10 @@ async function main() {
       ? `kas-pyq-${entry.year}-${slugify(entry.session)}`
       : `kas-pyq-${entry.year}`;
 
+    const price = entry.free ? 0 : 99900;
+    const comparePrice = entry.free ? 0 : 149900;
+    const accessType = entry.free ? 'FREE' : 'PAID';
+
     const series = await db.testSeries.upsert({
       where: { slug },
       update: {
@@ -332,6 +338,9 @@ async function main() {
         examYear: entry.year,
         sessionLabel: entry.session ?? null,
         status: 'PUBLISHED',
+        // Refreshed every run so a pricing change here reaches existing rows.
+        priceInPaise: price,
+        comparePriceInPaise: comparePrice,
       },
       create: {
         examId,
@@ -344,8 +353,8 @@ async function main() {
         tagline: `Attempt the full-length ${label} paper or practise it subject by subject.`,
         description: `The complete ${label} KAS Preliminary examination, reproduced in the real exam format with the actual timing and marking scheme. Attempt the full paper end to end, or drill a single subject using only the questions from that subject in this paper.`,
         difficulty: 'MIXED',
-        priceInPaise: 99900,
-        comparePriceInPaise: 149900,
+        priceInPaise: price,
+        comparePriceInPaise: comparePrice,
         accessDurationDays: 365,
         status: 'PUBLISHED',
         sortOrder: index + 1,
@@ -366,7 +375,7 @@ async function main() {
         title: `${label} Full-Length PYQ Test — Paper ${paper}`,
         seriesId: series.id,
         category: 'PREVIOUS_YEAR',
-        accessType: 'PAID',
+        accessType,
         durationMinutes: 120,
         paperNumber: paper,
         description: `Complete ${label} KAS Prelims Paper ${paper}.`,
@@ -381,7 +390,7 @@ async function main() {
         title: `${subject.name} — ${label}`,
         seriesId: series.id,
         category: 'TOPIC',
-        accessType: 'PAID',
+        accessType,
         // Sized to the subject's share of the paper, at roughly 1.2 min/question.
         durationMinutes: Math.max(10, Math.round(subject.questions * 1.2)),
         subjectId: subjectIds.get(subject.name),
