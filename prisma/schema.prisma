@@ -51,6 +51,10 @@ model User {
   emailVerified DateTime?
   avatarUrl     String?
   phone         String?
+  /// REGISTERED | GUEST_FREE_TEST — how the account came into existence.
+  /// Guest accounts are created by the free-test lead capture, which collects
+  /// a name and phone number instead of a password.
+  signupSource  String    @default("REGISTERED")
   /// Bumped on password change / "log out everywhere" to invalidate sessions.
   sessionEpoch  Int       @default(0)
 
@@ -114,6 +118,8 @@ model User {
   @@index([role, status])
   @@index([status, createdAt])
   @@index([deletedAt])
+  @@index([signupSource, createdAt])
+  @@index([phone])
   @@map("users")
 }
 

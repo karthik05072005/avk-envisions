@@ -80,6 +80,7 @@ export async function startAttempt(params: {
       mode: true,
       category: true,
       accessType: true,
+      testSeriesId: true,
       durationMinutes: true,
       totalMarks: true,
       maxAttempts: true,
@@ -155,6 +156,40 @@ export async function startAttempt(params: {
     if (live.expiresAt > now) return { attemptId: live.id, resumed: true };
     // Expired but never finalised — close it out before issuing a new one.
     await submitAttempt({ attemptId: live.id, userId, reason: 'EXPIRED' });
+  }
+
+  // --- Access ------------------------------------------------------------
+  // Enforced here rather than only in the UI: `accessType` decides whether a
+  // paper is free, and without this check any signed-in account could start a
+  // paid test by posting its id straight to the API.
+  //
+  // Placed after the resume branch on purpose. Someone already mid-paper keeps
+  // their attempt even if their access lapses while they are sitting it;
+  // starting a *new* attempt is what requires entitlement.
+  if (test.accessType !== 'FREE') {
+    const actor = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
+
+    // Admins can open any paper — they need to be able to review content.
+    if (actor?.role !== 'ADMIN') {
+      const entitled = test.testSeriesId
+        ? await db.entitlement.findFirst({
+            where: {
+              userId,
+              testSeriesId: test.testSeriesId,
+              revokedAt: null,
+              startsAt: { lte: now },
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            },
+            select: { id: true },
+          })
+        : null;
+
+      if (!entitled) {
+        throw errors.entitlementRequired(
+          'This test is part of a paid series. Purchase access to attempt it.',
+        );
+      }
+    }
   }
 
   // --- Attempt limit -----------------------------------------------------

@@ -32,6 +32,9 @@ export interface AdminUserRow {
   role: string;
   status: string;
   emailVerified: boolean;
+  phone: string | null;
+  /** REGISTERED | GUEST_FREE_TEST */
+  signupSource: string;
   lastLoginAt: string | null;
   createdAt: string;
   attempts: number;
@@ -64,6 +67,9 @@ export function UserTable({ rows, currentUserId }: { rows: AdminUserRow[]; curre
     <ul className="divide-y divide-border">
       {rows.map((user) => {
         const isSelf = user.id === currentUserId;
+        // Guests have no real address — the stored one is a generated
+        // `.invalid` placeholder, so their number is the useful identifier.
+        const isGuest = user.signupSource === 'GUEST_FREE_TEST';
 
         return (
           <li key={user.id} className="flex items-center gap-4 p-4">
@@ -76,10 +82,16 @@ export function UserTable({ rows, currentUserId }: { rows: AdminUserRow[]; curre
                   {user.role}
                 </Badge>
                 <StatusBadge status={user.status} />
-                {!user.emailVerified && (
-                  <Badge variant="warning" size="sm">
-                    Unverified
+                {isGuest ? (
+                  <Badge variant="info" size="sm">
+                    Free-test lead
                   </Badge>
+                ) : (
+                  !user.emailVerified && (
+                    <Badge variant="warning" size="sm">
+                      Unverified
+                    </Badge>
+                  )
                 )}
                 {isSelf && (
                   <Badge variant="info" size="sm">
@@ -88,7 +100,9 @@ export function UserTable({ rows, currentUserId }: { rows: AdminUserRow[]; curre
                 )}
               </p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                {user.email} · joined {formatDate(user.createdAt, 'short')}
+                {isGuest ? (user.phone ?? 'No number recorded') : user.email}
+                {!isGuest && user.phone && ` · ${user.phone}`} · joined{' '}
+                {formatDate(user.createdAt, 'short')}
                 {user.lastLoginAt && ` · last seen ${formatDate(user.lastLoginAt, 'short')}`}
               </p>
             </div>

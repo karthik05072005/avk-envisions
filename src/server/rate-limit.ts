@@ -35,6 +35,12 @@ export const RATE_LIMITS = {
   /** Per email address, stricter than per IP to slow credential stuffing. */
   loginPerAccount: { limit: 5, windowMs: 15 * 60 * 1000 },
   register: { limit: 5, windowMs: 60 * 60 * 1000 },
+  /**
+   * Free-test lead capture. Creates a real account without a password, so it
+   * is held to the same ceiling as registration: an open endpoint that mints
+   * accounts is worth abusing.
+   */
+  guestStart: { limit: 5, windowMs: 60 * 60 * 1000 },
   forgotPassword: { limit: 4, windowMs: 60 * 60 * 1000 },
   resendVerification: { limit: 4, windowMs: 60 * 60 * 1000 },
   /** Answer autosave fires often by design; this only catches runaway clients. */

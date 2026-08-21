@@ -377,15 +377,30 @@ export async function refreshTestTotals(testId: string) {
 // Users
 // ---------------------------------------------------------------------------
 
-export async function listUsers(filters: { search?: string; role?: string; page?: number } = {}) {
+export async function listUsers(
+  filters: { search?: string; role?: string; source?: string; page?: number } = {},
+) {
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = 25;
+
+  // Digits only, and only when the search actually contains some. An empty
+  // `contains` matches every row that has a phone number, which would quietly
+  // turn a name search into "everyone with a phone".
+  const searchDigits = (filters.search ?? '').replace(/\D/g, '');
 
   const where = {
     deletedAt: null,
     ...(filters.role ? { role: filters.role } : {}),
+    ...(filters.source ? { signupSource: filters.source } : {}),
     ...(filters.search
-      ? { OR: [{ name: { contains: filters.search } }, { emailNormal: { contains: filters.search.toLowerCase() } }] }
+      ? {
+          OR: [
+            { name: { contains: filters.search } },
+            { emailNormal: { contains: filters.search.toLowerCase() } },
+            // Guest leads are looked up by number far more often than by name.
+            ...(searchDigits.length >= 4 ? [{ phone: { contains: searchDigits } }] : []),
+          ],
+        }
       : {}),
   };
 
@@ -402,6 +417,8 @@ export async function listUsers(filters: { search?: string; role?: string; page?
         role: true,
         status: true,
         emailVerified: true,
+        phone: true,
+        signupSource: true,
         lastLoginAt: true,
         createdAt: true,
         _count: { select: { attempts: true, orders: true } },

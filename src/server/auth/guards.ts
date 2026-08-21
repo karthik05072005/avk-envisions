@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { AppError, errors } from '@/lib/api';
 import { serverEnv } from '@/lib/env';
+import { isGuestEmail } from '@/server/services/guest-service';
 import type { UserRole } from '@/lib/enums';
 import { db } from '@/server/db';
 
@@ -66,7 +67,10 @@ export async function requireUser(): Promise<SessionUser> {
  */
 export async function requireVerifiedUser(): Promise<SessionUser> {
   const user = await requireUser();
-  if (serverEnv().REQUIRE_EMAIL_VERIFICATION && !user.emailVerified) {
+  // Guest accounts from the free-test lead capture have a generated `.invalid`
+  // address by design. Holding them to email verification would make the free
+  // test unreachable the moment verification is switched on.
+  if (serverEnv().REQUIRE_EMAIL_VERIFICATION && !user.emailVerified && !isGuestEmail(user.email)) {
     throw new AppError(
       'EMAIL_NOT_VERIFIED',
       'Please verify your email address to continue. Check your inbox for the verification link.',

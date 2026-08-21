@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { ExamEngine } from '@/features/exam/exam-engine';
 import { StartScreen } from '@/features/exam/start-screen';
 import { TERMINAL_ATTEMPT_STATUSES } from '@/lib/enums';
-import { enforceStudent } from '@/server/auth/guards';
+import { currentUser, enforceStudent } from '@/server/auth/guards';
 import { db } from '@/server/db';
 import { getAttemptState } from '@/server/services/attempt-service';
 
@@ -29,6 +29,18 @@ export const dynamic = 'force-dynamic';
  */
 export default async function TestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  // A signed-out visitor heading for a free test is offered the guest route —
+  // name and phone number — rather than a login wall. Anything else (a paid
+  // test, or an attempt id that is not theirs) still falls through to sign-in.
+  if (!(await currentUser())) {
+    const freeTest = await db.test.findFirst({
+      where: { id, deletedAt: null, status: 'PUBLISHED', accessType: 'FREE' },
+      select: { id: true },
+    });
+    if (freeTest) redirect(`/start/${freeTest.id}`);
+  }
+
   const user = await enforceStudent(`/test/${id}`);
 
   // --- Attempt? ----------------------------------------------------------
