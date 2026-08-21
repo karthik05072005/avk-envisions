@@ -1,7 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, CalendarDays, Clock, FileQuestion, Layers, Lock } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpenText,
+  CalendarDays,
+  Clock,
+  FileQuestion,
+  Layers,
+  Lock,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -134,6 +142,28 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
             The full-length test contains the complete {label} paper, attempted under real exam
             timing.
           </p>
+
+          {/* --- Analysis / synopsis ------------------------------------- */}
+          {paper.hasSynopsis && (
+            <div className="mt-4 flex flex-col gap-4 rounded-xl border border-primary/30 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3.5">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <BookOpenText className="size-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-semibold leading-tight">{label} Complete Analysis</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Every question with its answer, the reasoning, the core concept and the likely
+                    future angle. Available to read once you have attempted the paper.
+                  </p>
+                </div>
+              </div>
+
+              <Button asChild variant="outline" className="shrink-0">
+                <Link href={`/synopsis/${paper.slug}`}>Open analysis</Link>
+              </Button>
+            </div>
+          )}
         </section>
 
         {/* Divider --------------------------------------------------------- */}

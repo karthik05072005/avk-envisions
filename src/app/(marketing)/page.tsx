@@ -182,7 +182,7 @@ function Hero() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            AVK Visions combines full-length mocks, sectional tests and a deep question bank with
+            AVK Envisions combines full-length mocks, sectional tests and a deep question bank with
             analytics that tell you precisely which topics are costing you marks — and what to do
             about them.
           </p>
@@ -462,7 +462,7 @@ function WhyAvk() {
   return (
     <section className="container py-20 sm:py-24">
       <SectionHeading
-        eyebrow="Why AVK Visions"
+        eyebrow="Why AVK Envisions"
         title="Built by people who take preparation seriously"
         description="No inflated claims, no vanity metrics. Just the things that genuinely move a score."
       />
@@ -499,7 +499,7 @@ function AnalyticsShowcase() {
             align="left"
             eyebrow="Performance intelligence"
             title="Know exactly what is costing you marks"
-            description="After every test, AVK Visions breaks your performance down by subject, chapter, topic and difficulty — then ranks what to revise first by how much it will actually move your score."
+            description="After every test, AVK Envisions breaks your performance down by subject, chapter, topic and difficulty — then ranks what to revise first by how much it will actually move your score."
           />
 
           <ul className="mt-8 space-y-4">
@@ -644,7 +644,7 @@ function SuccessStories({ stories }: { stories: Awaited<ReturnType<typeof getSuc
         <SectionHeading
           eyebrow="Success stories"
           title="Students who put in the work"
-          description="Real results from students who prepared with AVK Visions."
+          description="Real results from students who prepared with AVK Envisions."
         />
 
         <div className="mt-12 grid gap-6 lg:grid-cols-3">

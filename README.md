@@ -1,4 +1,4 @@
-# AVK Visions
+# AVK Envisions
 
 A premium online examination and preparation platform — test series, mock tests,
 practice, a reviewed question bank, and performance analytics that tell a student

@@ -73,7 +73,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             Preparation that tells you what to do next.
           </h2>
           <p className="mt-4 text-pretty leading-relaxed text-primary-foreground/80">
-            Most platforms hand you a score. AVK Visions hands you a plan.
+            Most platforms hand you a score. AVK Envisions hands you a plan.
           </p>
 
           <ul className="mt-10 space-y-7">

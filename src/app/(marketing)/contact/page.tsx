@@ -10,7 +10,7 @@ import { db } from '@/server/db';
 
 export const metadata: Metadata = {
   title: 'Contact us',
-  description: 'Get in touch with the AVK Visions team.',
+  description: 'Get in touch with the AVK Envisions team.',
   alternates: { canonical: '/contact' },
 };
 

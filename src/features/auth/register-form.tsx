@@ -54,7 +54,7 @@ export function RegisterForm() {
       toast.success(
         data.emailVerificationRequired
           ? 'Account created. Check your inbox to verify your email.'
-          : 'Account created. Welcome to AVK Visions.',
+          : 'Account created. Welcome to AVK Envisions.',
       );
 
       router.replace(data.redirectTo || '/dashboard');

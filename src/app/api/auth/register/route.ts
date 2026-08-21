@@ -35,7 +35,7 @@ export const POST = route(
       },
       message: result.emailVerificationRequired
         ? 'Account created. Check your inbox to verify your email address.'
-        : 'Account created. Welcome to AVK Visions.',
+        : 'Account created. Welcome to AVK Envisions.',
       status: 201,
     };
   },

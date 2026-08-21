@@ -13,7 +13,7 @@ import { getFaqs, getPublishedPlans } from '@/server/services/marketing-service'
 export const metadata: Metadata = {
   title: 'Pricing',
   description:
-    'Simple plans for AVK Visions. Start free, upgrade when the platform has proven itself to you.',
+    'Simple plans for AVK Envisions. Start free, upgrade when the platform has proven itself to you.',
   alternates: { canonical: '/pricing' },
 };
 

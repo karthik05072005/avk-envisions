@@ -1,42 +1,36 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
 
 /**
- * AVK Visions wordmark.
+ * AVK Envisions mark.
  *
- * Drawn as inline SVG rather than an image file so it inherits `currentColor`
- * and stays crisp in both themes without shipping two assets.
+ * The supplied gold/graphite monogram, served as a transparent PNG so it sits
+ * correctly on either theme's header. It is deliberately a raster rather than
+ * inline SVG: the artwork has gradients and bevels that do not reduce to
+ * `currentColor` without losing the brand.
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 32 32"
-      fill="none"
-      className={cn('size-8', className)}
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect width="32" height="32" rx="8" className="fill-primary" />
-      {/* Stylised "A" formed from an upward chevron — growth and ascent. */}
-      <path
-        d="M9 22.5L16 9L23 22.5"
-        className="stroke-primary-foreground"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12.4 18.2H19.6"
-        className="stroke-primary-foreground"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        opacity="0.85"
-      />
-    </svg>
+    <Image
+      src="/logo-avk.png"
+      alt=""
+      width={64}
+      height={64}
+      priority
+      className={cn('size-9 shrink-0 object-contain', className)}
+    />
   );
 }
 
+/**
+ * Wordmark and home link.
+ *
+ * Always navigates to the home page — this is the site's home button, so it
+ * carries an explicit label and tooltip rather than relying on the convention
+ * that a logo is clickable.
+ */
 export function Logo({
   className,
   href = '/',
@@ -49,16 +43,17 @@ export function Logo({
   return (
     <Link
       href={href}
+      title="Home"
       className={cn(
         'group inline-flex items-center gap-2.5 rounded-lg transition-opacity hover:opacity-90',
         className,
       )}
-      aria-label="AVK Visions home"
+      aria-label="AVK Envisions — home"
     >
       <LogoMark />
       {showText && (
-        <span className="text-[1.0625rem] font-bold tracking-tight">
-          AVK<span className="text-primary"> Visions</span>
+        <span className="text-[1.0625rem] font-bold leading-tight tracking-tight">
+          AVK<span className="text-primary"> Envisions</span>
         </span>
       )}
     </Link>

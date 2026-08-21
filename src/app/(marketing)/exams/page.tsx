@@ -13,7 +13,7 @@ import { getAllExams } from '@/server/services/marketing-service';
 export const metadata: Metadata = {
   title: 'Exams',
   description:
-    'Every exam covered on AVK Visions, each with its own syllabus tree, reviewed question bank and structured test series.',
+    'Every exam covered on AVK Envisions, each with its own syllabus tree, reviewed question bank and structured test series.',
   alternates: { canonical: '/exams' },
 };
 

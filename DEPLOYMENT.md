@@ -1,4 +1,4 @@
-# Deploying AVK Visions to Google Cloud
+# Deploying AVK Envisions to Google Cloud
 
 A complete walkthrough: one Compute Engine VM running the app on SQLite, with a
 Hostinger domain and automatic HTTPS.
@@ -63,7 +63,7 @@ A browser window opens. Choose your Google account and allow access.
 ## Step 2 — Create the project
 
 ```bash
-gcloud projects create avk-visions --name="AVK Visions"
+gcloud projects create avk-visions --name="AVK Envisions"
 gcloud config set project avk-visions
 ```
 
@@ -410,7 +410,7 @@ sudo nano /opt/avkvisions/.env
 ```ini
 EMAIL_PROVIDER=resend
 EMAIL_API_KEY="re_your_key_here"
-EMAIL_FROM="AVK Visions <no-reply@yourdomain.com>"
+EMAIL_FROM="AVK Envisions <no-reply@yourdomain.com>"
 REQUIRE_EMAIL_VERIFICATION=true
 ```
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Deploys AVK Visions on the VM. Safe to re-run for every release.
+# Deploys AVK Envisions on the VM. Safe to re-run for every release.
 #
 #   sudo bash /opt/avkvisions/deploy/deploy.sh
 #

@@ -85,7 +85,7 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
         <CardContent className="space-y-4 p-5 sm:p-6">
           {ticket.messages.map((message) => {
             const isStaff = message.author?.role !== 'STUDENT' && message.author !== null;
-            const authorName = message.author?.name ?? 'AVK Visions';
+            const authorName = message.author?.name ?? 'AVK Envisions';
 
             return (
               <div key={message.id} className="flex gap-3">

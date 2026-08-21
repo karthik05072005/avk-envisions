@@ -2,7 +2,7 @@
   "name": "avk-visions",
   "version": "0.1.0",
   "private": true,
-  "description": "AVK Visions — premium online test series and exam preparation platform.",
+  "description": "AVK Envisions — premium online test series and exam preparation platform.",
   "engines": {
     "node": ">=20.11.0"
   },
@@ -28,7 +28,8 @@
     "worker": "tsx src/server/jobs/worker.ts",
     "db:seed:catalogue": "tsx prisma/seed-catalogue.ts",
     "db:seed:2011": "tsx prisma/seed-kas-2011.ts",
-    "db:prune:kas": "tsx prisma/prune-to-kas.ts"
+    "db:prune:kas": "tsx prisma/prune-to-kas.ts",
+    "db:synopses": "tsx prisma/install-synopses.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

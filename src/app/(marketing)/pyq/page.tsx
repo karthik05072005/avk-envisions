@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, CalendarDays, FileQuestion, Layers } from 'lucide-react';
+import { ArrowRight, CalendarDays, FileQuestion, Layers, Lock } from 'lucide-react';
 
 import { PageHeader } from '@/components/site/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -37,16 +37,29 @@ export default async function PyqPage() {
         title="Previous year question papers"
         description="Each paper is reproduced in the real exam format, with the actual timing and marking scheme. Attempt the full paper end to end, or drill one subject at a time using only that subject's questions from the paper."
       >
-        <div className="mt-8 inline-flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-3.5">
-          <CalendarDays className="size-5 text-primary" aria-hidden="true" />
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              KAS Prelims conducted
-            </p>
-            <p className="text-sm font-semibold">
-              {years.length} {years.length === 1 ? 'paper' : 'papers'} available
-            </p>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-3.5">
+            <CalendarDays className="size-5 text-primary" aria-hidden="true" />
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                KAS Prelims conducted
+              </p>
+              <p className="text-sm font-semibold">
+                {years.length} {years.length === 1 ? 'paper' : 'papers'} available
+              </p>
+            </div>
           </div>
+
+          {/* Previous papers are where visitors land; the test series is what
+              they are here to buy, so it gets a first-class route out of this
+              page rather than only a nav item. */}
+          <Button asChild size="lg" variant="brand">
+            <Link href="/test-series">
+              <Layers aria-hidden="true" />
+              Explore test series
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
         </div>
       </PageHeader>
 
@@ -72,7 +85,11 @@ export default async function PyqPage() {
                 : `${year.examYear}`;
 
               return (
-                <Card key={year.id} interactive className="h-full">
+                <Card
+                  key={year.id}
+                  interactive
+                  className={year.isFree ? 'h-full border-primary/40 ring-1 ring-primary/20' : 'h-full'}
+                >
                   <CardContent className="flex h-full flex-col p-6">
                     <div className="flex items-start justify-between gap-3">
                       <span
@@ -80,9 +97,14 @@ export default async function PyqPage() {
                       >
                         {year.examYear}
                       </span>
-                      {year.readyCount > 0 ? (
+                      {year.isFree ? (
                         <Badge variant="success" size="sm">
-                          {year.readyCount} ready
+                          Free
+                        </Badge>
+                      ) : year.readyCount > 0 ? (
+                        <Badge variant="secondary" size="sm">
+                          <Lock aria-hidden="true" />
+                          Locked
                         </Badge>
                       ) : (
                         <Badge variant="muted" size="sm">
@@ -124,12 +146,21 @@ export default async function PyqPage() {
 
                     <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
                       <span className="text-sm font-semibold tabular-nums">
-                        {year.priceInPaise === 0 ? 'Free' : formatPaise(year.priceInPaise)}
+                        {year.isFree ? 'Free' : formatPaise(year.priceInPaise)}
                       </span>
-                      <Button asChild size="sm">
+                      <Button asChild size="sm" variant={year.isFree ? 'brand' : 'outline'}>
                         <Link href={`/pyq/${year.slug}`}>
-                          View tests
-                          <ArrowRight aria-hidden="true" />
+                          {year.isFree ? (
+                            <>
+                              Start free
+                              <ArrowRight aria-hidden="true" />
+                            </>
+                          ) : (
+                            <>
+                              <Lock aria-hidden="true" />
+                              Unlock
+                            </>
+                          )}
                         </Link>
                       </Button>
                     </div>

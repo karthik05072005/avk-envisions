@@ -10,7 +10,7 @@ import { db } from '@/server/db';
 export const metadata: Metadata = {
   title: 'Frequently asked questions',
   description:
-    'Answers to common questions about AVK Visions — tests, results, payments and your account.',
+    'Answers to common questions about AVK Envisions — tests, results, payments and your account.',
   alternates: { canonical: '/faq' },
 };
 

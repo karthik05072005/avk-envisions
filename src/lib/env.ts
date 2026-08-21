@@ -35,7 +35,7 @@ const serverSchema = z
 
     EMAIL_PROVIDER: z.enum(['resend', 'console']).default('console'),
     EMAIL_API_KEY: z.string().optional().default(''),
-    EMAIL_FROM: z.string().default('AVK Visions <no-reply@avkvisions.com>'),
+    EMAIL_FROM: z.string().default('AVK Envisions <no-reply@avkvisions.com>'),
     EMAIL_REPLY_TO: z.string().optional().default(''),
 
     RAZORPAY_KEY_ID: z.string().optional().default(''),
@@ -45,7 +45,7 @@ const serverSchema = z
 
     INVOICE_TAX_PERCENT: intFromString(18),
     INVOICE_SERIES_PREFIX: z.string().default('AVK'),
-    INVOICE_LEGAL_NAME: z.string().default('AVK Visions'),
+    INVOICE_LEGAL_NAME: z.string().default('AVK Envisions'),
     INVOICE_LEGAL_ADDRESS: z.string().default(''),
     INVOICE_GSTIN: z.string().optional().default(''),
 
@@ -139,7 +139,7 @@ export function serverEnv(): ServerEnv {
  */
 export const publicEnv = {
   appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  appName: process.env.NEXT_PUBLIC_APP_NAME || 'AVK Visions',
+  appName: process.env.NEXT_PUBLIC_APP_NAME || 'AVK Envisions',
   razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
   storagePublicUrl: process.env.NEXT_PUBLIC_STORAGE_PUBLIC_URL || '',
   analyticsKey: process.env.NEXT_PUBLIC_ANALYTICS_KEY || '',

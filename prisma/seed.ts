@@ -276,14 +276,14 @@ async function seedAchievements() {
 
 async function seedContent(authorId: string) {
   const faqs = [
-    { q: 'Do I need to pay to try AVK Visions?', a: 'No. Create a free account and you get immediate access to free mock tests, daily practice questions and your basic performance report. You only pay when you want the full test series or unlimited practice.', c: 'GENERAL' },
+    { q: 'Do I need to pay to try AVK Envisions?', a: 'No. Create a free account and you get immediate access to free mock tests, daily practice questions and your basic performance report. You only pay when you want the full test series or unlimited practice.', c: 'GENERAL' },
     { q: 'What happens if my internet drops during a test?', a: 'Nothing is lost. Your answers save continuously to our servers as you work, and the timer runs server-side. Reconnect and you resume exactly where you were, with the correct time remaining.', c: 'TESTS' },
     { q: 'How is the percentile calculated?', a: 'Your percentile is computed against every student who has submitted that same test. It updates as more students attempt it, so early attempts may see their percentile shift slightly.', c: 'TESTS' },
     { q: 'Can I attempt a test more than once?', a: 'It depends on the test. Full-length mocks in a series usually allow one scored attempt so rankings stay meaningful, while practice and sectional tests can generally be re-attempted. The attempt limit is shown before you start.', c: 'TESTS' },
     { q: 'Which payment methods do you accept?', a: 'We accept UPI, credit and debit cards, net banking and supported wallets through Razorpay. Your card details never touch our servers.', c: 'PAYMENT' },
     { q: 'What is your refund policy?', a: 'If you have attempted fewer than two tests in a paid series, write to us within 7 days of purchase and we will process a full refund. Details are on our refund policy page.', c: 'PAYMENT' },
     { q: 'I found a mistake in a question. What should I do?', a: 'Use the report button on the question itself. It goes straight to the subject faculty who wrote it, and you will see the outcome once it is reviewed.', c: 'ACCOUNT' },
-    { q: 'Can I use AVK Visions on my phone?', a: 'Yes. The whole platform is responsive and the test interface is specifically tuned for one-handed use on mobile, with the question palette in a bottom sheet.', c: 'GENERAL' },
+    { q: 'Can I use AVK Envisions on my phone?', a: 'Yes. The whole platform is responsive and the test interface is specifically tuned for one-handed use on mobile, with the question palette in a bottom sheet.', c: 'GENERAL' },
   ];
 
   for (const [index, faq] of faqs.entries()) {
@@ -294,15 +294,39 @@ async function seedContent(authorId: string) {
     });
   }
 
+  // Supplied by AVK Envisions. Unattributed on purpose: these are feedback
+  // about the product, not claims about a named individual's result.
   const testimonials = [
-    { name: 'Sneha Rao', quote: 'The weak-topic report was the first thing that actually told me what to do instead of just showing me a score. My Mathematics accuracy went from 52% to 78% in two months.', exam: 'KCET', city: 'Bengaluru', featured: true },
-    { name: 'Karthik Prasad', quote: 'I lost connection twice during a mock and did not lose a single answer. After that I stopped worrying about the platform and just focused on the paper.', exam: 'JEE Main', city: 'Mysuru', featured: true },
-    { name: 'Divya Nair', quote: 'The sectional tests are what fixed my time management. I used to run out of time in Chemistry every single mock — now I finish with eight minutes to spare.', exam: 'NEET', city: 'Mangaluru', featured: true },
+    {
+      name: 'KPSC KAS Aspirant',
+      quote:
+        'The tests were really useful for understanding the KPSC question pattern. The PYQ-based questions made my preparation much more focused.',
+      exam: 'KPSC KAS',
+      city: null,
+      featured: true,
+    },
+    {
+      name: 'KPSC KAS Aspirant',
+      quote:
+        'What I liked most was the analysis after every test. It helped me identify where I was making mistakes and what I actually needed to revise.',
+      exam: 'KPSC KAS',
+      city: null,
+      featured: true,
+    },
+    {
+      name: 'KPSC KAS Aspirant',
+      quote:
+        'It was more than just taking a test. Going through the PYQs, explanations and mistakes helped me understand how to approach KPSC preparation better.',
+      exam: 'KPSC KAS',
+      city: null,
+      featured: true,
+    },
   ];
+
 
   for (const [index, item] of testimonials.entries()) {
     const existing = await db.testimonial.findFirst({
-      where: { studentName: item.name, kind: 'TESTIMONIAL' },
+      where: { quote: item.quote, kind: 'TESTIMONIAL' },
       select: { id: true },
     });
     if (existing) continue;
@@ -321,42 +345,35 @@ async function seedContent(authorId: string) {
     });
   }
 
-  const stories = [
-    { name: 'Aditya Kulkarni', quote: 'I started 40 marks below my target. The analytics made it obvious that Organic Chemistry and Integration were carrying most of my losses, so that is where the hours went.', exam: 'KCET', rank: 'Rank 312', achievement: 'Admitted to RV College of Engineering', year: 2025, city: 'Hubballi' },
-    { name: 'Fatima Sheikh', quote: 'Twenty full-length mocks under real timing changed how I paced the paper more than any amount of theory revision did.', exam: 'JEE Main', rank: '99.2 percentile', achievement: 'Admitted to NIT Surathkal', year: 2025, city: 'Belagavi' },
-    { name: 'Vikram Shetty', quote: 'The wrong-questions section was my entire revision strategy in the last month. Nothing else.', exam: 'NEET', rank: 'Rank 1,840', achievement: 'Admitted to Kasturba Medical College', year: 2025, city: 'Udupi' },
-  ];
+  // Success stories intentionally carry no seeded rows.
+  //
+  // The platform sells KPSC KAS only, and the previous seed invented three
+  // named students with JEE/NEET/KCET ranks and named college admissions.
+  // Presenting fabricated results as real outcomes is not something to ship on
+  // a live site that takes money, so the section stays empty and the home page
+  // hides it until there are genuine, consented stories to publish. Add them
+  // from /admin once you have them.
+  const removedStoryNames = ['Aditya Kulkarni', 'Fatima Sheikh', 'Vikram Shetty'];
+  const purged = await db.testimonial.deleteMany({
+    where: { kind: 'SUCCESS_STORY', studentName: { in: removedStoryNames } },
+  });
+  if (purged.count > 0) console.log(`  ✓ removed ${purged.count} placeholder success stories`);
 
-  for (const [index, story] of stories.entries()) {
-    const existing = await db.testimonial.findFirst({
-      where: { studentName: story.name, kind: 'SUCCESS_STORY' },
-      select: { id: true },
-    });
-    if (existing) continue;
-    await db.testimonial.create({
-      data: {
-        kind: 'SUCCESS_STORY',
-        studentName: story.name,
-        quote: story.quote,
-        examName: story.exam,
-        rank: story.rank,
-        achievement: story.achievement,
-        year: story.year,
-        city: story.city,
-        isFeatured: true,
-        isPublished: true,
-        sortOrder: index,
-      },
-    });
+  // Older non-KAS testimonials from the first seed are removed for the same reason.
+  const staleTestimonials = await db.testimonial.deleteMany({
+    where: { kind: 'TESTIMONIAL', studentName: { in: ['Sneha Rao', 'Karthik Prasad', 'Divya Nair'] } },
+  });
+  if (staleTestimonials.count > 0) {
+    console.log(`  ✓ removed ${staleTestimonials.count} non-KAS testimonials`);
   }
 
   // Legal and informational pages.
   const pages = [
     {
       slug: 'about',
-      title: 'About AVK Visions',
+      title: 'About AVK Envisions',
       content:
-        '<h2>Why we built this</h2><p>Most test platforms hand a student a score and leave them to work out what it means. AVK Visions was built around the opposite idea: every attempt should end with a clear, evidence-backed answer to the question "what should I do next?"</p><h2>How we work</h2><p>Every question in our bank is written by subject faculty and reviewed by a second person before it is published. When a student reports a problem with a question, it is triaged by the faculty who owns that subject, and the outcome is visible to the student who reported it.</p><h2>What we do not do</h2><p>We do not publish inflated success figures, and we do not claim a topic is your weakness on the basis of a single wrong answer. Our analytics wait until there is enough evidence to say something useful.</p>',
+        '<h2>Why we built this</h2><p>Most test platforms hand a student a score and leave them to work out what it means. AVK Envisions was built around the opposite idea: every attempt should end with a clear, evidence-backed answer to the question "what should I do next?"</p><h2>How we work</h2><p>Every question in our bank is written by subject faculty and reviewed by a second person before it is published. When a student reports a problem with a question, it is triaged by the faculty who owns that subject, and the outcome is visible to the student who reported it.</p><h2>What we do not do</h2><p>We do not publish inflated success figures, and we do not claim a topic is your weakness on the basis of a single wrong answer. Our analytics wait until there is enough evidence to say something useful.</p>',
     },
     {
       slug: 'privacy',
@@ -441,13 +458,13 @@ async function seedContent(authorId: string) {
 
 async function seedSettings() {
   const settings = [
-    { key: 'site.name', value: 'AVK Visions', group: 'general', label: 'Site name' },
+    { key: 'site.name', value: 'AVK Envisions', group: 'general', label: 'Site name' },
     { key: 'site.tagline', value: 'Prepare Smarter. Perform Better. Achieve More.', group: 'general', label: 'Tagline' },
     { key: 'site.supportEmail', value: 'support@avkvisions.com', group: 'contact', label: 'Support email' },
     { key: 'site.contactEmail', value: 'hello@avkvisions.com', group: 'contact', label: 'Contact email' },
     { key: 'site.maintenanceMode', value: 'false', valueType: 'BOOLEAN', group: 'general', label: 'Maintenance mode' },
     { key: 'site.registrationOpen', value: 'true', valueType: 'BOOLEAN', group: 'general', label: 'Registration open' },
-    { key: 'seo.defaultTitle', value: 'AVK Visions — Online Test Series & Exam Preparation', group: 'seo', label: 'Default SEO title' },
+    { key: 'seo.defaultTitle', value: 'AVK Envisions — Online Test Series & Exam Preparation', group: 'seo', label: 'Default SEO title' },
     { key: 'weakTopic.minAttempts', value: '8', valueType: 'NUMBER', group: 'analytics', label: 'Minimum attempts before a topic is classified' },
     { key: 'weakTopic.threshold', value: '50', valueType: 'NUMBER', group: 'analytics', label: 'Accuracy % below which a topic counts as weak' },
   ];
@@ -511,7 +528,7 @@ async function main() {
     );
   }
 
-  console.log('\nSeeding AVK Visions…\n');
+  console.log('\nSeeding AVK Envisions…\n');
 
   await seedPermissions();
   const users = await seedUsers();

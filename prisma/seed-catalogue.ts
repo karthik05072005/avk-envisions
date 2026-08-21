@@ -34,16 +34,24 @@ function slugify(value: string) {
 
 /** The ten subjects a KAS Prelims paper is broken into, and their typical weight. */
 const KAS_SUBJECTS: { name: string; questions: number; icon: string; color: string }[] = [
-  { name: 'Indian History', questions: 14, icon: 'Landmark', color: '#b45309' },
+  // Indian and Karnataka history are taught and tested together, so they are a
+  // single subject. General Studies was dropped: it overlapped Current Affairs
+  // without describing a distinct body of questions.
+  { name: 'History', questions: 24, icon: 'Landmark', color: '#b45309' },
   { name: 'Indian Economy', questions: 15, icon: 'IndianRupee', color: '#15803d' },
   { name: 'Geography', questions: 13, icon: 'Globe2', color: '#0891b2' },
   { name: 'Indian Polity', questions: 12, icon: 'Scale', color: '#4338ca' },
   { name: 'Current Affairs', questions: 12, icon: 'Newspaper', color: '#be123c' },
-  { name: 'Karnataka History', questions: 10, icon: 'Castle', color: '#a16207' },
   { name: 'Science & Technology', questions: 8, icon: 'Atom', color: '#7c3aed' },
   { name: 'Environment', questions: 6, icon: 'Leaf', color: '#16a34a' },
   { name: 'Mental Ability', questions: 5, icon: 'Brain', color: '#db2777' },
-  { name: 'General Studies', questions: 5, icon: 'GraduationCap', color: '#0f766e' },
+];
+
+/** Subjects folded into another, or dropped, after the catalogue was first seeded. */
+const RETIRED_SUBJECTS: { slug: string; mergeIntoSlug?: string }[] = [
+  { slug: 'indian-history', mergeIntoSlug: 'history' },
+  { slug: 'karnataka-history', mergeIntoSlug: 'history' },
+  { slug: 'general-studies' },
 ];
 
 /** Previous-year papers KPSC has actually conducted. */
@@ -168,6 +176,87 @@ async function main() {
     subjectIds.set(subject.name, record.id);
   }
   console.log(`  ok  ${KAS_SUBJECTS.length} subjects`);
+
+  // --- Retire merged / dropped subjects -----------------------------------
+  // The catalogue was first seeded with separate Indian and Karnataka history
+  // subjects and a General Studies subject. Re-running must converge an
+  // existing database rather than leave orphaned subjects on the site, so
+  // questions are moved to the surviving subject *before* anything is deleted
+  // — a subject delete would otherwise take real questions with it.
+  for (const retired of RETIRED_SUBJECTS) {
+    const old = await db.subject.findFirst({
+      where: { examId, slug: retired.slug },
+      select: { id: true, name: true },
+    });
+    if (!old) continue;
+
+    let targetId: string | null = null;
+    if (retired.mergeIntoSlug) {
+      targetId =
+        (
+          await db.subject.findFirst({
+            where: { examId, slug: retired.mergeIntoSlug },
+            select: { id: true },
+          })
+        )?.id ?? null;
+
+      if (!targetId) {
+        throw new Error(
+          `Cannot merge "${retired.slug}": target subject "${retired.mergeIntoSlug}" does not exist.`,
+        );
+      }
+    }
+
+    // A subject being dropped outright has nowhere to put its content, and
+    // `Question.subjectId` is not nullable. Rather than delete real questions
+    // to satisfy a config change, leave the subject in place and say so.
+    if (!targetId) {
+      const [questions, chapters] = await Promise.all([
+        db.question.count({ where: { subjectId: old.id } }),
+        db.chapter.count({ where: { subjectId: old.id } }),
+      ]);
+      if (questions > 0 || chapters > 0) {
+        console.log(
+          `  !!  "${old.name}" still holds ${questions} question(s) and ${chapters} chapter(s).` +
+            ` Left in place — move them to another subject first, then re-run.`,
+        );
+        continue;
+      }
+    }
+
+    const moved = targetId
+      ? await db.question.updateMany({ where: { subjectId: old.id }, data: { subjectId: targetId } })
+      : { count: 0 };
+    if (targetId) {
+      await db.chapter.updateMany({ where: { subjectId: old.id }, data: { subjectId: targetId } });
+    }
+
+    // Subject-wise tests for a retired subject have no meaning; their questions
+    // live on in the full-length paper and the surviving subject's test.
+    const staleTests = await db.test.findMany({
+      where: { subjectId: old.id },
+      select: { id: true, slug: true },
+    });
+    for (const test of staleTests) {
+      const attempts = await db.testAttempt.count({ where: { testId: test.id } });
+      if (attempts > 0) {
+        // Somebody sat this paper. Detach it rather than destroy their result.
+        await db.test.update({
+          where: { id: test.id },
+          data: { ...(targetId ? { subjectId: targetId } : {}), status: 'ARCHIVED' },
+        });
+        continue;
+      }
+      await db.testQuestion.deleteMany({ where: { testId: test.id } });
+      await db.test.delete({ where: { id: test.id } });
+    }
+
+    await db.subject.delete({ where: { id: old.id } });
+    console.log(
+      `  ok  retired "${old.name}"${retired.mergeIntoSlug ? ` into ${retired.mergeIntoSlug}` : ''}` +
+        ` (${moved.count} questions moved, ${staleTests.length} tests cleared)`,
+    );
+  }
 
   /** Creates a test, refreshing its metadata but never touching its questions. */
   async function upsertTest(input: {

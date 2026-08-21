@@ -1,5 +1,5 @@
 // ===========================================================================
-// AVK Visions — data model
+// AVK Envisions — data model
 // ===========================================================================
 //
 // Target: SQLite (development + small-scale production).
@@ -621,6 +621,11 @@ model TestSeries {
   examYear Int?
   /// Distinguishes multiple papers from the same year, e.g. "August" / "December".
   sessionLabel String?
+
+  /// File name of the question-wise analysis PDF for this paper, if published.
+  /// The file lives outside the web root and is only ever streamed through an
+  /// access-checked route — it is never linked directly.
+  synopsisFileName String?
 
   /// Lucide icon name rendered on the catalogue widget.
   iconName String?

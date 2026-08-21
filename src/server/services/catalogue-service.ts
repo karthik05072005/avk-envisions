@@ -114,17 +114,22 @@ export interface PyqYearSummary {
   sessionLabel: string | null;
   priceInPaise: number;
   comparePriceInPaise: number;
+  /** True when the paper costs nothing — currently the 2011 sample. */
+  isFree: boolean;
   fullLengthCount: number;
   subjectCount: number;
   totalQuestions: number;
   readyCount: number;
 }
 
-/** The year grid on /pyq, newest paper first. */
+/** The year grid on /pyq, oldest paper first so the free year leads. */
 export const getPyqYears = cache(async (): Promise<PyqYearSummary[]> => {
   const series = await db.testSeries.findMany({
     where: { track: 'PYQ', status: 'PUBLISHED', deletedAt: null },
-    orderBy: [{ examYear: 'desc' }, { sessionLabel: 'asc' }],
+    // Oldest first, so the free 2011 paper is the first thing a visitor meets
+    // and the years read as a progression rather than a reverse-chronological
+    // list with the free sample buried at the bottom.
+    orderBy: [{ examYear: 'asc' }, { sessionLabel: 'asc' }],
     select: {
       id: true,
       slug: true,
@@ -148,6 +153,8 @@ export const getPyqYears = cache(async (): Promise<PyqYearSummary[]> => {
     sessionLabel: s.sessionLabel,
     priceInPaise: s.priceInPaise,
     comparePriceInPaise: s.comparePriceInPaise,
+    /** Free papers are open to everyone; every other year is locked until bought. */
+    isFree: s.priceInPaise === 0,
     fullLengthCount: s.tests.filter((t) => t.paperNumber !== null).length,
     subjectCount: s.tests.filter((t) => t.subjectId !== null).length,
     totalQuestions: s.tests
@@ -187,6 +194,7 @@ export const getPyqPaper = cache(async (slug: string) => {
       priceInPaise: true,
       comparePriceInPaise: true,
       featuresJson: true,
+      synopsisFileName: true,
       tests: {
         where: { status: 'PUBLISHED', deletedAt: null },
         orderBy: [{ paperNumber: 'asc' }, { title: 'asc' }],
@@ -216,6 +224,8 @@ export const getPyqPaper = cache(async (slug: string) => {
   return {
     ...series,
     features: parseJsonColumn(series.featuresJson, stringArraySchema, []),
+    /** Whether an analysis document exists. The file name itself never leaves the server. */
+    hasSynopsis: Boolean(series.synopsisFileName),
     fullLength: rows.filter((t) => t.paperNumber !== null),
     subjectWise: rows.filter((t) => t.subject !== null),
   };

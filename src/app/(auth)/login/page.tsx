@@ -6,7 +6,7 @@ import { safeRedirectPath } from '@/validations/auth';
 
 export const metadata: Metadata = {
   title: 'Sign in',
-  description: 'Sign in to your AVK Visions account to continue your exam preparation.',
+  description: 'Sign in to your AVK Envisions account to continue your exam preparation.',
   robots: { index: false, follow: false },
 };
 

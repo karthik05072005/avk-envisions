@@ -143,7 +143,7 @@ export function LoginForm({ next }: { next?: string }) {
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        New to AVK Visions?{' '}
+        New to AVK Envisions?{' '}
         <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
           Create an account
         </Link>

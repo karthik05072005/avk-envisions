@@ -70,11 +70,25 @@ export default async function MyTestsPage() {
         totalQuestions: true,
         totalMarks: true,
         maxAttempts: true,
+        paperNumber: true,
         exam: { select: { shortName: true } },
         _count: { select: { attempts: { where: { userId: user.id } } } },
       },
     }),
   ]);
+
+  // Full-length papers first, then the subject-wise drills. A student opening
+  // this list wants the paper itself; the subdivisions are what they come back
+  // to afterwards. Sorted here rather than in the query because "papers before
+  // subject tests, each in its own natural order" is two different orderings,
+  // and `paperNumber` is null on subject tests.
+  const availableOrdered = [...available].sort((a, b) => {
+    const aFull = a.paperNumber !== null;
+    const bFull = b.paperNumber !== null;
+    if (aFull !== bFull) return aFull ? -1 : 1;
+    if (aFull && bFull) return (a.paperNumber ?? 0) - (b.paperNumber ?? 0);
+    return a.title.localeCompare(b.title);
+  });
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -126,7 +140,7 @@ export default async function MyTestsPage() {
           Available to attempt
         </h2>
 
-        {available.length === 0 ? (
+        {availableOrdered.length === 0 ? (
           <EmptyState
             className="mt-3"
             size="sm"
@@ -137,7 +151,7 @@ export default async function MyTestsPage() {
           />
         ) : (
           <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {available.map((test) => {
+            {availableOrdered.map((test) => {
               const used = test._count.attempts;
               const exhausted = test.maxAttempts > 0 && used >= test.maxAttempts;
 

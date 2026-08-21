@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# One-time VM bootstrap for AVK Visions on Google Compute Engine.
+# One-time VM bootstrap for AVK Envisions on Google Compute Engine.
 #
 # Installs Node, Caddy (which handles HTTPS certificates automatically), creates
 # the service user and the database directory, and configures swap.
@@ -91,7 +91,7 @@ ufw --force enable >/dev/null
 # --- Caddy site ---------------------------------------------------------------
 echo "==> Writing Caddy configuration for $DOMAIN"
 cat > /etc/caddy/Caddyfile <<CADDY
-# AVK Visions — TLS certificates are obtained and renewed automatically.
+# AVK Envisions — TLS certificates are obtained and renewed automatically.
 $DOMAIN, www.$DOMAIN {
 	encode zstd gzip
 
@@ -126,7 +126,7 @@ systemctl reload caddy || systemctl restart caddy
 echo "==> Installing systemd service"
 cat > /etc/systemd/system/avkvisions.service <<UNIT
 [Unit]
-Description=AVK Visions
+Description=AVK Envisions
 After=network.target
 
 [Service]

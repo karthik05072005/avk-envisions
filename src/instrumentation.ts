@@ -40,12 +40,12 @@ export async function register() {
         ai: env.AI_PROVIDER,
         payments: Boolean(env.RAZORPAY_KEY_ID),
       },
-      'AVK Visions server ready',
+      'AVK Envisions server ready',
     );
   } catch (error) {
     // Configuration errors must not be swallowed — print and re-throw so the
     // process exits instead of serving traffic in a broken state.
-    console.error('\n[AVK Visions] Startup failed.\n');
+    console.error('\n[AVK Envisions] Startup failed.\n');
     console.error(error instanceof Error ? error.message : error);
     console.error('\nCheck your .env against .env.example.\n');
     throw error;

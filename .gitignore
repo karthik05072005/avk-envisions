@@ -61,3 +61,6 @@ yarn-error.log*
 
 # Local runtime logs
 *.log
+
+# Locally installed analysis PDFs (production keeps these in /var/lib/avkvisions)
+/synopses/

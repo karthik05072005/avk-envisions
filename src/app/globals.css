@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /**
- * AVK Visions — design tokens.
+ * AVK Envisions — design tokens.
  *
  * Light theme is defined on `:root`; dark theme only *overrides* the tokens it
  * changes. Never give a colour its sole definition inside the `.dark` block,

@@ -13,7 +13,7 @@ import { getSuccessStories, getTestimonials } from '@/server/services/marketing-
 export const metadata: Metadata = {
   title: 'Success stories',
   description:
-    'Students who prepared with AVK Visions and what actually moved their scores.',
+    'Students who prepared with AVK Envisions and what actually moved their scores.',
   alternates: { canonical: '/success-stories' },
 };
 
