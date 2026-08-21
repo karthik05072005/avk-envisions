@@ -58,3 +58,6 @@ yarn-error.log*
 .idea
 .vscode/*
 !.vscode/extensions.json
+
+# Local runtime logs
+*.log
