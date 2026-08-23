@@ -252,7 +252,7 @@ async function main() {
     paperNumber?: number;
     subjectId?: string;
     maxAttempts?: number;
-    startDate?: Date;
+    startDate?: Date | null;
   }) {
     return db.test.upsert({
       where: { slug: input.slug },
@@ -396,7 +396,11 @@ async function main() {
       // 20 questions in 30 minutes: a sample of the paid paper, not a
       // shortened version of the real exam.
       durationMinutes: 30,
-      startDate: unlockAt(entry.date, entry.session),
+      // Explicitly null, not omitted: these tests were previously scheduled,
+      // and `undefined` would leave those dates in place. The free tests are a
+      // sampler a visitor works through whenever they like; only the paid
+      // series follows the published examination timetable.
+      startDate: null,
       subjectId: entry.subject ? subjectIds.get(entry.subject) : undefined,
       description: entry.syllabus,
     });

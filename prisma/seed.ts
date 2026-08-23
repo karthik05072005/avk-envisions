@@ -176,7 +176,7 @@ async function seedPlans() {
         'Access across every exam on the platform',
         'AVK AI Coach — 500 requests per month',
         'Priority support responses',
-        'Downloadable study material',
+        'Full access to every analysis document',
       ],
     },
   ];

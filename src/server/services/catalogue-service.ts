@@ -29,6 +29,12 @@ export interface TrackSummary {
   href: string;
   ctaLabel: string;
   iconName: string;
+  /** What the track offers, as advertised on the test series page. */
+  benefits: string[];
+  /** Ribbon shown on the card: 'MOST USEFUL', 'MOST IMPORTANT', 'COMING SOON'. */
+  ribbon: string | null;
+  /** True when the track has nothing attemptable yet. */
+  comingSoon: boolean;
   /** Series belonging to this track. */
   seriesCount: number;
   testCount: number;
@@ -36,6 +42,7 @@ export interface TrackSummary {
   readyCount: number;
   /** Lowest non-zero price across the track, in paise. 0 = the track is free. */
   fromPriceInPaise: number;
+  earlyBirdLimit?: number | null;
   isFree: boolean;
 }
 
@@ -48,6 +55,15 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
     href: '/courses/free-test-series',
     ctaLabel: 'Start free test',
     iconName: 'ClipboardCheck',
+    ribbon: null,
+    comingSoon: false,
+    benefits: [
+      '20 questions per test',
+      'Sectional tests across the syllabus',
+      'Exam-like interface and timing',
+      'Detailed solutions after each test',
+      'Performance report with accuracy',
+    ],
   },
   PAID_SERIES: {
     key: 'PAID_SERIES',
@@ -56,6 +72,16 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
     href: '/courses/paid-test-series',
     ctaLabel: 'Explore tests',
     iconName: 'ClipboardList',
+    ribbon: 'Most useful',
+    comingSoon: false,
+    benefits: [
+      '100 questions per test, just like the real exam',
+      'Full-length tests in real exam pattern',
+      'All India ranking in percentile',
+      'Subject and topic level analysis',
+      'Detailed solution for every section',
+      'Complete analysis PDF for every test',
+    ],
   },
   PYQ: {
     key: 'PYQ',
@@ -64,6 +90,15 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
     href: '/pyq',
     ctaLabel: 'Solve papers',
     iconName: 'FileQuestion',
+    ribbon: 'Most important',
+    comingSoon: false,
+    benefits: [
+      'Year-wise previous year questions',
+      'Complete analysis to gain clarity',
+      'Topic-level performance analytics',
+      'Solve full-length and subject-wise tests',
+      'All subject-wise tests included',
+    ],
   },
   CHAPTERWISE: {
     key: 'CHAPTERWISE',
@@ -72,6 +107,14 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
     href: '/chapterwise',
     ctaLabel: 'Explore chapterwise',
     iconName: 'Layers',
+    ribbon: 'Coming soon',
+    comingSoon: true,
+    benefits: [
+      'Chapterwise tests based on the standard textbooks',
+      'Detailed solutions and synopsis',
+      'Progress tracking by chapter and topic',
+      'Improve concept clarity step by step',
+    ],
   },
 };
 
@@ -82,8 +125,13 @@ export const getCourseTracks = cache(async (): Promise<TrackSummary[]> => {
   const series = await db.testSeries.findMany({
     where: { status: 'PUBLISHED', deletedAt: null },
     select: {
+      id: true,
       track: true,
       priceInPaise: true,
+      tier1PriceInPaise: true,
+      tier1Limit: true,
+      tier2PriceInPaise: true,
+      tier2Limit: true,
       tests: {
         where: { status: 'PUBLISHED', deletedAt: null },
         select: { totalQuestions: true },
@@ -91,17 +139,29 @@ export const getCourseTracks = cache(async (): Promise<TrackSummary[]> => {
     },
   });
 
+  const enrolments = await countEnrolledMany(series.map((s) => s.id));
+
   return TRACK_ORDER.map((key) => {
     const mine = series.filter((s) => s.track === key);
     const tests = mine.flatMap((s) => s.tests);
-    const prices = mine.map((s) => s.priceInPaise).filter((p) => p > 0);
+
+    // Quote what a buyer actually pays today, including any live early-bird
+    // tier — a card advertising the regular price while checkout charges less
+    // is a worse error than the reverse, but both are wrong.
+    const live = mine
+      .map((s) => resolvePricing(s, enrolments.get(s.id) ?? 0))
+      .filter((p) => p.priceInPaise > 0);
+
+    const cheapest = live.length > 0 ? live.reduce((a, b) => (a.priceInPaise <= b.priceInPaise ? a : b)) : null;
 
     return {
       ...TRACK_META[key],
       seriesCount: mine.length,
       testCount: tests.length,
       readyCount: tests.filter((t) => t.totalQuestions > 0).length,
-      fromPriceInPaise: prices.length > 0 ? Math.min(...prices) : 0,
+      fromPriceInPaise: cheapest?.priceInPaise ?? 0,
+      /** Set when an early-bird tier is running, for the "only for the first N" line. */
+      earlyBirdLimit: cheapest?.activeTier ? cheapest.tierLimit : null,
       isFree: key === 'FREE_SERIES',
     };
   });
@@ -310,6 +370,8 @@ export interface ScheduleRow {
   maxAttempts: number;
   attemptsUsed: number;
   state: ScheduleState;
+  /** Whether an analysis document is published for this test. */
+  hasSynopsis: boolean;
   /** Attempt id to resume or review, when one exists. */
   attemptId: string | null;
 }
@@ -328,6 +390,7 @@ export async function getTrackSeries(track: TrackKey, userId?: string) {
       comparePriceInPaise: true,
       accessDurationDays: true,
       featuresJson: true,
+      synopsisFileName: true,
       tests: {
         where: { status: 'PUBLISHED', deletedAt: null },
         orderBy: [{ startDate: 'asc' }, { title: 'asc' }],
@@ -340,6 +403,7 @@ export async function getTrackSeries(track: TrackKey, userId?: string) {
           totalQuestions: true,
           totalMarks: true,
           maxAttempts: true,
+          synopsisFileName: true,
         },
       },
     },
@@ -386,6 +450,8 @@ export async function getTrackSeries(track: TrackKey, userId?: string) {
         ...test,
         attemptsUsed,
         state,
+        // The test's own analysis, falling back to the series document.
+        hasSynopsis: Boolean(test.synopsisFileName ?? s.synopsisFileName),
         attemptId: live?.id ?? finished[0]?.id ?? null,
       };
     }),

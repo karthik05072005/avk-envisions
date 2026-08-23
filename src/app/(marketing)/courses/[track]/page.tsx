@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  FileText,
   Lock,
   PlayCircle,
   Timer,
@@ -18,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/states';
 import { formatDate, formatDuration, formatPaise } from '@/lib/utils';
 import { currentUser } from '@/server/auth/guards';
+import { getSeriesPricing } from '@/server/services/pricing-service';
 import {
   getTrackSeries,
   type ScheduleRow,
@@ -120,7 +122,11 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
 
   const allRows = series.flatMap((s) => s.schedule);
   const totalDuration = allRows.reduce((sum, r) => sum + r.durationMinutes, 0);
-  const price = series[0]?.priceInPaise ?? 0;
+  // Quote the live early-bird price, not the regular one, so the figure here
+  // matches what checkout will charge.
+  const first = series[0];
+  const pricing = first ? await getSeriesPricing(first.id) : null;
+  const price = pricing?.priceInPaise ?? first?.priceInPaise ?? 0;
 
   return (
     <>
@@ -147,6 +153,11 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
             <p className="mt-0.5 text-xl font-semibold tabular-nums">
               {price === 0 ? 'Free' : formatPaise(price)}
             </p>
+            {pricing?.activeTier && pricing.nextPriceInPaise !== null && (
+              <p className="mt-0.5 text-xs text-primary">
+                first {pricing.tierLimit} members · then {formatPaise(pricing.nextPriceInPaise)}
+              </p>
+            )}
           </div>
         </div>
       </PageHeader>
@@ -221,8 +232,16 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                         </p>
                       </div>
 
-                      <div className="shrink-0 sm:w-32">
+                      <div className="flex shrink-0 flex-col gap-1.5 sm:w-32">
                         <ScheduleAction row={row} />
+                        {row.hasSynopsis && (
+                          <Button asChild size="sm" variant="outline" className="w-full sm:w-32">
+                            <Link href={`/synopsis/test/${row.id}`}>
+                              <FileText aria-hidden="true" />
+                              Synopsis
+                            </Link>
+                          </Button>
+                        )}
                       </div>
                     </li>
                   ))}
@@ -231,9 +250,11 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                 <div className="border-t border-border bg-muted/30 px-5 py-4">
                   <p className="text-sm font-medium">Important instructions</p>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    Tests become available at 12:00 AM on the scheduled date. Once started, a test
-                    must be completed in one sitting — the timer runs on our servers and does not
-                    pause. You may attempt each test at most{' '}
+                    {meta.key === 'FREE_SERIES'
+                      ? 'Free tests can be attempted on any day, in any order.'
+                      : 'Tests open at their scheduled session time.'}{' '}
+                    Once started, a test must be completed in one sitting — the timer runs on our
+                    servers and does not pause. You may attempt each test at most{' '}
                     {series[0]?.schedule[0]?.maxAttempts || 2} times.
                   </p>
                 </div>
