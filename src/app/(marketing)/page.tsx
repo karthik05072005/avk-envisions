@@ -2,9 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowRight,
-  BarChart3,
   BookOpenCheck,
-  Brain,
   CheckCircle2,
   ClipboardList,
   FileText,
@@ -14,26 +12,15 @@ import {
   Sparkles,
   Target,
   Timer,
-  TrendingUp,
-  Users,
 } from 'lucide-react';
 
-import { CourseTracks } from '@/components/site/course-tracks';
+import { TrackCards } from '@/components/site/track-cards';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { EXAM_CATEGORY_LABELS, type ExamCategory } from '@/lib/enums';
-import { formatCompactNumber, formatDuration, formatPaise } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils';
 import { getCourseTracks, getPyqPaper } from '@/server/services/catalogue-service';
-import {
-  getFaqs,
-  getFeaturedExams,
-  getFeaturedTestSeries,
-  getPlatformStats,
-  getPublishedPlans,
-  getSuccessStories,
-  getTestimonials,
-} from '@/server/services/marketing-service';
+import { getFaqs, getTestimonials } from '@/server/services/marketing-service';
 
 export const metadata: Metadata = {
   title: 'Prepare Smarter. Perform Better. Achieve More.',
@@ -53,34 +40,20 @@ export const metadata: Metadata = {
 const FREE_PAPER_SLUG = 'kas-pyq-2011';
 
 export default async function HomePage() {
-  const [tracks, exams, series, stats, plans, testimonials, stories, faqs, freePaper] =
-    await Promise.all([
-      getCourseTracks(),
-      getFeaturedExams(8),
-      getFeaturedTestSeries(3),
-      getPlatformStats(),
-      getPublishedPlans(),
-      getTestimonials(3),
-      getSuccessStories(3),
-      getFaqs(undefined, 6),
-      // The free sample paper. Null if it has not been seeded.
-      getPyqPaper(FREE_PAPER_SLUG),
-    ]);
+  const [tracks, testimonials, faqs, freePaper] = await Promise.all([
+    getCourseTracks(),
+    getTestimonials(3),
+    getFaqs(undefined, 6),
+    // The free sample paper. Null if it has not been seeded.
+    getPyqPaper(FREE_PAPER_SLUG),
+  ]);
 
   return (
     <>
       <Hero />
       <FreePaperCta paper={freePaper} />
       <TrackChooser tracks={tracks} />
-      {stats.questions > 0 && <StatsStrip stats={stats} />}
-      {exams.length > 0 && <ExamCategories exams={exams} />}
-      {series.length > 0 && <PopularSeries series={series} />}
       <WhyAvk />
-      <AnalyticsShowcase />
-      <AiShowcase />
-      {stories.length > 0 && <SuccessStories stories={stories} />}
-      <HowItWorks />
-      {plans.length > 0 && <Pricing plans={plans} />}
       {testimonials.length > 0 && <Testimonials testimonials={testimonials} />}
       {faqs.length > 0 && <Faqs faqs={faqs} />}
       <FinalCta />
@@ -212,42 +185,6 @@ function Hero() {
     </section>
   );
 }
-
-// ---------------------------------------------------------------------------
-
-function StatsStrip({
-  stats,
-}: {
-  stats: { students: number; questions: number; tests: number; attempts: number };
-}) {
-  const items = [
-    { label: 'Practice questions', value: formatCompactNumber(stats.questions), icon: BookOpenCheck },
-    { label: 'Tests published', value: formatCompactNumber(stats.tests), icon: ClipboardList },
-    { label: 'Students preparing', value: formatCompactNumber(stats.students), icon: Users },
-    { label: 'Tests attempted', value: formatCompactNumber(stats.attempts), icon: Target },
-  ];
-
-  return (
-    <section className="border-y border-border bg-muted/30" aria-label="Platform statistics">
-      <div className="container grid grid-cols-2 gap-6 py-10 lg:grid-cols-4">
-        {items.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="flex items-center gap-3.5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-muted text-primary">
-              <Icon className="size-5" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">{value}</p>
-              <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
 function SectionHeading({
   eyebrow,
   title,
@@ -273,158 +210,6 @@ function SectionHeading({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-
-function ExamCategories({ exams }: { exams: Awaited<ReturnType<typeof getFeaturedExams>> }) {
-  return (
-    <section className="container py-20 sm:py-24">
-      <SectionHeading
-        eyebrow="Exams we cover"
-        title="Choose your exam, we handle the rest"
-        description="Each exam has its own syllabus tree, question bank and test series — built to match the real paper, not a generic template."
-      />
-
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {exams.map((exam) => (
-          <Link key={exam.id} href={`/exams/${exam.slug}`} className="group rounded-xl">
-            <Card interactive className="h-full">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <span
-                    className="flex size-11 items-center justify-center rounded-xl text-sm font-bold"
-                    style={
-                      exam.colorHex
-                        ? { backgroundColor: `${exam.colorHex}1A`, color: exam.colorHex }
-                        : undefined
-                    }
-                  >
-                    {exam.shortName.slice(0, 4)}
-                  </span>
-                  <Badge variant="muted" size="sm">
-                    {EXAM_CATEGORY_LABELS[exam.category as ExamCategory] ?? exam.category}
-                  </Badge>
-                </div>
-
-                <h3 className="mt-4 font-semibold leading-tight tracking-tight transition-colors group-hover:text-primary">
-                  {exam.name}
-                </h3>
-                {exam.description && (
-                  <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                    {exam.description}
-                  </p>
-                )}
-
-                <p className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>{exam.testCount} tests</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{exam.seriesCount} series</span>
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      <div className="mt-9 text-center">
-        <Button asChild variant="outline">
-          <Link href="/exams">
-            View all exams
-            <ArrowRight aria-hidden="true" />
-          </Link>
-        </Button>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-function PopularSeries({ series }: { series: Awaited<ReturnType<typeof getFeaturedTestSeries>> }) {
-  return (
-    <section className="border-y border-border bg-muted/20 py-20 sm:py-24">
-      <div className="container">
-        <SectionHeading
-          eyebrow="Test series"
-          title="Structured series, not a pile of tests"
-          description="Every series follows a deliberate progression — foundation, sectional, then full-length mocks under real exam conditions."
-        />
-
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {series.map((item) => (
-            <Card key={item.id} interactive className="flex h-full flex-col overflow-hidden">
-              <CardContent className="flex flex-1 flex-col p-6">
-                <div className="flex items-center justify-between gap-2">
-                  <Badge variant="brand" size="sm">
-                    {item.exam.shortName}
-                  </Badge>
-                  {item.discountPercent > 0 && (
-                    <Badge variant="success" size="sm">
-                      {item.discountPercent}% off
-                    </Badge>
-                  )}
-                </div>
-
-                <h3 className="mt-4 text-lg font-semibold leading-tight tracking-tight">
-                  {item.name}
-                </h3>
-                {item.tagline && (
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    {item.tagline}
-                  </p>
-                )}
-
-                <ul className="mt-5 space-y-2.5">
-                  {item.features.slice(0, 4).map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2
-                        className="mt-0.5 size-4 shrink-0 text-success"
-                        aria-hidden="true"
-                      />
-                      <span className="leading-relaxed text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-auto pt-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold tracking-tight">
-                      {item.priceInPaise === 0 ? 'Free' : formatPaise(item.priceInPaise)}
-                    </span>
-                    {item.comparePriceInPaise > item.priceInPaise && (
-                      <span className="text-sm text-muted-foreground line-through">
-                        {formatPaise(item.comparePriceInPaise)}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {item.testCount} tests included
-                  </p>
-
-                  <Button asChild fullWidth className="mt-4">
-                    <Link href={`/test-series/${item.slug}`}>View series</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="mt-9 text-center">
-          <Button asChild variant="outline">
-            <Link href="/test-series">
-              Browse all test series
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
 const WHY_POINTS = [
   {
     icon: Target,
@@ -481,334 +266,6 @@ function WhyAvk() {
     </section>
   );
 }
-
-// ---------------------------------------------------------------------------
-
-function AnalyticsShowcase() {
-  const bars = [
-    { label: 'Physics', value: 78, tone: 'bg-chart-1' },
-    { label: 'Chemistry', value: 64, tone: 'bg-chart-2' },
-    { label: 'Mathematics', value: 41, tone: 'bg-chart-3' },
-  ];
-
-  return (
-    <section className="border-y border-border bg-muted/20 py-20 sm:py-24">
-      <div className="container grid items-center gap-12 lg:grid-cols-2">
-        <div>
-          <SectionHeading
-            align="left"
-            eyebrow="Performance intelligence"
-            title="Know exactly what is costing you marks"
-            description="After every test, AVK Envisions breaks your performance down by subject, chapter, topic and difficulty — then ranks what to revise first by how much it will actually move your score."
-          />
-
-          <ul className="mt-8 space-y-4">
-            {[
-              'Accuracy, speed and consistency scored separately',
-              'Topic mastery tracked across every attempt',
-              'Improving and declining topics surfaced automatically',
-              'Time spent per question compared against the cohort',
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
-                <span className="text-sm leading-relaxed text-muted-foreground">{item}</span>
-              </li>
-            ))}
-          </ul>
-
-          <Button asChild className="mt-8">
-            <Link href="/register">
-              See it on your own data
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-
-        {/* Illustrative preview of the analytics panel. Static by design — it
-            demonstrates the layout without implying these are real results. */}
-        <Card variant="elevated" className="overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">Subject accuracy</p>
-                <p className="text-xs text-muted-foreground">Last 5 attempts</p>
-              </div>
-              <Badge variant="success" size="sm">
-                <TrendingUp aria-hidden="true" />
-                +8%
-              </Badge>
-            </div>
-
-            <div className="mt-6 space-y-5">
-              {bars.map((bar) => (
-                <div key={bar.label}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{bar.label}</span>
-                    <span className="tabular-nums text-muted-foreground">{bar.value}%</span>
-                  </div>
-                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={`h-full rounded-full ${bar.tone}`}
-                      style={{ width: `${bar.value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Recommended next
-              </p>
-              <p className="mt-1.5 text-sm leading-relaxed">
-                Spend your next session on <strong>Definite Integration</strong> — it appears in 3 of
-                your last 5 tests and your accuracy there is 34%.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-function AiShowcase() {
-  const prompts = [
-    'Why do I keep losing marks in Rotational Motion?',
-    'Build me a practice set from my weakest topics.',
-    'What should I study today with 90 minutes?',
-    'Analyse my last five mock tests.',
-  ];
-
-  return (
-    <section className="container py-20 sm:py-24">
-      <div className="grid items-center gap-12 lg:grid-cols-2">
-        <Card variant="elevated" className="order-2 overflow-hidden lg:order-1">
-          <CardContent className="space-y-3 p-6">
-            <div className="flex items-center gap-2.5 border-b border-border pb-4">
-              <span className="flex size-9 items-center justify-center rounded-lg bg-brand-gradient text-primary-foreground">
-                <Brain className="size-4" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold">AVK AI Coach</p>
-                <p className="text-xs text-muted-foreground">Grounded in your own attempt history</p>
-              </div>
-            </div>
-
-            {prompts.map((prompt) => (
-              <div
-                key={prompt}
-                className="rounded-lg border border-border bg-muted/40 px-3.5 py-2.5 text-sm leading-relaxed"
-              >
-                {prompt}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <div className="order-1 lg:order-2">
-          <SectionHeading
-            align="left"
-            eyebrow="AI preparation"
-            title="A coach that has actually read your results"
-            description="The AI Coach works from your attempts, your accuracy and your topic mastery — not generic advice. Ask it why you are stuck, and it answers with reference to the questions you got wrong."
-          />
-
-          <ul className="mt-8 space-y-4">
-            {[
-              'Explains your specific mistakes, question by question',
-              'Generates practice sets targeted at your weak areas',
-              'Plans a realistic study day around the time you have',
-              'Only ever sees your own data — never another student’s',
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
-                <span className="text-sm leading-relaxed text-muted-foreground">{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-function SuccessStories({ stories }: { stories: Awaited<ReturnType<typeof getSuccessStories>> }) {
-  return (
-    <section className="border-y border-border bg-muted/20 py-20 sm:py-24">
-      <div className="container">
-        <SectionHeading
-          eyebrow="Success stories"
-          title="Students who put in the work"
-          description="Real results from students who prepared with AVK Envisions."
-        />
-
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {stories.map((story) => (
-            <Card key={story.id} className="h-full">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2">
-                  {story.rank && (
-                    <Badge variant="brand" size="sm">
-                      {story.rank}
-                    </Badge>
-                  )}
-                  {story.examName && (
-                    <Badge variant="muted" size="sm">
-                      {story.examName} {story.year ?? ''}
-                    </Badge>
-                  )}
-                </div>
-
-                <blockquote className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground">
-                  “{story.quote}”
-                </blockquote>
-
-                <div className="mt-5 border-t border-border pt-4">
-                  <p className="text-sm font-semibold">{story.studentName}</p>
-                  {story.achievement && (
-                    <p className="text-xs text-muted-foreground">{story.achievement}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="mt-9 text-center">
-          <Button asChild variant="outline">
-            <Link href="/success-stories">
-              Read all stories
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-const STEPS = [
-  {
-    title: 'Pick your exam',
-    body: 'Choose the exam you are preparing for and set a target year. Your entire dashboard reshapes around it.',
-  },
-  {
-    title: 'Take a diagnostic test',
-    body: 'One full-length attempt is enough for the platform to establish a baseline across every subject.',
-  },
-  {
-    title: 'Follow the analysis',
-    body: 'Your weak topics are ranked by impact. Practise them directly from the report, in one click.',
-  },
-  {
-    title: 'Repeat and measure',
-    body: 'Each new attempt updates your trends, so improvement is something you can see rather than assume.',
-  },
-] as const;
-
-function HowItWorks() {
-  return (
-    <section className="container py-20 sm:py-24">
-      <SectionHeading
-        eyebrow="How it works"
-        title="Four steps, then repeat"
-        description="The loop is deliberately simple, because consistency beats complexity."
-      />
-
-      <ol className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {STEPS.map((step, index) => (
-          <li key={step.title} className="relative rounded-xl border border-border bg-card p-6 shadow-card">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-              {index + 1}
-            </span>
-            <h3 className="mt-4 font-semibold leading-tight tracking-tight">{step.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-function Pricing({ plans }: { plans: Awaited<ReturnType<typeof getPublishedPlans>> }) {
-  return (
-    <section className="border-y border-border bg-muted/20 py-20 sm:py-24" id="pricing">
-      <div className="container">
-        <SectionHeading
-          eyebrow="Pricing"
-          title="Straightforward plans"
-          description="Start free. Upgrade when the platform has proven itself to you, not before."
-        />
-
-        <div className="mx-auto mt-12 grid max-w-5xl gap-6 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <Card
-              key={plan.id}
-              variant={plan.isFeatured ? 'elevated' : 'default'}
-              className={plan.isFeatured ? 'relative border-primary/40' : 'relative'}
-            >
-              {plan.isFeatured && (
-                <Badge variant="default" className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  Most popular
-                </Badge>
-              )}
-
-              <CardContent className="flex h-full flex-col p-6">
-                <h3 className="text-lg font-semibold tracking-tight">{plan.name}</h3>
-                {plan.tagline && (
-                  <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
-                )}
-
-                <div className="mt-5 flex items-baseline gap-2">
-                  <span className="text-3xl font-semibold tracking-tight">
-                    {plan.priceInPaise === 0 ? 'Free' : formatPaise(plan.priceInPaise)}
-                  </span>
-                  {plan.priceInPaise > 0 && (
-                    <span className="text-sm text-muted-foreground">
-                      / {plan.durationDays >= 365 ? 'year' : `${plan.durationDays} days`}
-                    </span>
-                  )}
-                </div>
-
-                <ul className="mt-6 flex-1 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2.5 text-sm">
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-                      <span className="leading-relaxed text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button
-                  asChild
-                  fullWidth
-                  variant={plan.isFeatured ? 'brand' : 'outline'}
-                  className="mt-7"
-                >
-                  <Link href={plan.priceInPaise === 0 ? '/register' : `/pricing?plan=${plan.slug}`}>
-                    {plan.priceInPaise === 0 ? 'Start free' : 'Choose plan'}
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
 function Testimonials({ testimonials }: { testimonials: Awaited<ReturnType<typeof getTestimonials>> }) {
   return (
     <section className="container py-20 sm:py-24">
@@ -945,7 +402,9 @@ function TrackChooser({ tracks }: { tracks: Awaited<ReturnType<typeof getCourseT
         </p>
       </div>
 
-      <CourseTracks tracks={tracks} className="mt-8" />
+      <div className="mt-8">
+        <TrackCards tracks={tracks} />
+      </div>
     </section>
   );
 }
