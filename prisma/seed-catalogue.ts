@@ -61,7 +61,10 @@ const PYQ_YEARS: { year: number; session?: string; papers: number[]; free?: bool
   // 2011 is the free sample: a complete, genuine KAS paper a student can
   // attempt end to end before paying for anything.
   { year: 2011, papers: [1, 2], free: true },
-  { year: 2017, papers: [1, 2] },
+  // The corrections sheet listed 2017, but the analysis documents supplied for
+  // that folder carry "KAS PRELIMS 2015" on their cover — there is no 2017
+  // paper in the archive, and 2014 is present. The documents win.
+  { year: 2014, papers: [1, 2] },
   { year: 2015, papers: [1, 2] },
   { year: 2020, papers: [1, 2] },
   { year: 2024, session: 'August', papers: [1, 2] },
@@ -336,10 +339,11 @@ async function main() {
   });
   await retire('placeholder mock tests', { slug: { startsWith: 'kas-paid-full-mock-' } });
 
-  // 2014 was replaced by 2017 in the published paper list.
-  await retire('2014 paper tests', { slug: { startsWith: 'kas-pyq-2014' } });
+  // A 2017 series was created briefly from the corrections sheet before the
+  // supplied documents showed that folder to hold the 2015 paper.
+  await retire('2017 paper tests', { slug: { startsWith: 'kas-pyq-2017' } });
   await db.testSeries.deleteMany({
-    where: { slug: 'kas-pyq-2014', tests: { none: {} } },
+    where: { slug: 'kas-pyq-2017', tests: { none: {} } },
   });
 
   /**

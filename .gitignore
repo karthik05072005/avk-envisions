@@ -64,3 +64,6 @@ yarn-error.log*
 
 # Locally installed analysis PDFs (production keeps these in /var/lib/avkvisions)
 /synopses/
+
+# Local Drive mirror used to build the synopsis manifest (~270 MB)
+/.drive/
