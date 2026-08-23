@@ -16,6 +16,8 @@
  */
 import { PrismaClient } from '@prisma/client';
 
+import { KAS_2026_SCHEDULE } from './data/kas-2026-schedule';
+
 const db = new PrismaClient();
 
 /** The admin account that owns all seeded content. */
@@ -59,7 +61,7 @@ const PYQ_YEARS: { year: number; session?: string; papers: number[]; free?: bool
   // 2011 is the free sample: a complete, genuine KAS paper a student can
   // attempt end to end before paying for anything.
   { year: 2011, papers: [1, 2], free: true },
-  { year: 2014, papers: [1, 2] },
+  { year: 2017, papers: [1, 2] },
   { year: 2015, papers: [1, 2] },
   { year: 2020, papers: [1, 2] },
   { year: 2024, session: 'August', papers: [1, 2] },
@@ -106,27 +108,6 @@ const CHAPTERWISE_TRACKS = [
 ];
 
 /** Phase 1 of the free series, as scheduled in the course plan. */
-const FREE_SCHEDULE: { day: string; subject: string }[] = [
-  { day: '2026-07-06', subject: 'Indian Polity and Constitution - 1' },
-  { day: '2026-07-10', subject: 'Indian Polity and Constitution - 2' },
-  { day: '2026-07-14', subject: 'Indian Economy - 1' },
-  { day: '2026-07-18', subject: 'Indian Economy - 2' },
-  { day: '2026-07-22', subject: 'Environment and Ecology - 1' },
-  { day: '2026-07-25', subject: 'Environment and Ecology - 2' },
-  { day: '2026-07-29', subject: 'Geography - Physical and Indian' },
-  { day: '2026-08-01', subject: 'Karnataka Geography' },
-  { day: '2026-08-05', subject: 'Ancient and Medieval Indian History' },
-  { day: '2026-08-08', subject: 'Modern Indian History' },
-  { day: '2026-08-12', subject: 'Karnataka History' },
-  { day: '2026-08-18', subject: 'Science and Tech 1' },
-  { day: '2026-08-22', subject: 'Science and Tech 2' },
-  { day: '2026-08-26', subject: 'CSAT: Quantitative Aptitude' },
-  { day: '2026-08-29', subject: 'CSAT: Logical Reasoning' },
-  { day: '2026-09-02', subject: 'CSAT: Comprehension, DI, Quant & LR' },
-  { day: '2026-09-05', subject: 'Current Affairs: National & International' },
-  { day: '2026-09-09', subject: 'Current Affairs: State' },
-  { day: '2026-09-12', subject: 'Current Affairs: Economic Survey & Budget' },
-];
 
 /** Standard instructions for a full 100-question, 2-hour paper. */
 const FULL_PAPER_INSTRUCTIONS = [
@@ -316,6 +297,63 @@ async function main() {
     });
   }
 
+  /**
+   * Removes tests and series that a schedule change has orphaned.
+   *
+   * Nobody's history is destroyed: anything with a recorded attempt is
+   * archived instead of deleted, so a student's result page keeps working even
+   * though the test no longer appears in the catalogue.
+   */
+  async function retire(label: string, where: object) {
+    const doomed = await db.test.findMany({ where, select: { id: true } });
+    let removed = 0;
+    let archived = 0;
+
+    for (const test of doomed) {
+      const attempts = await db.testAttempt.count({ where: { testId: test.id } });
+      if (attempts > 0) {
+        await db.test.update({ where: { id: test.id }, data: { status: 'ARCHIVED' } });
+        archived += 1;
+        continue;
+      }
+      await db.testQuestion.deleteMany({ where: { testId: test.id } });
+      await db.testSection.deleteMany({ where: { testId: test.id } });
+      await db.test.delete({ where: { id: test.id } });
+      removed += 1;
+    }
+
+    if (removed || archived) {
+      console.log(`  ok  retired ${label}: ${removed} removed, ${archived} archived`);
+    }
+  }
+
+  // The free and paid series were re-slugged when the real 21-test timetable
+  // replaced the placeholder schedule. Clear the old rows so the catalogue does
+  // not show both.
+  await retire('placeholder free tests', {
+    slug: { startsWith: 'kas-free-' },
+    NOT: { slug: { in: KAS_2026_SCHEDULE.map((t) => `kas-free-${t.no}`) } },
+  });
+  await retire('placeholder mock tests', { slug: { startsWith: 'kas-paid-full-mock-' } });
+
+  // 2014 was replaced by 2017 in the published paper list.
+  await retire('2014 paper tests', { slug: { startsWith: 'kas-pyq-2014' } });
+  await db.testSeries.deleteMany({
+    where: { slug: 'kas-pyq-2014', tests: { none: {} } },
+  });
+
+  /**
+   * When a scheduled test opens.
+   *
+   * The timetable runs sessions at 10:00 and 14:00 India time (UTC+5:30), so
+   * those are converted to UTC here rather than storing a bare date — a test
+   * that unlocks at "midnight" would otherwise open at 05:30 IST.
+   */
+  function unlockAt(date: string, session: 'MORNING' | 'AFTERNOON'): Date {
+    const utcHour = session === 'MORNING' ? '04:30' : '08:30';
+    return new Date(`${date}T${utcHour}:00.000Z`);
+  }
+
   // --- 1. Free test series ----------------------------------------------
   const free = await db.testSeries.upsert({
     where: { slug: 'kas-prelims-free-test-series' },
@@ -348,24 +386,36 @@ async function main() {
     select: { id: true },
   });
 
-  for (const [index, entry] of FREE_SCHEDULE.entries()) {
+  for (const entry of KAS_2026_SCHEDULE) {
     await upsertTest({
-      slug: `kas-free-${index + 1}-${slugify(entry.subject)}`,
-      title: entry.subject,
+      slug: `kas-free-${entry.no}`,
+      title: entry.name,
       seriesId: free.id,
-      category: 'SECTIONAL',
+      category: entry.paperNumber === null ? 'SECTIONAL' : 'FULL_MOCK',
       accessType: 'FREE',
-      durationMinutes: 120,
-      startDate: new Date(`${entry.day}T00:00:00.000Z`),
-      description: `Sectional test on ${entry.subject}.`,
+      // 20 questions in 30 minutes: a sample of the paid paper, not a
+      // shortened version of the real exam.
+      durationMinutes: 30,
+      startDate: unlockAt(entry.date, entry.session),
+      subjectId: entry.subject ? subjectIds.get(entry.subject) : undefined,
+      description: entry.syllabus,
     });
   }
-  console.log(`  ok  free series + ${FREE_SCHEDULE.length} scheduled sectional tests`);
+  console.log(`  ok  free series + ${KAS_2026_SCHEDULE.length} scheduled tests (20 questions, 30 min)`);
 
   // --- 2. Paid test series ----------------------------------------------
   const paid = await db.testSeries.upsert({
     where: { slug: 'kas-prelims-paid-test-series' },
-    update: { track: 'PAID_SERIES', status: 'PUBLISHED' },
+    update: {
+      track: 'PAID_SERIES',
+      status: 'PUBLISHED',
+      priceInPaise: 39900,
+      comparePriceInPaise: 39900,
+      tier1PriceInPaise: 19900,
+      tier1Limit: 50,
+      tier2PriceInPaise: 29900,
+      tier2Limit: 100,
+    },
     create: {
       examId,
       name: 'KPSC KAS Prelims — Paid Test Series',
@@ -376,9 +426,14 @@ async function main() {
       tagline: 'Full-length tests with detailed analysis and All India Ranking.',
       description:
         'Full-length mock tests modelled on the KAS Prelims pattern, each followed by a complete performance report: All India rank, percentile, subject and topic breakdowns, and a solution for every question.',
-      difficulty: 'ADVANCED',
-      priceInPaise: 249900,
-      comparePriceInPaise: 399900,
+      difficulty: 'MIXED',
+      // Published ladder: 199 for the first 50, 299 to 100, 399 thereafter.
+      priceInPaise: 39900,
+      comparePriceInPaise: 39900,
+      tier1PriceInPaise: 19900,
+      tier1Limit: 50,
+      tier2PriceInPaise: 29900,
+      tier2Limit: 100,
       accessDurationDays: 365,
       status: 'PUBLISHED',
       isFeatured: true,
@@ -394,18 +449,21 @@ async function main() {
     select: { id: true },
   });
 
-  for (let i = 1; i <= 6; i++) {
+  for (const entry of KAS_2026_SCHEDULE) {
     await upsertTest({
-      slug: `kas-paid-full-mock-${i}`,
-      title: `KAS Prelims Full Mock Test ${i}`,
+      slug: `kas-paid-${entry.no}`,
+      title: entry.name,
       seriesId: paid.id,
-      category: 'FULL_MOCK',
+      category: entry.paperNumber === null ? 'SECTIONAL' : 'FULL_MOCK',
       accessType: 'PAID',
       durationMinutes: 120,
-      description: 'Full-length mock in the KAS Prelims pattern, with All India ranking.',
+      paperNumber: entry.paperNumber ?? undefined,
+      subjectId: entry.subject ? subjectIds.get(entry.subject) : undefined,
+      startDate: unlockAt(entry.date, entry.session),
+      description: entry.syllabus,
     });
   }
-  console.log('  ok  paid series + 6 full mock tests');
+  console.log(`  ok  paid series + ${KAS_2026_SCHEDULE.length} scheduled tests (100 questions, 2 h)`);
 
   // --- 3. Previous year papers ------------------------------------------
   let pyqTests = 0;
@@ -416,9 +474,12 @@ async function main() {
       ? `kas-pyq-${entry.year}-${slugify(entry.session)}`
       : `kas-pyq-${entry.year}`;
 
-    const price = entry.free ? 0 : 99900;
-    const comparePrice = entry.free ? 0 : 149900;
+    const price = entry.free ? 0 : 19900;
+    const comparePrice = entry.free ? 0 : 19900;
     const accessType = entry.free ? 'FREE' : 'PAID';
+    // Published ladder: 50 for the first 50 buyers, 100 to 100, then 199.
+    const tier1 = entry.free ? null : 5000;
+    const tier2 = entry.free ? null : 10000;
 
     const series = await db.testSeries.upsert({
       where: { slug },
@@ -430,6 +491,10 @@ async function main() {
         // Refreshed every run so a pricing change here reaches existing rows.
         priceInPaise: price,
         comparePriceInPaise: comparePrice,
+        tier1PriceInPaise: tier1,
+        tier1Limit: tier1 === null ? null : 50,
+        tier2PriceInPaise: tier2,
+        tier2Limit: tier2 === null ? null : 100,
       },
       create: {
         examId,
@@ -444,6 +509,10 @@ async function main() {
         difficulty: 'MIXED',
         priceInPaise: price,
         comparePriceInPaise: comparePrice,
+        tier1PriceInPaise: tier1,
+        tier1Limit: tier1 === null ? null : 50,
+        tier2PriceInPaise: tier2,
+        tier2Limit: tier2 === null ? null : 100,
         accessDurationDays: 365,
         status: 'PUBLISHED',
         sortOrder: index + 1,

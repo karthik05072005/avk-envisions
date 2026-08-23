@@ -296,37 +296,64 @@ async function seedContent(authorId: string) {
 
   // Supplied by AVK Envisions. Unattributed on purpose: these are feedback
   // about the product, not claims about a named individual's result.
+  // Success stories intentionally carry no seeded rows.
+  //
+  // The platform sells KPSC KAS only, and the previous seed invented three
+  // named students with JEE/NEET/KCET ranks and named college admissions.
+  // Presenting fabricated results as real outcomes is not something to ship on
+  // a live site that takes money, so the section stays empty and the home page
+  // hides it until there are genuine, consented stories to publish. Add them
+  // from /admin once you have them.
+  const removedStoryNames = ['Aditya Kulkarni', 'Fatima Sheikh', 'Vikram Shetty'];
+  const purged = await db.testimonial.deleteMany({
+    where: { kind: 'SUCCESS_STORY', studentName: { in: removedStoryNames } },
+  });
+  if (purged.count > 0) console.log(`  ✓ removed ${purged.count} placeholder success stories`);
+
+  // Older non-KAS testimonials from the first seed are removed for the same reason.
+  const staleTestimonials = await db.testimonial.deleteMany({
+    where: {
+      kind: 'TESTIMONIAL',
+      studentName: { in: ['Sneha Rao', 'Karthik Prasad', 'Divya Nair', 'KPSC KAS Aspirant'] },
+    },
+  });
+  if (staleTestimonials.count > 0) {
+    console.log(`  ✓ removed ${staleTestimonials.count} non-KAS testimonials`);
+  }
+
+  // Supplied by AVK Envisions, attributed as shown on the Results page.
   const testimonials = [
     {
-      name: 'KPSC KAS Aspirant',
+      name: 'Rohit M.',
       quote:
         'The tests were really useful for understanding the KPSC question pattern. The PYQ-based questions made my preparation much more focused.',
-      exam: 'KPSC KAS',
-      city: null,
+      exam: 'KPSC KAS Aspirant',
+      city: 'Mysuru, Karnataka',
       featured: true,
     },
     {
-      name: 'KPSC KAS Aspirant',
+      name: 'Anusha B.',
       quote:
         'What I liked most was the analysis after every test. It helped me identify where I was making mistakes and what I actually needed to revise.',
-      exam: 'KPSC KAS',
-      city: null,
+      exam: 'KPSC KAS Aspirant',
+      city: 'Bengaluru, Karnataka',
       featured: true,
     },
     {
-      name: 'KPSC KAS Aspirant',
+      name: 'Sandeep H.',
       quote:
         'It was more than just taking a test. Going through the PYQs, explanations and mistakes helped me understand how to approach KPSC preparation better.',
-      exam: 'KPSC KAS',
-      city: null,
+      exam: 'KPSC KAS Aspirant',
+      city: 'Hubballi, Karnataka',
       featured: true,
     },
   ];
 
 
+
   for (const [index, item] of testimonials.entries()) {
     const existing = await db.testimonial.findFirst({
-      where: { quote: item.quote, kind: 'TESTIMONIAL' },
+      where: { studentName: item.name, kind: 'TESTIMONIAL' },
       select: { id: true },
     });
     if (existing) continue;
@@ -345,27 +372,6 @@ async function seedContent(authorId: string) {
     });
   }
 
-  // Success stories intentionally carry no seeded rows.
-  //
-  // The platform sells KPSC KAS only, and the previous seed invented three
-  // named students with JEE/NEET/KCET ranks and named college admissions.
-  // Presenting fabricated results as real outcomes is not something to ship on
-  // a live site that takes money, so the section stays empty and the home page
-  // hides it until there are genuine, consented stories to publish. Add them
-  // from /admin once you have them.
-  const removedStoryNames = ['Aditya Kulkarni', 'Fatima Sheikh', 'Vikram Shetty'];
-  const purged = await db.testimonial.deleteMany({
-    where: { kind: 'SUCCESS_STORY', studentName: { in: removedStoryNames } },
-  });
-  if (purged.count > 0) console.log(`  ✓ removed ${purged.count} placeholder success stories`);
-
-  // Older non-KAS testimonials from the first seed are removed for the same reason.
-  const staleTestimonials = await db.testimonial.deleteMany({
-    where: { kind: 'TESTIMONIAL', studentName: { in: ['Sneha Rao', 'Karthik Prasad', 'Divya Nair'] } },
-  });
-  if (staleTestimonials.count > 0) {
-    console.log(`  ✓ removed ${staleTestimonials.count} non-KAS testimonials`);
-  }
 
   // Legal and informational pages.
   const pages = [

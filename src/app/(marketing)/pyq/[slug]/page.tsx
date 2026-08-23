@@ -123,15 +123,24 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
                     </div>
                   </div>
 
-                  {test.isReady ? (
-                    <Button asChild className="shrink-0">
-                      <Link href={`/test/${test.id}`}>View test</Link>
-                    </Button>
-                  ) : (
-                    <Button disabled className="shrink-0">
-                      Coming soon
-                    </Button>
-                  )}
+                  <div className="flex shrink-0 flex-col gap-2">
+                    {test.isReady ? (
+                      <Button asChild>
+                        <Link href={`/test/${test.id}`}>View test</Link>
+                      </Button>
+                    ) : (
+                      <Button disabled>Coming soon</Button>
+                    )}
+
+                    {test.hasSynopsis && (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/synopsis/test/${test.id}`}>
+                          <BookOpenText aria-hidden="true" />
+                          Analysed PDF
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -214,16 +223,27 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
                   </p>
                 </div>
 
-                {test.isReady ? (
-                  <Button asChild variant="outline" size="sm" className="shrink-0">
-                    <Link href={`/test/${test.id}`}>View test</Link>
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" disabled className="shrink-0">
-                    <Lock aria-hidden="true" />
-                    Soon
-                  </Button>
-                )}
+                <div className="flex shrink-0 flex-col gap-1.5">
+                  {test.isReady ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/test/${test.id}`}>View test</Link>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" disabled>
+                      <Lock aria-hidden="true" />
+                      Soon
+                    </Button>
+                  )}
+
+                  {test.hasSynopsis && (
+                    <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                      <Link href={`/synopsis/test/${test.id}`}>
+                        <BookOpenText aria-hidden="true" />
+                        Analysed PDF
+                      </Link>
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

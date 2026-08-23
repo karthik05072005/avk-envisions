@@ -46,6 +46,101 @@ export function resolveSynopsisPath(fileName: string): string {
   return full;
 }
 
+/**
+ * Shared gate for both the series-level and per-test documents.
+ *
+ * Two conditions, both required: the caller has paid (or the series is free),
+ * and they have actually finished a paper in the series. The analysis contains
+ * every answer, so handing it over first would turn it into an answer key.
+ */
+async function gate(
+  series: { id: string; name: string; priceInPaise: number; testIds: string[] },
+  user: { id: string; role: string },
+): Promise<Exclude<SynopsisAccess, { state: 'AVAILABLE' } | { state: 'NOT_PUBLISHED' }> | null> {
+  if (user.role === 'ADMIN') return null;
+
+  if (series.priceInPaise > 0) {
+    const now = new Date();
+    const entitled = await db.entitlement.findFirst({
+      where: {
+        userId: user.id,
+        testSeriesId: series.id,
+        revokedAt: null,
+        startsAt: { lte: now },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      select: { id: true },
+    });
+
+    if (!entitled) {
+      return {
+        state: 'PURCHASE_REQUIRED',
+        seriesName: series.name,
+        priceInPaise: series.priceInPaise,
+      };
+    }
+  }
+
+  const finished = await db.testAttempt.count({
+    where: {
+      userId: user.id,
+      testId: { in: series.testIds },
+      status: { in: [...TERMINAL_ATTEMPT_STATUSES] },
+    },
+  });
+
+  if (finished === 0) return { state: 'ATTEMPT_REQUIRED', seriesName: series.name };
+  return null;
+}
+
+/**
+ * Access to one test's own analysis.
+ *
+ * Falls back to the series document when the test has none of its own, which
+ * is how a single paper-wide analysis serves the full-length test and every
+ * subject-wise drill cut from the same paper.
+ */
+export async function checkTestSynopsisAccess(
+  testId: string,
+  user: { id: string; role: string },
+): Promise<SynopsisAccess> {
+  const test = await db.test.findFirst({
+    where: { id: testId, deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      synopsisFileName: true,
+      testSeries: {
+        select: {
+          id: true,
+          name: true,
+          priceInPaise: true,
+          synopsisFileName: true,
+          tests: { where: { deletedAt: null }, select: { id: true } },
+        },
+      },
+    },
+  });
+
+  if (!test?.testSeries) throw errors.notFound('Test');
+
+  const fileName = test.synopsisFileName ?? test.testSeries.synopsisFileName;
+  if (!fileName) return { state: 'NOT_PUBLISHED' };
+
+  const blocked = await gate(
+    {
+      id: test.testSeries.id,
+      name: test.testSeries.name,
+      priceInPaise: test.testSeries.priceInPaise,
+      testIds: test.testSeries.tests.map((t) => t.id),
+    },
+    user,
+  );
+  if (blocked) return blocked;
+
+  return { state: 'AVAILABLE', fileName, seriesName: test.title };
+}
+
 export type SynopsisAccess =
   | { state: 'AVAILABLE'; fileName: string; seriesName: string }
   | { state: 'NOT_PUBLISHED' }
@@ -89,41 +184,17 @@ export async function checkSynopsisAccess(
     seriesName: series.name,
   };
 
-  if (user.role === 'ADMIN') return available;
-
-  if (series.priceInPaise > 0) {
-    const now = new Date();
-    const entitled = await db.entitlement.findFirst({
-      where: {
-        userId: user.id,
-        testSeriesId: series.id,
-        revokedAt: null,
-        startsAt: { lte: now },
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      },
-      select: { id: true },
-    });
-
-    if (!entitled) {
-      return {
-        state: 'PURCHASE_REQUIRED',
-        seriesName: series.name,
-        priceInPaise: series.priceInPaise,
-      };
-    }
-  }
-
-  const finished = await db.testAttempt.count({
-    where: {
-      userId: user.id,
-      testId: { in: series.tests.map((t) => t.id) },
-      status: { in: [...TERMINAL_ATTEMPT_STATUSES] },
+  const blocked = await gate(
+    {
+      id: series.id,
+      name: series.name,
+      priceInPaise: series.priceInPaise,
+      testIds: series.tests.map((t) => t.id),
     },
-  });
+    user,
+  );
 
-  if (finished === 0) return { state: 'ATTEMPT_REQUIRED', seriesName: series.name };
-
-  return available;
+  return blocked ?? available;
 }
 
 /** Opens the file for streaming. Throws if the record points at a file that is gone. */

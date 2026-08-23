@@ -167,6 +167,8 @@ export const getPyqYears = cache(async (): Promise<PyqYearSummary[]> => {
 export interface PyqTestRow {
   id: string;
   title: string;
+  /** Whether an analysis document is published for this test. */
+  hasSynopsis?: boolean;
   slug: string;
   durationMinutes: number;
   totalQuestions: number;
@@ -208,6 +210,7 @@ export const getPyqPaper = cache(async (slug: string) => {
           accessType: true,
           maxAttempts: true,
           paperNumber: true,
+          synopsisFileName: true,
           subject: { select: { id: true, name: true, colorHex: true } },
         },
       },
@@ -219,6 +222,10 @@ export const getPyqPaper = cache(async (slug: string) => {
   const rows: PyqTestRow[] = series.tests.map((t) => ({
     ...t,
     isReady: t.totalQuestions > 0,
+    // A test uses its own analysis when it has one, otherwise the paper-wide
+    // document — which is how one 2011 analysis serves the full paper and
+    // every subject drill cut from it.
+    hasSynopsis: Boolean(t.synopsisFileName ?? series.synopsisFileName),
   }));
 
   return {

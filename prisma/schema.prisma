@@ -627,6 +627,15 @@ model TestSeries {
   /// access-checked route — it is never linked directly.
   synopsisFileName String?
 
+  /// Early-bird pricing. The price a buyer pays steps up as seats fill:
+  /// tier 1 until `tier1Limit` enrolments, tier 2 until `tier2Limit`, then
+  /// `priceInPaise`. Seats sold are counted from real entitlements, never
+  /// from a stored number, so the figure shown cannot drift from the truth.
+  tier1PriceInPaise Int?
+  tier1Limit        Int?
+  tier2PriceInPaise Int?
+  tier2Limit        Int?
+
   /// Lucide icon name rendered on the catalogue widget.
   iconName String?
   /// Accent colour for the widget card, as a hex string.
@@ -708,6 +717,11 @@ model Test {
 
   /// FREE | PAID | SUBSCRIBER_ONLY
   accessType String @default("PAID")
+
+  /// Analysis ("analysed PDF") for this specific test. Falls back to the
+  /// series-level document when unset. Streamed through an access-checked
+  /// route; never placed in a publicly served directory.
+  synopsisFileName String?
 
   /// 0 = unlimited re-attempts.
   maxAttempts Int @default(1)
