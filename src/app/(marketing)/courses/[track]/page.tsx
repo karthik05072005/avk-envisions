@@ -121,7 +121,12 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
   const series = await getTrackSeries(meta.key, user?.id);
 
   const allRows = series.flatMap((s) => s.schedule);
-  const totalDuration = allRows.reduce((sum, r) => sum + r.durationMinutes, 0);
+
+  // What a student wants to know is how long one sitting takes, not the sum of
+  // every test in the series. Where the series is uniform (it is, for both the
+  // free and paid tracks) that is a single number.
+  const durations = [...new Set(allRows.map((r) => r.durationMinutes))];
+  const perTestMinutes = durations.length === 1 ? (durations[0] ?? null) : null;
   // Quote the live early-bird price, not the regular one, so the figure here
   // matches what checkout will charge.
   const first = series[0];
@@ -142,10 +147,14 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
           <div className="rounded-xl border border-border bg-card px-5 py-3.5">
             <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
               <Clock className="size-3.5" aria-hidden="true" />
-              Total duration
+              Duration per test
             </p>
             <p className="mt-0.5 text-xl font-semibold tabular-nums">
-              {formatDuration(totalDuration * 60)}
+              {perTestMinutes === null
+                ? 'Varies'
+                : perTestMinutes >= 60
+                  ? `${perTestMinutes / 60} hours`
+                  : `${perTestMinutes} minutes`}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card px-5 py-3.5">
@@ -153,14 +162,78 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
             <p className="mt-0.5 text-xl font-semibold tabular-nums">
               {price === 0 ? 'Free' : formatPaise(price)}
             </p>
-            {pricing?.activeTier && pricing.nextPriceInPaise !== null && (
-              <p className="mt-0.5 text-xs text-primary">
-                first {pricing.tierLimit} members · then {formatPaise(pricing.nextPriceInPaise)}
+            {pricing?.activeTier && (
+              <p className="mt-0.5 text-xs font-medium text-primary">
+                Only for the first {pricing.tierLimit} members
               </p>
             )}
           </div>
         </div>
       </PageHeader>
+
+      {pricing && pricing.regularPriceInPaise > 0 && (
+        <section className="container pt-10" aria-labelledby="offer-heading">
+          <div className="rounded-xl border border-warning/40 bg-warning/5 p-5">
+            <h2 id="offer-heading" className="sr-only">
+              Pricing and availability
+            </h2>
+
+            <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
+              {pricing.ladder.map((rung) => (
+                <div
+                  key={rung.label}
+                  className={`bg-card px-4 py-3.5 text-center ${
+                    rung.active ? 'ring-1 ring-inset ring-primary' : ''
+                  }`}
+                >
+                  <p className="text-xs text-muted-foreground">{rung.label}</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums">
+                    {formatPaise(rung.priceInPaise)}
+                  </p>
+                  {rung.active && (
+                    <Badge variant="success" size="sm" className="mt-1">
+                      Current price
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              The offer is valid only for the number of members shown. Once a limit is crossed the
+              next price applies automatically.
+            </p>
+
+            {/* Counted from real entitlements, so this cannot overstate demand. */}
+            {pricing.activeTier && pricing.tierLimit !== null && (
+              <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-4 py-3">
+                <p className="text-sm">
+                  <span className="font-semibold tabular-nums">{pricing.enrolled}</span>
+                  <span className="text-muted-foreground"> / {pricing.tierLimit} enrolled</span>
+                </p>
+                <div
+                  className="h-2 min-w-[8rem] flex-1 overflow-hidden rounded-full bg-muted"
+                  role="progressbar"
+                  aria-valuenow={pricing.enrolled}
+                  aria-valuemin={0}
+                  aria-valuemax={pricing.tierLimit}
+                  aria-label="Early bird seats taken"
+                >
+                  <div
+                    className="h-full rounded-full bg-success"
+                    style={{
+                      width: `${Math.min(100, (pricing.enrolled / pricing.tierLimit) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-sm font-medium tabular-nums text-primary">
+                  {pricing.seatsLeftInTier} left at {formatPaise(pricing.priceInPaise)}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="container py-12">
         <Button asChild variant="ghost" size="sm" className="-ml-3">
@@ -192,6 +265,7 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                   <span className="w-10 shrink-0">No.</span>
                   <span className="w-28 shrink-0">Date</span>
                   <span className="flex-1">Subject / syllabus</span>
+                  <span className="w-24 shrink-0 text-center">Duration</span>
                   <span className="w-32 shrink-0 text-center">Action</span>
                 </div>
 
@@ -220,10 +294,6 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                               ? `${row.totalQuestions} questions`
                               : 'Questions being added'}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="size-3" aria-hidden="true" />
-                            {formatDuration(row.durationMinutes * 60)}
-                          </span>
                           {row.maxAttempts > 0 && (
                             <span>
                               {row.attemptsUsed}/{row.maxAttempts} attempts used
@@ -231,6 +301,12 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                           )}
                         </p>
                       </div>
+
+                      <span className="w-24 shrink-0 text-center text-sm font-medium tabular-nums">
+                        {row.durationMinutes >= 60
+                          ? `${row.durationMinutes / 60} hr`
+                          : `${row.durationMinutes} min`}
+                      </span>
 
                       <div className="flex shrink-0 flex-col gap-1.5 sm:w-32">
                         <ScheduleAction row={row} />

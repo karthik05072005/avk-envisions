@@ -28,6 +28,23 @@ export interface SeriesPricing {
   tierLimit: number | null;
   /** Price of the next step up, or null when this is already the last step. */
   nextPriceInPaise: number | null;
+  /**
+   * Every rung, in order, for rendering the published ladder.
+   *
+   * Needed because a page showing "199 / 299 / 399" has to name all three
+   * prices even when only one of them is currently on sale.
+   */
+  ladder: PricingRung[];
+}
+
+export interface PricingRung {
+  /** Human label, e.g. "For the first 50 members". */
+  label: string;
+  priceInPaise: number;
+  /** Enrolment ceiling for this rung; null on the final one. */
+  limit: number | null;
+  /** Whether this is the price a buyer pays right now. */
+  active: boolean;
 }
 
 interface SeriesPricingInput {
@@ -59,6 +76,38 @@ export async function countEnrolled(testSeriesId: string): Promise<number> {
 export function resolvePricing(series: SeriesPricingInput, enrolled: number): SeriesPricing {
   const regular = series.priceInPaise;
 
+  const t1 = series.tier1PriceInPaise;
+  const l1 = series.tier1Limit;
+  const t2 = series.tier2PriceInPaise;
+  const l2 = series.tier2Limit;
+
+  const tier1Live = t1 !== null && l1 !== null && enrolled < l1;
+  const tier2Live = !tier1Live && t2 !== null && l2 !== null && enrolled < l2;
+
+  const ladder: PricingRung[] = [];
+  if (t1 !== null && l1 !== null) {
+    ladder.push({
+      label: `For the first ${l1} members`,
+      priceInPaise: t1,
+      limit: l1,
+      active: tier1Live,
+    });
+  }
+  if (t2 !== null && l2 !== null) {
+    ladder.push({
+      label: `Up to ${l2} members`,
+      priceInPaise: t2,
+      limit: l2,
+      active: tier2Live,
+    });
+  }
+  ladder.push({
+    label: ladder.length > 0 ? 'Final price' : 'Price',
+    priceInPaise: regular,
+    limit: null,
+    active: !tier1Live && !tier2Live,
+  });
+
   const base: SeriesPricing = {
     priceInPaise: regular,
     regularPriceInPaise: regular,
@@ -67,33 +116,29 @@ export function resolvePricing(series: SeriesPricingInput, enrolled: number): Se
     seatsLeftInTier: null,
     tierLimit: null,
     nextPriceInPaise: null,
+    ladder,
   };
 
   // Free series have no ladder to climb.
-  if (regular === 0) return base;
+  if (regular === 0) return { ...base, ladder: [] };
 
-  const t1 = series.tier1PriceInPaise;
-  const l1 = series.tier1Limit;
-  const t2 = series.tier2PriceInPaise;
-  const l2 = series.tier2Limit;
-
-  if (t1 !== null && l1 !== null && enrolled < l1) {
+  if (tier1Live) {
     return {
       ...base,
-      priceInPaise: t1,
+      priceInPaise: t1 as number,
       activeTier: 1,
-      seatsLeftInTier: l1 - enrolled,
+      seatsLeftInTier: (l1 as number) - enrolled,
       tierLimit: l1,
       nextPriceInPaise: t2 ?? regular,
     };
   }
 
-  if (t2 !== null && l2 !== null && enrolled < l2) {
+  if (tier2Live) {
     return {
       ...base,
-      priceInPaise: t2,
+      priceInPaise: t2 as number,
       activeTier: 2,
-      seatsLeftInTier: l2 - enrolled,
+      seatsLeftInTier: (l2 as number) - enrolled,
       tierLimit: l2,
       nextPriceInPaise: regular,
     };

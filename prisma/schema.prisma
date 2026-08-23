@@ -698,6 +698,12 @@ model Test {
   /// Paper number within a PYQ year (KAS Prelims runs Paper 1 and Paper 2).
   paperNumber Int?
 
+  /// Position within its series. Set from the published timetable so a
+  /// schedule reads in the intended order even when the tests carry no dates —
+  /// without it, an unscheduled series falls back to sorting by title, which
+  /// puts "CSAT - 1" before "Polity - 1".
+  sortOrder Int @default(0)
+
   /// Set when the test covers exactly one subject, which is how the
   /// subject-wise practice tests inside a PYQ paper are identified.
   subjectId String?

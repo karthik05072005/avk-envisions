@@ -393,7 +393,9 @@ export async function getTrackSeries(track: TrackKey, userId?: string) {
       synopsisFileName: true,
       tests: {
         where: { status: 'PUBLISHED', deletedAt: null },
-        orderBy: [{ startDate: 'asc' }, { title: 'asc' }],
+        // Timetable position first. Falling back to the title sorted an
+        // unscheduled series alphabetically, which put CSAT before Polity.
+        orderBy: [{ sortOrder: 'asc' }, { startDate: 'asc' }, { title: 'asc' }],
         select: {
           id: true,
           title: true,

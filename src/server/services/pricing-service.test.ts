@@ -71,6 +71,20 @@ describe('resolvePricing', () => {
     expect(resolvePricing(noTiers, 0).activeTier).toBeNull();
   });
 
+  it('names every rung, so a page can print the whole ladder', () => {
+    // The published table shows 199 / 299 / 399 at once. Exposing only the live
+    // tier meant an exhausted rung rendered as zero.
+    const p = resolvePricing(LADDER, 60);
+    expect(p.ladder.map((r) => r.priceInPaise)).toEqual([19900, 29900, 39900]);
+    expect(p.ladder.map((r) => r.active)).toEqual([false, true, false]);
+    expect(p.ladder[0]?.label).toBe('For the first 50 members');
+    expect(p.ladder[2]?.label).toBe('Final price');
+  });
+
+  it('gives a free series no ladder at all', () => {
+    expect(resolvePricing({ ...LADDER, priceInPaise: 0 }, 0).ladder).toEqual([]);
+  });
+
   it('applies the PYQ ladder: 50, then 100, then 199', () => {
     const pyq = {
       priceInPaise: 19900,

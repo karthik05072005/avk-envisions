@@ -116,8 +116,8 @@ export function TrackCards({ tracks }: { tracks: TrackSummary[] }) {
 
               {/* Shown only while an early-bird tier is genuinely running. */}
               {track.earlyBirdLimit != null && (
-                <p className="mt-2 text-center text-xs font-medium text-primary">
-                  Early bird price — first {track.earlyBirdLimit} members only
+                <p className="mt-2 text-center text-xs font-medium leading-tight text-primary">
+                  Early bird offer — only for the first {track.earlyBirdLimit} members
                 </p>
               )}
 

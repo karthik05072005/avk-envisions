@@ -256,6 +256,7 @@ async function main() {
     subjectId?: string;
     maxAttempts?: number;
     startDate?: Date | null;
+    sortOrder?: number;
   }) {
     return db.test.upsert({
       where: { slug: input.slug },
@@ -271,6 +272,7 @@ async function main() {
         paperNumber: input.paperNumber,
         subjectId: input.subjectId,
         startDate: input.startDate,
+        sortOrder: input.sortOrder ?? 0,
       },
       create: {
         examId,
@@ -290,6 +292,7 @@ async function main() {
         paperNumber: input.paperNumber,
         subjectId: input.subjectId,
         startDate: input.startDate,
+        sortOrder: input.sortOrder ?? 0,
         randomizeOptions: false,
         showResultImmediately: true,
         status: 'PUBLISHED',
@@ -394,6 +397,7 @@ async function main() {
     await upsertTest({
       slug: `kas-free-${entry.no}`,
       title: entry.name,
+      sortOrder: entry.no,
       seriesId: free.id,
       category: entry.paperNumber === null ? 'SECTIONAL' : 'FULL_MOCK',
       accessType: 'FREE',
@@ -461,6 +465,7 @@ async function main() {
     await upsertTest({
       slug: `kas-paid-${entry.no}`,
       title: entry.name,
+      sortOrder: entry.no,
       seriesId: paid.id,
       category: entry.paperNumber === null ? 'SECTIONAL' : 'FULL_MOCK',
       accessType: 'PAID',
