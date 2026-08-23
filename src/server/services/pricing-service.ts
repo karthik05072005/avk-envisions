@@ -118,3 +118,32 @@ export async function getSeriesPricing(testSeriesId: string): Promise<SeriesPric
   if (!series) return null;
   return resolvePricing(series, await countEnrolled(testSeriesId));
 }
+
+/**
+ * Enrolment counts for many series at once.
+ *
+ * A listing page needs one count per series; doing that with a query each
+ * turns a six-card grid into seven round trips. Series with nobody enrolled
+ * are absent from `groupBy`, so the caller must treat a missing key as zero.
+ */
+export async function countEnrolledMany(testSeriesIds: string[]): Promise<Map<string, number>> {
+  if (testSeriesIds.length === 0) return new Map();
+
+  const now = new Date();
+  const rows = await db.entitlement.groupBy({
+    by: ['testSeriesId'],
+    where: {
+      testSeriesId: { in: testSeriesIds },
+      revokedAt: null,
+      startsAt: { lte: now },
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
+    _count: { _all: true },
+  });
+
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    if (row.testSeriesId) counts.set(row.testSeriesId, row._count._all);
+  }
+  return counts;
+}

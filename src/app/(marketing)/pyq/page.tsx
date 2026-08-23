@@ -1,6 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, CalendarDays, FileQuestion, Layers, Lock } from 'lucide-react';
+import {
+  ArrowRight,
+  BadgeIndianRupee,
+  CalendarDays,
+  CheckCircle2,
+  FileQuestion,
+  Layers,
+  Lock,
+  Star,
+} from 'lucide-react';
 
 import { PageHeader } from '@/components/site/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -27,11 +36,40 @@ const ACCENTS = [
   'text-exam-review bg-exam-review/10',
 ];
 
+/** What unlocking the papers gets you, as advertised. */
+const UNLOCK_BENEFITS = [
+  'Genuine KPSC previous year questions',
+  'Relevant article or case for every question',
+  'Topic-level performance analytics',
+  'Complete analysis to gain clarity',
+];
+
 export default async function PyqPage() {
   const years = await getPyqYears();
 
+  // Every paid year shares one ladder, so the banner can quote any of them.
+  const paid = years.find((y) => !y.isFree);
+  const offer = paid?.pricing ?? null;
+
   return (
     <>
+      {offer?.activeTier && (
+        <div className="border-b border-border bg-warning/10">
+          <div className="container flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-sm">
+            <BadgeIndianRupee className="size-4 shrink-0 text-primary" aria-hidden="true" />
+            <span className="font-semibold">Price update:</span>
+            <span>
+              {formatPaise(offer.priceInPaise)} for the first {offer.tierLimit} members.
+            </span>
+            {offer.nextPriceInPaise !== null && (
+              <span className="text-muted-foreground">
+                Price then rises to {formatPaise(offer.nextPriceInPaise)}.
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <PageHeader
         eyebrow="PYQ Tests"
         title="Previous year question papers"
@@ -62,6 +100,90 @@ export default async function PyqPage() {
           </Button>
         </div>
       </PageHeader>
+
+      {offer && (
+        <section className="container pt-12" aria-labelledby="unlock-heading">
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <FileQuestion className="size-6" aria-hidden="true" />
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 id="unlock-heading" className="font-semibold tracking-tight">
+                      Unlock all previous year questions — complete analysis
+                    </h2>
+                    <Badge variant="warning" size="sm">
+                      <Star aria-hidden="true" />
+                      Most important
+                    </Badge>
+                  </div>
+                  <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
+                    Complete access to every previous year paper with detailed solutions,
+                    topic-wise analysis, the relevant article or case for each question, and
+                    performance insights.
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <p className="text-3xl font-semibold tabular-nums text-primary">
+                  {formatPaise(offer.priceInPaise)}
+                </p>
+                {offer.activeTier && offer.nextPriceInPaise !== null && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    for the first {offer.tierLimit} members · then{' '}
+                    {formatPaise(offer.nextPriceInPaise)}
+                  </p>
+                )}
+                <Button asChild size="lg" variant="brand" className="mt-3">
+                  <Link href="/pricing">Get access</Link>
+                </Button>
+              </div>
+            </div>
+
+            <ul className="mt-5 grid gap-2.5 border-t border-primary/20 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+              {UNLOCK_BENEFITS.map((benefit) => (
+                <li key={benefit} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle2
+                    className="mt-0.5 size-4 shrink-0 text-primary"
+                    aria-hidden="true"
+                  />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+
+            {/* Seats are counted from real enrolments, so this bar reflects
+                actual sales rather than a number chosen to create urgency. */}
+            {offer.activeTier && offer.seatsLeftInTier !== null && offer.tierLimit !== null && (
+              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-4 py-3">
+                <p className="text-sm">
+                  <span className="font-semibold tabular-nums">{offer.enrolled}</span>
+                  <span className="text-muted-foreground"> / {offer.tierLimit} enrolled</span>
+                </p>
+                <div
+                  className="h-2 min-w-[8rem] flex-1 overflow-hidden rounded-full bg-muted"
+                  role="progressbar"
+                  aria-valuenow={offer.enrolled}
+                  aria-valuemin={0}
+                  aria-valuemax={offer.tierLimit}
+                  aria-label="Early bird seats taken"
+                >
+                  <div
+                    className="h-full rounded-full bg-success transition-[width]"
+                    style={{ width: `${Math.min(100, (offer.enrolled / offer.tierLimit) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-sm font-medium text-primary tabular-nums">
+                  {offer.seatsLeftInTier} left at {formatPaise(offer.priceInPaise)}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="container py-14 sm:py-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -146,7 +268,7 @@ export default async function PyqPage() {
 
                     <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
                       <span className="text-sm font-semibold tabular-nums">
-                        {year.isFree ? 'Free' : formatPaise(year.priceInPaise)}
+                        {year.isFree ? 'Free' : formatPaise(year.pricing.priceInPaise)}
                       </span>
                       <Button asChild size="sm" variant={year.isFree ? 'brand' : 'outline'}>
                         <Link href={`/pyq/${year.slug}`}>

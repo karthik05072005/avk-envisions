@@ -4,6 +4,11 @@ import { cache } from 'react';
 
 import { parseJsonColumn, stringArraySchema } from '@/lib/json';
 import { db } from '@/server/db';
+import {
+  countEnrolledMany,
+  resolvePricing,
+  type SeriesPricing,
+} from '@/server/services/pricing-service';
 
 /**
  * The course catalogue — the four tracks a student chooses between.
@@ -116,6 +121,7 @@ export interface PyqYearSummary {
   comparePriceInPaise: number;
   /** True when the paper costs nothing — currently the 2011 sample. */
   isFree: boolean;
+  pricing: SeriesPricing;
   fullLengthCount: number;
   subjectCount: number;
   totalQuestions: number;
@@ -138,12 +144,18 @@ export const getPyqYears = cache(async (): Promise<PyqYearSummary[]> => {
       sessionLabel: true,
       priceInPaise: true,
       comparePriceInPaise: true,
+      tier1PriceInPaise: true,
+      tier1Limit: true,
+      tier2PriceInPaise: true,
+      tier2Limit: true,
       tests: {
         where: { status: 'PUBLISHED', deletedAt: null },
         select: { paperNumber: true, subjectId: true, totalQuestions: true },
       },
     },
   });
+
+  const enrolments = await countEnrolledMany(series.map((s) => s.id));
 
   return series.map((s) => ({
     id: s.id,
@@ -155,6 +167,8 @@ export const getPyqYears = cache(async (): Promise<PyqYearSummary[]> => {
     comparePriceInPaise: s.comparePriceInPaise,
     /** Free papers are open to everyone; every other year is locked until bought. */
     isFree: s.priceInPaise === 0,
+    /** Live early-bird state — price and seats reflect real enrolments. */
+    pricing: resolvePricing(s, enrolments.get(s.id) ?? 0),
     fullLengthCount: s.tests.filter((t) => t.paperNumber !== null).length,
     subjectCount: s.tests.filter((t) => t.subjectId !== null).length,
     totalQuestions: s.tests
