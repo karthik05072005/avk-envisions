@@ -20,6 +20,8 @@ import { EmptyState } from '@/components/ui/states';
 import { formatDate, formatDuration, formatPaise } from '@/lib/utils';
 import { currentUser } from '@/server/auth/guards';
 import { getSeriesPricing } from '@/server/services/pricing-service';
+import { paymentsEnabled } from '@/server/services/payment-service';
+import { BuyButton } from '@/features/checkout/buy-button';
 import {
   getTrackSeries,
   type ScheduleRow,
@@ -199,10 +201,28 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
               ))}
             </div>
 
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              The offer is valid only for the number of members shown. Once a limit is crossed the
-              next price applies automatically.
-            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">
+                The offer is valid only for the number of members shown. Once a limit is crossed the
+                next price applies automatically.
+              </p>
+
+              {!paymentsEnabled() ? (
+                <Button size="lg" variant="brand" disabled>
+                  Coming soon
+                </Button>
+              ) : !first ? null : user ? (
+                <BuyButton
+                  seriesSlug={first.slug}
+                  label={`Enrol now — ${formatPaise(price)}`}
+                  prefill={{ name: user.name, email: user.email }}
+                />
+              ) : (
+                <Button asChild size="lg" variant="brand">
+                  <Link href={`/login?next=/courses/${track}`}>Sign in to enrol</Link>
+                </Button>
+              )}
+            </div>
 
             {/* Counted from real entitlements, so this cannot overstate demand. */}
             {pricing.activeTier && pricing.tierLimit !== null && (

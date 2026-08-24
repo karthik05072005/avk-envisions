@@ -15,6 +15,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDuration, formatPaise } from '@/lib/utils';
+import { BuyButton } from '@/features/checkout/buy-button';
+import { currentUser } from '@/server/auth/guards';
+import { paymentsEnabled } from '@/server/services/payment-service';
 import { getPyqPaper, getPyqYears } from '@/server/services/catalogue-service';
 
 export async function generateStaticParams() {
@@ -41,9 +44,11 @@ export async function generateMetadata({
 
 export default async function PyqPaperPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const paper = await getPyqPaper(slug);
+  const [paper, user] = await Promise.all([getPyqPaper(slug), currentUser()]);
 
   if (!paper) notFound();
+
+  const canBuy = paper.priceInPaise > 0 && paymentsEnabled();
 
   const label = paper.sessionLabel
     ? `${paper.sessionLabel} ${paper.examYear}`
@@ -277,9 +282,27 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
                   </p>
                 )}
               </div>
-              <Button asChild size="lg" variant="brand">
-                <Link href={`/register?next=/pyq/${paper.slug}`}>Get access</Link>
-              </Button>
+              {paper.priceInPaise === 0 ? (
+                <Button asChild size="lg" variant="brand">
+                  <Link href={`/register?next=/pyq/${paper.slug}`}>Start free</Link>
+                </Button>
+              ) : !canBuy ? (
+                // Payments off: say so rather than opening a checkout that
+                // cannot complete.
+                <Button size="lg" variant="brand" disabled>
+                  Coming soon
+                </Button>
+              ) : user ? (
+                <BuyButton
+                  seriesSlug={paper.slug}
+                  label="Get access"
+                  prefill={{ name: user.name, email: user.email }}
+                />
+              ) : (
+                <Button asChild size="lg" variant="brand">
+                  <Link href={`/login?next=/pyq/${paper.slug}`}>Sign in to buy</Link>
+                </Button>
+              )}
             </div>
           </div>
 
