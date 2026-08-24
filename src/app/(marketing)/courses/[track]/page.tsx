@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
+  ArrowRight,
   BookOpen,
   CalendarDays,
   CheckCircle2,
@@ -254,6 +255,16 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
           </div>
         </section>
       )}
+
+      <section className="container pt-8">
+        <Button asChild fullWidth size="lg" variant="brand">
+          <Link href={`/courses/${track}/syllabus`}>
+            <FileText aria-hidden="true" />
+            View syllabus &amp; timetable
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
+      </section>
 
       <section className="container py-12">
         <Button asChild variant="ghost" size="sm" className="-ml-3">

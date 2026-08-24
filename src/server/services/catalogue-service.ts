@@ -368,6 +368,8 @@ export interface ScheduleRow {
   totalQuestions: number;
   totalMarks: number;
   maxAttempts: number;
+  /** Full syllabus for this test, as printed on the timetable. */
+  description: string | null;
   attemptsUsed: number;
   state: ScheduleState;
   /** Whether an analysis document is published for this test. */
@@ -406,6 +408,7 @@ export async function getTrackSeries(track: TrackKey, userId?: string) {
           totalMarks: true,
           maxAttempts: true,
           synopsisFileName: true,
+          description: true,
         },
       },
     },
