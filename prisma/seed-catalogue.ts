@@ -17,6 +17,11 @@
 import { PrismaClient } from '@prisma/client';
 
 import { KAS_2026_SCHEDULE } from './data/kas-2026-schedule';
+import {
+  MARKS_PER_QUESTION,
+  NEGATIVE_MARKS_PER_QUESTION,
+  totalMarksFor,
+} from '../src/lib/marking';
 
 const db = new PrismaClient();
 
@@ -116,8 +121,8 @@ const CHAPTERWISE_TRACKS = [
 const FULL_PAPER_INSTRUCTIONS = [
   'This paper follows the actual KAS Prelims pattern.',
   '',
-  '• 100 questions, 2 hours. Each question carries 1 mark.',
-  '• 0.25 marks are deducted for every incorrect answer. Unanswered questions carry no penalty.',
+  `• 100 questions, 2 hours. Each question carries ${MARKS_PER_QUESTION} marks, for a total of ${totalMarksFor(100)}.`,
+  `• ${NEGATIVE_MARKS_PER_QUESTION} marks are deducted for every incorrect answer. Unanswered questions carry no penalty.`,
   '• You may move freely between questions and mark any question for review.',
   '• Your answers save automatically. If your connection drops, resume and continue where you left off.',
   '• The timer runs on our servers, so closing the tab does not pause it. The paper is submitted automatically when time expires.',
@@ -266,6 +271,10 @@ async function main() {
         title: input.title,
         testSeriesId: input.seriesId,
         status: 'PUBLISHED',
+        // Refreshed deliberately: these carry the marking scheme, and a
+        // correction to it has to reach papers that already exist.
+        instructions: input.instructions ?? FULL_PAPER_INSTRUCTIONS,
+        description: input.description,
         maxAttempts: input.maxAttempts ?? 2,
         accessType: input.accessType,
         durationMinutes: input.durationMinutes,
@@ -572,7 +581,7 @@ async function main() {
         instructions: [
           `This test contains only the ${subject.name} questions from the ${label} KAS Prelims paper.`,
           '',
-          '• Each question carries 1 mark, with 0.25 deducted for an incorrect answer.',
+          `• Each question carries ${MARKS_PER_QUESTION} marks, with ${NEGATIVE_MARKS_PER_QUESTION} deducted for an incorrect answer.`,
           '• Unanswered questions carry no penalty.',
           '• Your answers save automatically as you go.',
         ].join('\n'),

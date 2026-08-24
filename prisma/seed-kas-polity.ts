@@ -11,6 +11,12 @@
  */
 import { PrismaClient } from '@prisma/client';
 
+import {
+  MARKING_SCHEME_SHORT,
+  MARKS_PER_QUESTION,
+  NEGATIVE_MARKS_PER_QUESTION,
+} from '../src/lib/marking';
+
 const db = new PrismaClient();
 
 /** The admin account that owns all seeded content. */
@@ -24,8 +30,8 @@ const SOURCE = 'KAS Prelims 2024';
 const EXAM_YEAR = 2024;
 
 /** Marks per question, matching the KPSC prelims scheme. */
-const MARKS = 1;
-const NEGATIVE_MARKS = 0.25;
+const MARKS = MARKS_PER_QUESTION;
+const NEGATIVE_MARKS = NEGATIVE_MARKS_PER_QUESTION;
 
 function slugify(value: string) {
   return value
@@ -307,7 +313,7 @@ async function main() {
       highlightsJson: JSON.stringify([
         { label: 'Conducted by', value: 'KPSC' },
         { label: 'Stages', value: 'Prelims, Mains, Interview' },
-        { label: 'Prelims marking', value: '1 mark, −0.25 negative' },
+        { label: 'Prelims marking', value: MARKING_SCHEME_SHORT },
       ]),
     },
     select: { id: true },
@@ -580,7 +586,7 @@ These are statement-based questions. Read every statement on its own merits befo
     },
     {
       q: 'How is negative marking applied?',
-      a: 'Each correct answer earns 1 mark and each incorrect answer costs 0.25 marks, matching the KPSC prelims scheme. Unanswered questions carry no penalty.',
+      a: `Each correct answer earns ${MARKS_PER_QUESTION} marks and each incorrect answer costs ${NEGATIVE_MARKS_PER_QUESTION}, matching the KPSC prelims scheme. Unanswered questions carry no penalty.`,
     },
     {
       q: 'Can I attempt the test more than once?',

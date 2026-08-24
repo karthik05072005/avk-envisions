@@ -1,3 +1,4 @@
+import { MARKS_PER_QUESTION } from '@/lib/marking';
 import { z } from 'zod';
 
 import { cuidSchema } from './common';
@@ -63,7 +64,7 @@ export const importCommitSchema = z
     maxAttempts: z.coerce.number().int().min(0).max(50).default(2),
 
     // --- Marking ----------------------------------------------------------
-    marks: z.coerce.number().min(0.25).max(100).default(1),
+    marks: z.coerce.number().min(0.25).max(100).default(MARKS_PER_QUESTION),
     negativeMarks: z.coerce.number().min(0).max(100).default(0.25),
 
     // --- Provenance -------------------------------------------------------

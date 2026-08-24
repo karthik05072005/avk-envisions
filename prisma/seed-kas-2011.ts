@@ -14,6 +14,11 @@
  */
 import { PrismaClient } from '@prisma/client';
 
+import {
+  MARKS_PER_QUESTION,
+  NEGATIVE_MARKS_PER_QUESTION,
+} from '../src/lib/marking';
+
 import { KAS_2011_PAPER1, type PaperQuestion } from './data/kas-2011-paper1';
 
 const db = new PrismaClient();
@@ -27,8 +32,8 @@ const EXAM_SLUG = 'kas';
 const SOURCE = 'KAS Prelims 2011 — Paper I';
 const EXAM_YEAR = 2011;
 const FULL_TEST_SLUG = 'kas-pyq-2011-paper-1';
-const MARKS = 1;
-const NEGATIVE_MARKS = 0.25;
+const MARKS = MARKS_PER_QUESTION;
+const NEGATIVE_MARKS = NEGATIVE_MARKS_PER_QUESTION;
 
 function slugify(value: string) {
   return value

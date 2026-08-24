@@ -1,3 +1,4 @@
+import { MARKS_PER_QUESTION } from '@/lib/marking';
 import { z } from 'zod';
 
 import { cuidSchema } from './common';
@@ -32,7 +33,7 @@ export const questionSchema = z
     passage: z.string().trim().max(10_000).nullish(),
     imageUrl: z.string().trim().url().nullish().or(z.literal('')),
 
-    marks: z.coerce.number().min(0.25).max(100).default(1),
+    marks: z.coerce.number().min(0.25).max(100).default(MARKS_PER_QUESTION),
     negativeMarks: z.coerce.number().min(0).max(100).default(0),
 
     numericalAnswer: z.coerce.number().finite().nullish(),

@@ -419,8 +419,10 @@ model Question {
   passage     String?
   imageUrl    String?
 
-  marks         Float @default(1)
-  negativeMarks Float @default(0)
+  /// KPSC KAS scheme: 2 marks correct, one quarter of that deducted for wrong.
+  /// See `@/lib/marking` — these defaults must stay in step with it.
+  marks         Float @default(2)
+  negativeMarks Float @default(0.5)
 
   /// For NUMERICAL: expected value and accepted tolerance (inclusive).
   numericalAnswer   Float?
