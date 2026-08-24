@@ -466,8 +466,14 @@ async function seedSettings() {
   const settings = [
     { key: 'site.name', value: 'AVK Envisions', group: 'general', label: 'Site name' },
     { key: 'site.tagline', value: 'Prepare Smarter. Perform Better. Achieve More.', group: 'general', label: 'Tagline' },
-    { key: 'site.supportEmail', value: 'support@avkvisions.com', group: 'contact', label: 'Support email' },
-    { key: 'site.contactEmail', value: 'hello@avkvisions.com', group: 'contact', label: 'Contact email' },
+    { key: 'site.supportEmail', value: 'support@avkenvisions.com', group: 'contact', label: 'Support email' },
+    { key: 'site.contactEmail', value: 'hello@avkenvisions.com', group: 'contact', label: 'Contact email' },
+    {
+      key: 'community.whatsappChannelUrl',
+      value: 'https://whatsapp.com/channel/0029VbD35utIXnlrLmpWTD3L',
+      group: 'contact',
+      label: 'WhatsApp channel invite link',
+    },
     { key: 'site.maintenanceMode', value: 'false', valueType: 'BOOLEAN', group: 'general', label: 'Maintenance mode' },
     { key: 'site.registrationOpen', value: 'true', valueType: 'BOOLEAN', group: 'general', label: 'Registration open' },
     { key: 'seo.defaultTitle', value: 'AVK Envisions — Online Test Series & Exam Preparation', group: 'seo', label: 'Default SEO title' },

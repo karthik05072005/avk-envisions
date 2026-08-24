@@ -107,6 +107,9 @@ export function BuyButton({
           try {
             await api.post('/api/checkout/verify', response);
             toast.success('Payment confirmed. Your access is active.');
+            // Land on the page that carries the community invite and the
+            // record of what was bought, rather than refreshing in place.
+            router.push('/subscriptions');
             router.refresh();
           } catch (error) {
             // The money may well have been taken — the webhook will still

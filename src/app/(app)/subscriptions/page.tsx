@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { serverEnv } from '@/lib/env';
 import { formatDate, formatPaise } from '@/lib/utils';
 import { enforceStudent } from '@/server/auth/guards';
+import { CommunityInvite } from '@/features/checkout/community-invite';
 import { db } from '@/server/db';
 import { getPublishedPlans } from '@/server/services/marketing-service';
 
@@ -86,6 +87,9 @@ export default async function SubscriptionPage() {
           Your current access, what it covers, and what is available.
         </p>
       </header>
+
+      {/* Community — shown to anyone who has bought something. --------- */}
+      {entitlements.length > 0 && <CommunityInvite />}
 
       {/* Current plan ---------------------------------------------------- */}
       <Card variant={subscription ? 'accent' : 'default'}>
