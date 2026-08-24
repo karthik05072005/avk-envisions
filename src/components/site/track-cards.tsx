@@ -93,9 +93,14 @@ export function TrackCards({ tracks }: { tracks: TrackSummary[] }) {
                     Price
                   </p>
                   <p className="mt-0.5 text-sm font-semibold tabular-nums">
-                    {track.isFree || track.fromPriceInPaise === 0
-                      ? 'Free'
-                      : formatPaise(track.fromPriceInPaise)}
+                    {/* An unreleased track shows no price: quoting one for
+                        something nobody can buy invites a question that has
+                        not been answered yet. */}
+                    {track.comingSoon
+                      ? '—'
+                      : track.isFree || track.fromPriceInPaise === 0
+                        ? 'Free'
+                        : formatPaise(track.fromPriceInPaise)}
                   </p>
                 </div>
                 <div className="bg-card px-2 py-3">
@@ -116,7 +121,7 @@ export function TrackCards({ tracks }: { tracks: TrackSummary[] }) {
 
               {/* Shown only while an early-bird tier is genuinely running. */}
               {track.earlyBirdLimit != null && (
-                <p className="mt-2 text-center text-xs font-medium leading-tight text-primary">
+                <p className="mt-2 text-center text-xs font-semibold leading-tight text-primary">
                   Early bird offer — only for the first {track.earlyBirdLimit} members
                 </p>
               )}

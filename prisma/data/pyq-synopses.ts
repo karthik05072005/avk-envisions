@@ -6,11 +6,11 @@
  * rather than committed; `npm run db:synopses` downloads them into the synopsis
  * directory, which sits outside the web root.
  *
- * A note on the years. The Drive folders are mislabelled: the folder named
- * "2012" holds the 2011 papers, "2015" holds 2014, and "2017" holds 2015 - each
- * document's own cover page names the exam it analyses. The slugs below follow
- * the documents, not the folders, because filing a paper under the wrong year
- * would have students practising the wrong exam.
+ * A note on the years. The folder named "2012" holds the 2011 papers, which the
+ * filenames inside confirm. For "2015" and "2017" the folder name and the cover
+ * heading disagree - the covers read 2014 and 2015 - and AVK confirmed the
+ * folders are right, so the slugs follow those. The cover headings in those two
+ * sets of PDFs are wrong and should be corrected at source.
  *
  * Current Affairs appears in both Paper I and Paper II every year, while the
  * catalogue carries one Current Affairs test per year. The Paper I document is
@@ -78,102 +78,102 @@ export const PYQ_SYNOPSES: SynopsisSource[] = [
     source: '2012/Paper2+subjectwise/2011-S&amp;T-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-paper-1',
+    testSlug: 'kas-pyq-2015-paper-1',
     driveFileId: '1XwUBhcA-UfJpuEO0vbN6OaFp8Fu4VDXo',
     source: '2015/Paper1+subjectwise/⭐️2014-paper1-All-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-paper-2',
+    testSlug: 'kas-pyq-2015-paper-2',
     driveFileId: '1TGtXZ7heHN8zhYzto1OLiMYcuqlosucb',
     source: '2015/Paper2+subjectwise/⭐️KAS2014_paper_II_ALL_SYNOPSIS.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-subject-current-affairs',
+    testSlug: 'kas-pyq-2015-subject-current-affairs',
     driveFileId: '1Z-K7yUDSzkNs3VRrDdelxT3rZYEGl0Jz',
     source: '2015/Paper1+subjectwise/2014-CA-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-subject-environment',
+    testSlug: 'kas-pyq-2015-subject-environment',
     driveFileId: '1BguadC_fDNSWSsLxwy8nUZyQ323EIw3A',
     source: '2015/Paper2+subjectwise/2014 Environmental and Ecology.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-subject-geography',
+    testSlug: 'kas-pyq-2015-subject-geography',
     driveFileId: '1MKiOrxpIr8NY8t2elhrbJyUlvLOP2XlA',
     source: '2015/Paper1+subjectwise/2014-geography-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-subject-history',
+    testSlug: 'kas-pyq-2015-subject-history',
     driveFileId: '1yCTwPaVqp0949BZh4s5SiqRJWCmmEkEz',
     source: '2015/Paper1+subjectwise/2014-History-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-subject-indian-economy',
+    testSlug: 'kas-pyq-2015-subject-indian-economy',
     driveFileId: '1LFSbKt7vTRz5aMRnmr9U5JxQnbteq2dE',
     source: '2015/Paper1+subjectwise/2014-Economy-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-subject-indian-polity',
+    testSlug: 'kas-pyq-2015-subject-indian-polity',
     driveFileId: '1tJquu_L7zzlfEc_WGgcxszPA_G-HbH1a',
     source: '2015/Paper1+subjectwise/2014-polity-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-subject-mental-ability',
+    testSlug: 'kas-pyq-2015-subject-mental-ability',
     driveFileId: '11V7F46x1fK-_jqNPMANUkPdReiUVrMi-',
     source: '2015/Paper2+subjectwise/2014-CSAT-ANS.pdf',
   },
   {
-    testSlug: 'kas-pyq-2014-subject-science-technology',
+    testSlug: 'kas-pyq-2015-subject-science-technology',
     driveFileId: '1rB7tplLT_4mvQGAy--gxwVwuzLRAzhkV',
     source: '2015/Paper2+subjectwise/2014 Science and Technology.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-paper-1',
+    testSlug: 'kas-pyq-2017-paper-1',
     driveFileId: '1pTeHJ-wxQ6xMGpvehvy8YKkLXyxGfpz3',
     source: '2017/Paper1+subjectwise/⭐️2015-paper1-All-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-paper-2',
+    testSlug: 'kas-pyq-2017-paper-2',
     driveFileId: '1jfgOL706lIG57Z74lvzbgksXrbovys3l',
     source: '2017/Paper2+subjectwise/⭐️2017-Paper2-All-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-subject-current-affairs',
+    testSlug: 'kas-pyq-2017-subject-current-affairs',
     driveFileId: '1991XOxCjdl2T5yS0LEf8_YLIlV7XMsxX',
     source: '2017/Paper1+subjectwise/2015 -CA-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-subject-environment',
+    testSlug: 'kas-pyq-2017-subject-environment',
     driveFileId: '1nscxSXYtcIX1OiTFmW6m2JoMAc0nx0yD',
     source: '2017/Paper2+subjectwise/2017-Environment-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-subject-geography',
+    testSlug: 'kas-pyq-2017-subject-geography',
     driveFileId: '1aDKwKfRJ4rG7vGXLaLpbjUHy8FnnL8vi',
     source: '2017/Paper1+subjectwise/2015-geography-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-subject-history',
+    testSlug: 'kas-pyq-2017-subject-history',
     driveFileId: '17cyczmr4dVOAZhmJ5mevfeBpfrKzxkXq',
     source: '2017/Paper1+subjectwise/2015-History-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-subject-indian-economy',
+    testSlug: 'kas-pyq-2017-subject-indian-economy',
     driveFileId: '19uJttt60Oh76OoL1vzUUEBgumBNxfpSK',
     source: '2017/Paper1+subjectwise/2015-economy.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-subject-indian-polity',
+    testSlug: 'kas-pyq-2017-subject-indian-polity',
     driveFileId: '1VBfccN0bFunivAw_IhxrmuSuKUKceBKN',
     source: '2017/Paper1+subjectwise/2015-Polity-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-subject-mental-ability',
+    testSlug: 'kas-pyq-2017-subject-mental-ability',
     driveFileId: '1vPy7oGQ9_WbhEPZ1E1OiCjWbOM1I39zS',
     source: '2017/Paper2+subjectwise/2017 CSAT-Ans.pdf',
   },
   {
-    testSlug: 'kas-pyq-2015-subject-science-technology',
+    testSlug: 'kas-pyq-2017-subject-science-technology',
     driveFileId: '1IrvYXfomVSPVtzWSgP_7HOePv2vwR8wI',
     source: '2017/Paper2+subjectwise/2017-S&amp;T-Ans.pdf',
   },

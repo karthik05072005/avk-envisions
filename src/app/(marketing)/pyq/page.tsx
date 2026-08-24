@@ -101,6 +101,48 @@ export default async function PyqPage() {
         </div>
       </PageHeader>
 
+      {/* Free paper, offered before the paid one — a visitor should be invited
+          to try the product before being asked to buy it. */}
+      {years.some((y) => y.isFree) && (
+        <section className="container pt-12">
+          {years
+            .filter((y) => y.isFree)
+            .map((y) => (
+              <div
+                key={y.id}
+                className="flex flex-col gap-4 rounded-xl border border-success/40 bg-success/5 p-5 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-start gap-3.5">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                    <FileQuestion className="size-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold leading-tight">
+                        Try the {y.examYear} paper free
+                      </p>
+                      <Badge variant="success" size="sm">
+                        No payment needed
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                      The complete {y.examYear} paper with its full analysis, open to everyone. See
+                      exactly what you get before paying for any other year.
+                    </p>
+                  </div>
+                </div>
+
+                <Button asChild size="lg" variant="brand" className="shrink-0">
+                  <Link href={`/pyq/${y.slug}`}>
+                    Start free
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
+            ))}
+        </section>
+      )}
+
       {offer && (
         <section className="container pt-12" aria-labelledby="unlock-heading">
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">

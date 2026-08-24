@@ -14,6 +14,7 @@ import {
   Newspaper,
   Scale,
   type LucideIcon,
+  Clock,
 } from 'lucide-react';
 
 import { PageHeader } from '@/components/site/page-header';
@@ -107,19 +108,13 @@ export default async function ChapterwisePage() {
                         : `${subject.readyCount} of ${subject.chapterCount} chapter tests ready`}
                     </p>
 
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
-                      <div>
-                        <span className="text-lg font-semibold tabular-nums">
-                          {formatPaise(subject.priceInPaise)}
-                        </span>
-                        {subject.comparePriceInPaise > subject.priceInPaise && (
-                          <span className="ml-2 text-sm text-muted-foreground line-through">
-                            {formatPaise(subject.comparePriceInPaise)}
-                          </span>
-                        )}
-                      </div>
-                      <Button asChild size="sm">
-                        <Link href={`/register?next=/chapterwise`}>Unlock</Link>
+                    {/* No price shown while the track is unreleased. Quoting a
+                        figure for something nobody can buy invites the question
+                        of what it costs, which has not been decided. */}
+                    <div className="mt-4 border-t border-border pt-4">
+                      <Button disabled fullWidth size="sm">
+                        <Clock aria-hidden="true" />
+                        Coming soon
                       </Button>
                     </div>
                   </CardContent>
@@ -130,8 +125,8 @@ export default async function ChapterwisePage() {
         )}
 
         <p className="mt-8 rounded-xl border border-border bg-muted/30 px-5 py-4 text-sm leading-relaxed text-muted-foreground">
-          Unlock any subject individually, or take the Premium plan for access to every track along
-          with the full-length test series.
+          Chapterwise practice is being built. In the meantime, the previous year papers and the
+          full-length test series cover the same syllabus.
         </p>
       </section>
     </>

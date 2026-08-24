@@ -131,13 +131,17 @@ export function CourseTracks({
                   {track.isFree ? 'Price' : 'From'}
                 </dt>
                 <dd className="mt-0.5 text-lg font-semibold tabular-nums">
-                  {track.fromPriceInPaise === 0 ? 'Free' : formatPaise(track.fromPriceInPaise)}
+                  {track.comingSoon
+                    ? '—'
+                    : track.fromPriceInPaise === 0
+                      ? 'Free'
+                      : formatPaise(track.fromPriceInPaise)}
                 </dd>
                 {/* The price only holds for the early-bird band, and a buyer
                     should see that beside the number rather than discover it
                     at checkout. */}
                 {track.earlyBirdLimit != null && (
-                  <dd className="mt-0.5 text-[0.6875rem] font-medium leading-tight text-primary">
+                  <dd className="mt-0.5 text-[0.6875rem] font-bold leading-tight text-primary">
                     Early bird offer
                     <br />
                     Only for first {track.earlyBirdLimit} members

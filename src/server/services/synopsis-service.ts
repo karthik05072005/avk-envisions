@@ -81,6 +81,14 @@ async function gate(
     }
   }
 
+  // Nothing to attempt yet? Then requiring an attempt would lock the analysis
+  // away permanently. Papers are published with their analysis before the
+  // questions are keyed in, and a buyer is entitled to what they paid for.
+  const attemptable = await db.test.count({
+    where: { id: { in: series.testIds }, deletedAt: null, totalQuestions: { gt: 0 } },
+  });
+  if (attemptable === 0) return null;
+
   const finished = await db.testAttempt.count({
     where: {
       userId: user.id,

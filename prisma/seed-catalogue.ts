@@ -55,6 +55,12 @@ const KAS_SUBJECTS: { name: string; questions: number; icon: string; color: stri
 ];
 
 /** Subjects folded into another, or dropped, after the catalogue was first seeded. */
+/** Minutes for one free sampler test. */
+const FREE_TEST_MINUTES = 25;
+
+/** The free tier is the first ten tests of the published timetable. */
+const FREE_SERIES_SCHEDULE = KAS_2026_SCHEDULE.slice(0, 10);
+
 const RETIRED_SUBJECTS: { slug: string; mergeIntoSlug?: string }[] = [
   { slug: 'indian-history', mergeIntoSlug: 'history' },
   { slug: 'karnataka-history', mergeIntoSlug: 'history' },
@@ -66,11 +72,13 @@ const PYQ_YEARS: { year: number; session?: string; papers: number[]; free?: bool
   // 2011 is the free sample: a complete, genuine KAS paper a student can
   // attempt end to end before paying for anything.
   { year: 2011, papers: [1, 2], free: true },
-  // The corrections sheet listed 2017, but the analysis documents supplied for
-  // that folder carry "KAS PRELIMS 2015" on their cover — there is no 2017
-  // paper in the archive, and 2014 is present. The documents win.
-  { year: 2014, papers: [1, 2] },
+  // Years follow the Drive folder names, which AVK confirmed twice, rather
+  // than the cover headings inside the documents — those read 2014 and 2015
+  // for the folders named 2015 and 2017, and are a typo in the source PDFs.
+  // Flagged rather than silently reconciled: if a cover is right and a folder
+  // wrong, a student practises a paper labelled with the wrong year.
   { year: 2015, papers: [1, 2] },
+  { year: 2017, papers: [1, 2] },
   { year: 2020, papers: [1, 2] },
   { year: 2024, session: 'August', papers: [1, 2] },
   { year: 2024, session: 'December', papers: [1, 2] },
@@ -351,11 +359,11 @@ async function main() {
   });
   await retire('placeholder mock tests', { slug: { startsWith: 'kas-paid-full-mock-' } });
 
-  // A 2017 series was created briefly from the corrections sheet before the
-  // supplied documents showed that folder to hold the 2015 paper.
-  await retire('2017 paper tests', { slug: { startsWith: 'kas-pyq-2017' } });
+  // 2014 was published briefly while the document cover headings were taken
+  // as authoritative; the folder names are.
+  await retire('2014 paper tests', { slug: { startsWith: 'kas-pyq-2014' } });
   await db.testSeries.deleteMany({
-    where: { slug: 'kas-pyq-2017', tests: { none: {} } },
+    where: { slug: 'kas-pyq-2014', tests: { none: {} } },
   });
 
   /**
@@ -402,7 +410,10 @@ async function main() {
     select: { id: true },
   });
 
-  for (const entry of KAS_2026_SCHEDULE) {
+  // Ten sampler tests, not the full twenty-one: the free tier advertises
+  // "10 Free Mock Tests" and taking the first ten of the timetable keeps the
+  // sampler in the same order a student would sit the real series.
+  for (const entry of FREE_SERIES_SCHEDULE) {
     await upsertTest({
       slug: `kas-free-${entry.no}`,
       title: entry.name,
@@ -410,9 +421,9 @@ async function main() {
       seriesId: free.id,
       category: entry.paperNumber === null ? 'SECTIONAL' : 'FULL_MOCK',
       accessType: 'FREE',
-      // 20 questions in 30 minutes: a sample of the paid paper, not a
+      // 20 questions in 25 minutes: a sample of the paid paper, not a
       // shortened version of the real exam.
-      durationMinutes: 30,
+      durationMinutes: FREE_TEST_MINUTES,
       // Explicitly null, not omitted: these tests were previously scheduled,
       // and `undefined` would leave those dates in place. The free tests are a
       // sampler a visitor works through whenever they like; only the paid
@@ -422,7 +433,16 @@ async function main() {
       description: entry.syllabus,
     });
   }
-  console.log(`  ok  free series + ${KAS_2026_SCHEDULE.length} scheduled tests (20 questions, 30 min)`);
+  // Anything beyond the ten-test sampler is retired, so shrinking the free
+  // tier actually removes the extra rows rather than leaving them published.
+  await retire('surplus free tests', {
+    slug: { startsWith: 'kas-free-' },
+    NOT: { slug: { in: FREE_SERIES_SCHEDULE.map((t) => `kas-free-${t.no}`) } },
+  });
+
+  console.log(
+    `  ok  free series + ${FREE_SERIES_SCHEDULE.length} tests (20 questions, ${FREE_TEST_MINUTES} min)`,
+  );
 
   // --- 2. Paid test series ----------------------------------------------
   const paid = await db.testSeries.upsert({
@@ -481,7 +501,10 @@ async function main() {
       durationMinutes: 120,
       paperNumber: entry.paperNumber ?? undefined,
       subjectId: entry.subject ? subjectIds.get(entry.subject) : undefined,
-      startDate: unlockAt(entry.date, entry.session),
+      // Explicitly null: the schedule is published as a study plan rather than
+      // a lock, so a buyer can sit any paper whenever they are ready. Omitting
+      // this would leave previously written dates in place.
+      startDate: null,
       description: entry.syllabus,
     });
   }
