@@ -185,9 +185,13 @@ async function main() {
     }
 
     // --- Attach to the full-length paper ------------------------------------
+    // Deduplicated: two parsed items can resolve to the same question when a
+    // number repeats in the document, and (testId, questionId) is unique.
+    const paperQuestionIds = [...new Set(questionIds)];
+
     await db.testQuestion.deleteMany({ where: { testId: paper.id } });
     await db.testQuestion.createMany({
-      data: questionIds.map((qid, i) => ({
+      data: paperQuestionIds.map((qid, i) => ({
         testId: paper.id,
         questionId: qid,
         sortOrder: i + 1,
@@ -198,9 +202,9 @@ async function main() {
     await db.test.update({
       where: { id: paper.id },
       data: {
-        totalQuestions: questionIds.length,
-        totalMarks: questionIds.length * MARKS_PER_QUESTION,
-        passingMarks: Math.round(questionIds.length * MARKS_PER_QUESTION * 0.35),
+        totalQuestions: paperQuestionIds.length,
+        totalMarks: paperQuestionIds.length * MARKS_PER_QUESTION,
+        passingMarks: Math.round(paperQuestionIds.length * MARKS_PER_QUESTION * 0.35),
       },
     });
 
@@ -213,10 +217,22 @@ async function main() {
       if (paper.slug.endsWith('-paper-1')) {
         await db.testQuestion.deleteMany({ where: { testId } });
       }
-      const offset = await db.testQuestion.count({ where: { testId } });
+
+      // Paper II appends to what Paper I placed, so the drill may already hold
+      // some of these. SQLite has no skipDuplicates, and (testId, questionId)
+      // is unique, so anything already attached is filtered out here.
+      const alreadyIn = new Set(
+        (
+          await db.testQuestion.findMany({ where: { testId }, select: { questionId: true } })
+        ).map((r) => r.questionId),
+      );
+      const fresh = [...new Set(ids)].filter((qid) => !alreadyIn.has(qid));
+      if (fresh.length === 0) continue;
+
+      const offset = alreadyIn.size;
 
       await db.testQuestion.createMany({
-        data: ids.map((qid, i) => ({
+        data: fresh.map((qid, i) => ({
           testId,
           questionId: qid,
           sortOrder: offset + i + 1,
