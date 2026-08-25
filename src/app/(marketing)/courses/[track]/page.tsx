@@ -297,7 +297,7 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                   <span className="w-28 shrink-0">Date</span>
                   <span className="flex-1">Subject / syllabus</span>
                   <span className="w-24 shrink-0 text-center">Duration</span>
-                  <span className="w-32 shrink-0 text-center">Action</span>
+                  <span className="w-32 shrink-0 text-center">Test / analysis</span>
                 </div>
 
                 <ol className="divide-y divide-border">
@@ -339,14 +339,31 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                           : `${row.durationMinutes} min`}
                       </span>
 
+                      {/* Two actions on every row: sit the paper, and read its
+                          analysis. The synopsis control is always present so the
+                          column reads consistently — disabled where the analysis
+                          has not been written yet, rather than absent, which
+                          would make it look as though only some papers have one. */}
                       <div className="flex shrink-0 flex-col gap-1.5 sm:w-32">
                         <ScheduleAction row={row} />
-                        {row.hasSynopsis && (
+
+                        {row.hasSynopsis ? (
                           <Button asChild size="sm" variant="outline" className="w-full sm:w-32">
                             <Link href={`/synopsis/test/${row.id}`}>
                               <FileText aria-hidden="true" />
                               Synopsis
                             </Link>
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled
+                            className="w-full sm:w-32"
+                            title="The analysis for this test has not been published yet"
+                          >
+                            <FileText aria-hidden="true" />
+                            Synopsis soon
                           </Button>
                         )}
                       </div>

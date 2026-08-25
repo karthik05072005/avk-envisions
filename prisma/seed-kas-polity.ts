@@ -463,7 +463,18 @@ async function main() {
   // --- Test series --------------------------------------------------------
   const series = await db.testSeries.upsert({
     where: { slug: 'kas-polity-previous-year-questions' },
-    update: { status: 'PUBLISHED', priceInPaise: 0 },
+    // Archived, not published. These five questions are the December 2024
+    // Polity set, and the catalogue seed already wires the same five into
+    // `kas-pyq-2024-december-subject-indian-polity` — so publishing this as a
+    // series too listed the same content twice.
+    //
+    // It also had no `track`, so it took the schema default of PAID_SERIES:
+    // a free five-question set inside the paid track, adding a twenty-second
+    // test, dragging the advertised duration to "Varies", and — sorting first
+    // on a tied sortOrder — making the whole paid series read as free.
+    //
+    // Archiving rather than deleting keeps the recorded attempts intact.
+    update: { status: 'ARCHIVED', priceInPaise: 0, track: 'FREE_SERIES' },
     create: {
       examId: exam.id,
       name: 'KAS Polity — Previous Year Questions',
@@ -472,12 +483,13 @@ async function main() {
       description:
         'Previous-year Polity questions from the KAS Preliminary examination, reproduced exactly as they appeared and solved statement by statement. Each solution explains why the keyed option is right and, just as importantly, why each distractor is wrong — which is where statement-based questions are actually won or lost. Free to attempt, with full topic-level analytics.',
       difficulty: 'INTERMEDIATE',
+      track: 'FREE_SERIES',
       priceInPaise: 0,
       comparePriceInPaise: 0,
       accessDurationDays: 0,
-      status: 'PUBLISHED',
-      isFeatured: true,
-      sortOrder: 2,
+      status: 'ARCHIVED',
+      isFeatured: false,
+      sortOrder: 20,
       featuresJson: JSON.stringify([
         'Genuine KAS previous-year questions, reproduced verbatim',
         'Statement-by-statement solutions, not just the answer key',
@@ -497,7 +509,9 @@ async function main() {
 
   const test = await db.test.upsert({
     where: { slug: 'kas-2024-prelims-polity-pyq-set-1' },
-    update: { status: 'PUBLISHED', accessType: 'FREE' },
+    // Archived alongside its series: the same five questions are published
+    // through the catalogue's 2024 December Polity test.
+    update: { status: 'ARCHIVED', accessType: 'FREE' },
     create: {
       examId: exam.id,
       testSeriesId: series.id,
