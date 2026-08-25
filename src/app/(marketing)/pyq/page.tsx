@@ -261,20 +261,9 @@ export default async function PyqPage() {
                       >
                         {year.examYear}
                       </span>
-                      {year.isFree ? (
-                        <Badge variant="success" size="sm">
-                          Free
-                        </Badge>
-                      ) : year.readyCount > 0 ? (
-                        <Badge variant="secondary" size="sm">
-                          <Lock aria-hidden="true" />
-                          Locked
-                        </Badge>
-                      ) : (
-                        <Badge variant="muted" size="sm">
-                          Being added
-                        </Badge>
-                      )}
+                      <Badge variant="success" size="sm">
+                        Free
+                      </Badge>
                     </div>
 
                     <h3 className="mt-4 font-semibold leading-tight tracking-tight">

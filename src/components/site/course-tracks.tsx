@@ -163,16 +163,6 @@ export function CourseTracks({
             </div>
 
             {/* Honest readiness signal rather than a silent empty catalogue. */}
-            {track.readyCount === 0 && track.testCount > 0 && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Questions are being added to this track.
-              </p>
-            )}
-            {track.readyCount > 0 && track.readyCount < track.testCount && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                {track.readyCount} of {track.testCount} tests ready to attempt now.
-              </p>
-            )}
           </div>
         );
       })}

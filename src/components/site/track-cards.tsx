@@ -87,7 +87,7 @@ export function TrackCards({ tracks }: { tracks: TrackSummary[] }) {
                 ))}
               </ul>
 
-              <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border text-center">
+              <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border text-center">
                 <div className="bg-card px-2 py-3">
                   <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
                     Price
@@ -110,12 +110,6 @@ export function TrackCards({ tracks }: { tracks: TrackSummary[] }) {
                   <p className="mt-0.5 text-sm font-semibold tabular-nums">
                     {track.testCount > 0 ? track.testCount : '—'}
                   </p>
-                </div>
-                <div className="bg-card px-2 py-3">
-                  <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
-                    Ready
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold tabular-nums">{track.readyCount}</p>
                 </div>
               </div>
 

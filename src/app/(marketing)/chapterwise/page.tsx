@@ -105,7 +105,7 @@ export default async function ChapterwisePage() {
                     <p className="mt-4 text-xs text-muted-foreground">
                       {subject.chapterCount === 0
                         ? 'Chapters are being added'
-                        : `${subject.readyCount} of ${subject.chapterCount} chapter tests ready`}
+                        : `${subject.chapterCount} chapter tests`}
                     </p>
 
                     {/* No price shown while the track is unreleased. Quoting a

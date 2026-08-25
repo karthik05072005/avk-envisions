@@ -38,8 +38,6 @@ export interface TrackSummary {
   /** Series belonging to this track. */
   seriesCount: number;
   testCount: number;
-  /** Tests that actually have questions attached and can be attempted today. */
-  readyCount: number;
   /** Lowest non-zero price across the track, in paise. 0 = the track is free. */
   fromPriceInPaise: number;
   earlyBirdLimit?: number | null;
@@ -47,7 +45,7 @@ export interface TrackSummary {
 }
 
 /** Static presentation for each track; counts are filled from the database. */
-const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount' | 'readyCount' | 'fromPriceInPaise' | 'isFree'>> = {
+const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount' | 'fromPriceInPaise' | 'isFree'>> = {
   FREE_SERIES: {
     key: 'FREE_SERIES',
     title: 'Free Test Series',
@@ -158,7 +156,6 @@ export const getCourseTracks = cache(async (): Promise<TrackSummary[]> => {
       ...TRACK_META[key],
       seriesCount: mine.length,
       testCount: tests.length,
-      readyCount: tests.filter((t) => t.totalQuestions > 0).length,
       fromPriceInPaise: cheapest?.priceInPaise ?? 0,
       /** Set when an early-bird tier is running, for the "only for the first N" line. */
       earlyBirdLimit: cheapest?.activeTier ? cheapest.tierLimit : null,
@@ -185,7 +182,6 @@ export interface PyqYearSummary {
   fullLengthCount: number;
   subjectCount: number;
   totalQuestions: number;
-  readyCount: number;
 }
 
 /** The year grid on /pyq, oldest paper first so the free year leads. */
@@ -234,7 +230,6 @@ export const getPyqYears = cache(async (): Promise<PyqYearSummary[]> => {
     totalQuestions: s.tests
       .filter((t) => t.paperNumber !== null)
       .reduce((sum, t) => sum + t.totalQuestions, 0),
-    readyCount: s.tests.filter((t) => t.totalQuestions > 0).length,
   }));
 });
 
@@ -342,7 +337,6 @@ export const getChapterwiseSubjects = cache(async () => {
     ...s,
     features: parseJsonColumn(s.featuresJson, stringArraySchema, []),
     chapterCount: s.tests.length,
-    readyCount: s.tests.filter((t) => t.totalQuestions > 0).length,
   }));
 });
 
