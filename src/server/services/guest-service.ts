@@ -37,7 +37,11 @@ export function isGuestEmail(email: string): boolean {
  * Checked server-side on every call. The client decides which button to show;
  * it never decides what is free.
  */
-export async function assertTestIsFree(testId: string) {
+export async function assertTestIsFree(
+  testId: string,
+  options: { requireQuestions?: boolean } = {},
+) {
+  const { requireQuestions = true } = options;
   const test = await db.test.findFirst({
     where: { id: testId, deletedAt: null },
     select: { id: true, title: true, accessType: true, status: true, totalQuestions: true },
@@ -56,7 +60,7 @@ export async function assertTestIsFree(testId: string) {
     );
   }
 
-  if (test.totalQuestions < 1) {
+  if (requireQuestions && test.totalQuestions < 1) {
     throw new AppError('TEST_UNAVAILABLE', 'This test does not have any questions yet.');
   }
 

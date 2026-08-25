@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { GuestStartForm } from '@/features/auth/guest-start-form';
 import { currentUser } from '@/server/auth/guards';
+import { safeRedirectPath } from '@/validations/auth';
 import { db } from '@/server/db';
 
 export const metadata: Metadata = {
@@ -19,20 +20,39 @@ export const dynamic = 'force-dynamic';
  * Reached when a signed-out visitor opens a free test. Collects a name and
  * phone number, which is enough to create a student record and let them begin.
  */
-export default async function GuestStartPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function GuestStartPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ next?: string }>;
+}) {
   const { id } = await params;
+  const { next } = await searchParams;
 
-  // Already signed in? There is nothing to collect — go straight to the test.
-  if (await currentUser()) redirect(`/test/${id}`);
+  // Normalised before use so a crafted `?next=//evil.com` cannot turn this
+  // into an open redirect.
+  const destination = safeRedirectPath(next, `/test/${id}`);
+
+  // Already signed in? There is nothing to collect.
+  if (await currentUser()) redirect(destination);
 
   const test = await db.test.findFirst({
     where: { id, deletedAt: null, status: 'PUBLISHED', accessType: 'FREE' },
     select: { id: true, title: true, totalQuestions: true },
   });
 
-  // Not free, unpublished or gone: this page has nothing to offer, and saying
-  // so is better than collecting a phone number for a test they cannot take.
-  if (!test || test.totalQuestions < 1) notFound();
+  // A paper with no questions can still have an analysis to read, so an empty
+  // test is only a dead end when the visitor is heading for the test itself.
+  const wantsAnalysis = destination.startsWith('/synopsis/');
+  if (!test || (test.totalQuestions < 1 && !wantsAnalysis)) notFound();
 
-  return <GuestStartForm testId={test.id} testTitle={test.title} />;
+  return (
+    <GuestStartForm
+      testId={test.id}
+      testTitle={test.title}
+      next={destination}
+      purpose={wantsAnalysis ? 'ANALYSIS' : 'TEST'}
+    />
+  );
 }

@@ -56,21 +56,44 @@ function synopsisDir() {
 async function main() {
   console.log(`\nAnalysed PDF — end to end against ${BASE}\n`);
 
-  // --- Pick a paid paper and a free one -----------------------------------
-  const paid = await db.testSeries.findFirst({
+  // --- Pick a paper to test the gate on, and a free one -------------------
+  //
+  // The catalogue is free, so a priced series may not exist. Where one does,
+  // the purchase gate is exercised; where none does, those checks are skipped
+  // rather than reported as failures — there is no gate left to test.
+  const priced = await db.testSeries.findFirst({
     where: { track: 'PYQ', priceInPaise: { gt: 0 }, deletedAt: null },
     orderBy: { examYear: 'asc' },
     select: {
-      id: true,
-      name: true,
-      examYear: true,
-      tests: {
-        where: { synopsisFileName: { not: null }, deletedAt: null },
-        select: { id: true, slug: true, title: true, synopsisFileName: true },
-        take: 1,
-      },
+        id: true,
+        name: true,
+        examYear: true,
+        priceInPaise: true,
+        tests: {
+          where: { synopsisFileName: { not: null }, deletedAt: null },
+          select: { id: true, slug: true, title: true, synopsisFileName: true },
+          take: 1,
+        },
     },
   });
+
+  const paid =
+    priced ??
+    (await db.testSeries.findFirst({
+      where: { track: 'PYQ', deletedAt: null, examYear: { not: 2011 } },
+      orderBy: { examYear: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        examYear: true,
+        priceInPaise: true,
+        tests: {
+          where: { synopsisFileName: { not: null }, deletedAt: null },
+          select: { id: true, slug: true, title: true, synopsisFileName: true },
+          take: 1,
+        },
+      },
+    }));
 
   const free = await db.testSeries.findFirst({
     where: { track: 'PYQ', priceInPaise: 0, deletedAt: null },
@@ -126,8 +149,13 @@ async function main() {
   const user = await db.user.findFirst({ where: { emailNormal: EMAIL }, select: { id: true } });
 
   // --- 2. Signed in, not entitled ------------------------------------------
-  const unpaid = await fetch(url, { headers: { cookie } });
-  check('student without a purchase is refused', unpaid.status === 403, `HTTP ${unpaid.status}`);
+  const isPriced = (paid.priceInPaise ?? 0) > 0;
+  if (isPriced) {
+    const unpaid = await fetch(url, { headers: { cookie } });
+    check('student without a purchase is refused', unpaid.status === 403, `HTTP ${unpaid.status}`);
+  } else {
+    console.log('  SKIP  purchase gate — the catalogue is free, nothing is priced');
+  }
 
   // --- 3. Grant access, as a completed payment would -----------------------
   await db.entitlement.create({
@@ -139,8 +167,30 @@ async function main() {
     },
   });
 
+  // With a free catalogue the remaining gate is the attempt, not the payment:
+  // the analysis is the answer key, so the paper has to be sat first. Papers
+  // with no questions yet waive that, since it could never be satisfied.
+  const paperHasQuestions = await db.test.count({
+    where: { id: paidTest.id, totalQuestions: { gt: 0 } },
+  });
+  if (paperHasQuestions > 0) {
+    const s1 = await fetch(`${BASE}/api/attempts`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ testId: paidTest.id }),
+    });
+    const id1 = (await s1.json().catch(() => ({})))?.data?.attemptId;
+    if (id1) {
+      await fetch(`${BASE}/api/attempts/${id1}/submit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', cookie },
+        body: JSON.stringify({ reason: 'MANUAL' }),
+      });
+    }
+  }
+
   const bought = await fetch(url, { headers: { cookie } });
-  check('entitled student receives the document', bought.ok, `HTTP ${bought.status}`);
+  check('a student who has sat the paper receives the document', bought.ok, `HTTP ${bought.status}`);
   check(
     'served as an inline PDF',
     bought.headers.get('content-type') === 'application/pdf' &&
@@ -221,8 +271,12 @@ async function main() {
     where: { userId: user.id, testSeriesId: paid.id },
     data: { revokedAt: new Date() },
   });
-  const revoked = await fetch(url, { headers: { cookie } });
-  check('revoked access is refused again', revoked.status === 403, `HTTP ${revoked.status}`);
+  if (isPriced) {
+    const revoked = await fetch(url, { headers: { cookie } });
+    check('revoked access is refused again', revoked.status === 403, `HTTP ${revoked.status}`);
+  } else {
+    console.log('  SKIP  revocation — free papers have nothing to revoke');
+  }
 
   // --- Clean up -------------------------------------------------------------
   await db.testAnswer.deleteMany({ where: { attempt: { userId: user.id } } });

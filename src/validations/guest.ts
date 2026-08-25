@@ -22,6 +22,8 @@ export const guestStartSchema = z.object({
   phone: guestPhoneSchema,
   /** The test they are trying to take. Validated server-side as free. */
   testId: z.string().trim().min(1, 'Test is required'),
+  /** Where to send them afterwards. Normalised server-side before use. */
+  next: z.string().trim().optional(),
 });
 
 export type GuestStartInput = z.infer<typeof guestStartSchema>;

@@ -36,7 +36,18 @@ interface GuestStartResponse {
  * Nothing is sent to the number — it is a contact detail, not a credential, so
  * there is no OTP step and no waiting for a message.
  */
-export function GuestStartForm({ testId, testTitle }: { testId: string; testTitle: string }) {
+export function GuestStartForm({
+  testId,
+  testTitle,
+  next,
+  purpose = 'TEST',
+}: {
+  testId: string;
+  testTitle: string;
+  next?: string;
+  /** What the visitor is heading for, so the wording matches. */
+  purpose?: 'TEST' | 'ANALYSIS';
+}) {
   const router = useRouter();
 
   const {
@@ -51,7 +62,11 @@ export function GuestStartForm({ testId, testTitle }: { testId: string; testTitl
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      const data = await api.post<GuestStartResponse>('/api/guest/start', { ...values, testId });
+      const data = await api.post<GuestStartResponse>('/api/guest/start', {
+        ...values,
+        testId,
+        next,
+      });
 
       toast.success(data.isNew ? 'You are all set. Good luck!' : 'Welcome back.');
 
@@ -72,10 +87,12 @@ export function GuestStartForm({ testId, testTitle }: { testId: string; testTitl
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">Start your free test</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        {purpose === 'ANALYSIS' ? 'Read the analysis' : 'Start your free test'}
+      </h1>
       <p className="mt-1.5 text-sm text-muted-foreground">
-        Just two details and you can begin <span className="font-medium">{testTitle}</span>. No
-        account, no password.
+        Just two details and you can {purpose === 'ANALYSIS' ? 'open' : 'begin'}{' '}
+        <span className="font-medium">{testTitle}</span>. No account, no password.
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4" noValidate>
@@ -110,14 +127,14 @@ export function GuestStartForm({ testId, testTitle }: { testId: string; testTitl
         </p>
 
         <Button type="submit" fullWidth size="lg" loading={isSubmitting} loadingText="Starting…">
-          Start free test
+          {purpose === 'ANALYSIS' ? 'Open the analysis' : 'Start free test'}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Already have an account?{' '}
         <Link
-          href={`/login?next=/test/${testId}`}
+          href={`/login?next=${encodeURIComponent(next ?? `/test/${testId}`)}`}
           className="font-medium text-primary underline-offset-4 hover:underline"
         >
           Sign in

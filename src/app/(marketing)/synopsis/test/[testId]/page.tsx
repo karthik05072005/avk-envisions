@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ArrowLeft, FileText, Lock, ShieldAlert } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/states';
 import { SynopsisViewer } from '@/features/student/synopsis-viewer';
 import { formatPaise } from '@/lib/utils';
-import { enforceStudent } from '@/server/auth/guards';
+import { currentUser, enforceStudent } from '@/server/auth/guards';
+import { db } from '@/server/db';
 import { checkTestSynopsisAccess } from '@/server/services/synopsis-service';
 
 export const metadata: Metadata = {
@@ -29,6 +31,20 @@ export default async function TestSynopsisPage({
   params: Promise<{ testId: string }>;
 }) {
   const { testId } = await params;
+
+  // A signed-out visitor gets the guest route — name and phone — rather than a
+  // login wall. The whole previous-year section is open on those terms, and the
+  // analysis is part of the paper, not a separate product.
+  if (!(await currentUser())) {
+    const open = await db.test.findFirst({
+      where: { id: testId, deletedAt: null, status: 'PUBLISHED', accessType: 'FREE' },
+      select: { id: true },
+    });
+    if (open) {
+      redirect(`/start/${open.id}?next=${encodeURIComponent(`/synopsis/test/${open.id}`)}`);
+    }
+  }
+
   const user = await enforceStudent(`/synopsis/test/${testId}`);
   const access = await checkTestSynopsisAccess(testId, user);
 

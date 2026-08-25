@@ -2,6 +2,7 @@ import { createSession } from '@/server/auth/session';
 import { parseBody, route } from '@/server/api-handler';
 import { assertTestIsFree, findOrCreateGuest } from '@/server/services/guest-service';
 import { guestStartSchema } from '@/validations/guest';
+import { safeRedirectPath } from '@/validations/auth';
 
 /**
  * POST /api/guest/start
@@ -18,8 +19,15 @@ export const POST = route<{ redirectTo: string; isNew: boolean }>(
     const input = await parseBody(request, guestStartSchema);
     const userAgent = request.headers.get('user-agent');
 
-    // Order matters: refuse a non-free test before minting an account for it.
-    const test = await assertTestIsFree(input.testId);
+    // Where they are heading, normalised so a crafted value cannot turn this
+    // into an open redirect.
+    const destination = safeRedirectPath(input.next, `/test/${input.testId}`);
+
+    // A paper with no questions can still have an analysis worth reading, so
+    // the "has questions" rule only applies when they are going to sit it.
+    const test = await assertTestIsFree(input.testId, {
+      requireQuestions: !destination.startsWith('/synopsis/'),
+    });
 
     const { userId, isNew } = await findOrCreateGuest({
       name: input.name,
@@ -30,7 +38,7 @@ export const POST = route<{ redirectTo: string; isNew: boolean }>(
     await createSession({ userId, ipAddress: ip, userAgent });
 
     return {
-      data: { redirectTo: `/test/${test.id}`, isNew },
+      data: { redirectTo: destination, isNew },
       message: isNew ? 'You are all set. Good luck!' : 'Welcome back.',
       status: 201,
     };
