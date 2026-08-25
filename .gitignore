@@ -63,7 +63,10 @@ yarn-error.log*
 *.log
 
 # Locally installed analysis PDFs (production keeps these in /var/lib/avkvisions)
+/public/pdf.worker.min.mjs
 /synopses/
 
 # Local Drive mirror used to build the synopsis manifest (~270 MB)
 /.drive/
+
+# PDF.js worker, copied from node_modules by scripts/copy-pdf-worker.mjs

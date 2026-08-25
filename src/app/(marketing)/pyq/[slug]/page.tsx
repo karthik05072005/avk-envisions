@@ -138,7 +138,7 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
                     )}
 
                     {test.hasSynopsis && (
-                      <Button asChild variant="outline" size="sm">
+                      <Button asChild variant="outline" size="sm" className="border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10 hover:text-destructive">
                         <Link href={`/synopsis/test/${test.id}`}>
                           <BookOpenText aria-hidden="true" />
                           Analysed PDF
@@ -173,7 +173,7 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
                 </div>
               </div>
 
-              <Button asChild variant="outline" className="shrink-0">
+              <Button asChild variant="outline" className="shrink-0 border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10 hover:text-destructive">
                 <Link href={`/synopsis/${paper.slug}`}>Open analysis</Link>
               </Button>
             </div>
@@ -241,7 +241,7 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
                   )}
 
                   {test.hasSynopsis && (
-                    <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                    <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10 hover:text-destructive">
                       <Link href={`/synopsis/test/${test.id}`}>
                         <BookOpenText aria-hidden="true" />
                         Analysed PDF

@@ -90,7 +90,7 @@ function ScheduleAction({ row }: { row: ScheduleRow }) {
       );
     case 'AVAILABLE':
       return (
-        <Button asChild size="sm" variant="outline" className="w-full sm:w-32">
+        <Button asChild size="sm" variant="outline" className="w-full sm:w-32 border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10 hover:text-destructive">
           <Link href={`/test/${row.id}`}>
             <PlayCircle aria-hidden="true" />
             Start
