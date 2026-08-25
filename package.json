@@ -29,7 +29,8 @@
     "db:seed:catalogue": "tsx prisma/seed-catalogue.ts",
     "db:seed:2011": "tsx prisma/seed-kas-2011.ts",
     "db:prune:kas": "tsx prisma/prune-to-kas.ts",
-    "db:synopses": "tsx prisma/install-synopses.ts"
+    "db:synopses": "tsx prisma/install-synopses.ts",
+    "db:free": "tsx prisma/make-everything-free.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

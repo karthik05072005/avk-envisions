@@ -56,6 +56,18 @@ const KAS_SUBJECTS: { name: string; questions: number; icon: string; color: stri
 
 /** Subjects folded into another, or dropped, after the catalogue was first seeded. */
 /** Minutes for one free sampler test. */
+/**
+ * Everything on the platform is free.
+ *
+ * Prices, the early-bird ladder and the PAID access type are all set to zero
+ * here rather than removed, so restoring paid access later is a matter of
+ * changing these values back rather than rebuilding the commerce path. The
+ * checkout, entitlement and webhook code is untouched and still works; there
+ * is simply nothing priced above zero for it to sell.
+ */
+const EVERYTHING_IS_FREE = true;
+
+/** Minutes for one free sampler test. */
 const FREE_TEST_MINUTES = 25;
 
 /** The free tier is the first ten tests of the published timetable. */
@@ -450,12 +462,12 @@ async function main() {
     update: {
       track: 'PAID_SERIES',
       status: 'PUBLISHED',
-      priceInPaise: 39900,
-      comparePriceInPaise: 39900,
-      tier1PriceInPaise: 19900,
-      tier1Limit: 50,
-      tier2PriceInPaise: 29900,
-      tier2Limit: 100,
+      priceInPaise: 0,
+      comparePriceInPaise: 0,
+      tier1PriceInPaise: null,
+      tier1Limit: null,
+      tier2PriceInPaise: null,
+      tier2Limit: null,
     },
     create: {
       examId,
@@ -469,13 +481,13 @@ async function main() {
         'Full-length mock tests modelled on the KAS Prelims pattern, each followed by a complete performance report: All India rank, percentile, subject and topic breakdowns, and a solution for every question.',
       difficulty: 'MIXED',
       // Published ladder: 199 for the first 50, 299 to 100, 399 thereafter.
-      priceInPaise: 39900,
-      comparePriceInPaise: 39900,
-      tier1PriceInPaise: 19900,
-      tier1Limit: 50,
-      tier2PriceInPaise: 29900,
-      tier2Limit: 100,
-      accessDurationDays: 365,
+      priceInPaise: 0,
+      comparePriceInPaise: 0,
+      tier1PriceInPaise: null,
+      tier1Limit: null,
+      tier2PriceInPaise: null,
+      tier2Limit: null,
+      accessDurationDays: 0,
       status: 'PUBLISHED',
       isFeatured: true,
       sortOrder: 2,
@@ -497,7 +509,7 @@ async function main() {
       sortOrder: entry.no,
       seriesId: paid.id,
       category: entry.paperNumber === null ? 'SECTIONAL' : 'FULL_MOCK',
-      accessType: 'PAID',
+      accessType: 'FREE',
       durationMinutes: 120,
       paperNumber: entry.paperNumber ?? undefined,
       subjectId: entry.subject ? subjectIds.get(entry.subject) : undefined,
@@ -519,12 +531,11 @@ async function main() {
       ? `kas-pyq-${entry.year}-${slugify(entry.session)}`
       : `kas-pyq-${entry.year}`;
 
-    const price = entry.free ? 0 : 19900;
-    const comparePrice = entry.free ? 0 : 19900;
-    const accessType = entry.free ? 'FREE' : 'PAID';
-    // Published ladder: 50 for the first 50 buyers, 100 to 100, then 199.
-    const tier1 = entry.free ? null : 5000;
-    const tier2 = entry.free ? null : 10000;
+    const price = 0;
+    const comparePrice = 0;
+    const accessType = 'FREE';
+    const tier1 = null;
+    const tier2 = null;
 
     const series = await db.testSeries.upsert({
       where: { slug },
@@ -618,7 +629,16 @@ async function main() {
   for (const [index, track] of CHAPTERWISE_TRACKS.entries()) {
     await db.testSeries.upsert({
       where: { slug: `chapterwise-${slugify(track.name)}` },
-      update: { track: 'CHAPTERWISE', status: 'PUBLISHED' },
+      update: {
+        track: 'CHAPTERWISE',
+        status: 'PUBLISHED',
+        priceInPaise: 0,
+        comparePriceInPaise: 0,
+        tier1PriceInPaise: null,
+        tier1Limit: null,
+        tier2PriceInPaise: null,
+        tier2Limit: null,
+      },
       create: {
         examId,
         name: `${track.name} (${track.source})`,
@@ -629,9 +649,9 @@ async function main() {
         tagline: track.blurb,
         description: `${track.blurb} Work through the book chapter by chapter, with a test for each chapter and a running record of which chapters you have actually mastered.`,
         difficulty: 'INTERMEDIATE',
-        priceInPaise: 79900,
-        comparePriceInPaise: 129900,
-        accessDurationDays: 365,
+        priceInPaise: 0,
+        comparePriceInPaise: 0,
+        accessDurationDays: 0,
         status: 'PUBLISHED',
         sortOrder: index + 1,
         featuresJson: JSON.stringify([

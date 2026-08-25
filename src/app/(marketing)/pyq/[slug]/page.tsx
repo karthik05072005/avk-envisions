@@ -265,9 +265,13 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
         <section className="rounded-xl border border-border bg-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
-              <h2 className="font-semibold tracking-tight">Unlock {label}</h2>
+              <h2 className="font-semibold tracking-tight">
+                {paper.priceInPaise === 0 ? `Start ${label}` : `Unlock ${label}`}
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Full-length paper plus every subject-wise test, with detailed solutions.
+                {paper.priceInPaise === 0
+                  ? 'Full-length paper plus every subject-wise test, with detailed solutions and the complete analysis. Free for everyone.'
+                  : 'Full-length paper plus every subject-wise test, with detailed solutions.'}
               </p>
             </div>
 
