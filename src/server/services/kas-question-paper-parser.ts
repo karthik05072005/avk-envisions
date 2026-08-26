@@ -164,7 +164,12 @@ export function parseQuestionPaper(raw: string): PaperParseResult {
 
     // Line breaks inside the stem are kept. They carry the statement layout —
     // "A. …" and "B. …" on their own lines — which is part of the question.
-    const stem = stemLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    const stem = stemLines
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      // A repeated question number, where the scan printed it twice.
+      .replace(new RegExp(`^${block.number}\\.\\s+`), '')
+      .trim();
 
     if (stem === '') local.push('The question text is empty.');
     if (options.length !== 4) local.push(`Found ${options.length} options, expected 4.`);

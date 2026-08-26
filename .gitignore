@@ -70,3 +70,6 @@ yarn-error.log*
 /.drive/
 
 # PDF.js worker, copied from node_modules by scripts/copy-pdf-worker.mjs
+
+# Question-paper scans fetched at import time (production caches these in /var/lib/avkvisions)
+/question-papers/

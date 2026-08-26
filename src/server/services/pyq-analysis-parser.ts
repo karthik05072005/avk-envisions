@@ -257,7 +257,15 @@ export function parsePyqAnalysis(raw: string): ParseResult {
       stemLines.push(line);
     }
 
-    const stem = stemLines.join(' ').replace(/\s+/g, ' ').trim();
+    // Some documents print the number twice — once as the heading this block
+    // was split on, and again at the start of the text. Drop the repeat, but
+    // only when it matches this question's own number, so a stem that genuinely
+    // opens with a figure is left alone.
+    const stem = stemLines
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .replace(new RegExp(`^${block.number}\\.\\s+`), '')
+      .trim();
 
     if (stem === '') local.push('The question text is empty.');
     if (options.length !== 4) local.push(`Found ${options.length} options, expected 4.`);

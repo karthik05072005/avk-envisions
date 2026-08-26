@@ -16,19 +16,60 @@
  *
  * Run with: npm run db:import:papers
  */
-import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { mkdir, readFile, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
+import { promisify } from 'node:util';
 
 import { PrismaClient } from '@prisma/client';
 import { extractText, getDocumentProxy } from 'unpdf';
 
+import { KAS_QUESTION_PAPERS } from './data/kas-question-papers';
 import {
   optionsAgree,
   parseQuestionPaper,
 } from '../src/server/services/kas-question-paper-parser';
+import { synopsisDir } from '../src/server/services/synopsis-service';
 
 const db = new PrismaClient();
+const run = promisify(execFile);
 const DRY_RUN = process.argv.includes('--dry-run');
+
+/** Scans are cached beside the analysis documents, outside the web root. */
+function paperCacheDir(): string {
+  return path.join(path.dirname(synopsisDir()), 'question-papers');
+}
+
+/**
+ * Fetches a scan, reusing the cached copy when there is one.
+ *
+ * Verified as a PDF before use: an un-shared Drive folder answers a download
+ * with an HTML sign-in page and a 200, which would otherwise be parsed as a
+ * question paper and silently yield nothing.
+ */
+async function fetchPaper(fileId: string, name: string): Promise<string | null> {
+  const dir = paperCacheDir();
+  await mkdir(dir, { recursive: true });
+  const dest = path.join(dir, name);
+
+  const cached = await stat(dest).catch(() => null);
+  if (cached && cached.size > 1000) return dest;
+
+  await run('curl', [
+    '-sL',
+    '--max-time',
+    '300',
+    `https://drive.google.com/uc?export=download&id=${fileId}`,
+    '-o',
+    dest,
+  ]);
+
+  const head = await readFile(dest).catch(() => null);
+  if (head && head.subarray(0, 5).toString('latin1') === '%PDF-') return dest;
+
+  await unlink(dest).catch(() => {});
+  return null;
+}
 
 /**
  * Drive folder → the series slug on the site.
@@ -49,14 +90,6 @@ const FOLDER_TO_SERIES: Record<string, string> = {
 /** 2011 was transcribed and verified by hand; it is not touched. */
 const LEAVE_ALONE = new Set(['kas-pyq-2011']);
 
-interface QpEntry {
-  year: string;
-  paper: string;
-  name: string;
-  path: string;
-  ok: boolean;
-}
-
 async function textOf(file: string): Promise<string> {
   const { text } = await extractText(
     await getDocumentProxy(new Uint8Array(await readFile(file))),
@@ -68,18 +101,14 @@ async function textOf(file: string): Promise<string> {
 async function main() {
   console.log(`\nApplying question-paper wording${DRY_RUN ? ' (dry run)' : ''}...\n`);
 
-  const manifest: QpEntry[] = JSON.parse(await readFile('.drive/qp.json', 'utf8'));
-
   let updated = 0;
   let unmatched = 0;
   let unreadable = 0;
 
-  for (const entry of manifest) {
-    if (!entry.ok) continue;
-
-    const seriesSlug = FOLDER_TO_SERIES[entry.year];
+  for (const entry of KAS_QUESTION_PAPERS) {
+    const seriesSlug = FOLDER_TO_SERIES[entry.folder];
     if (!seriesSlug) {
-      console.log(`  --  unknown folder "${entry.year}", skipped`);
+      console.log(`  --  unknown folder "${entry.folder}", skipped`);
       continue;
     }
     if (LEAVE_ALONE.has(seriesSlug)) {
@@ -99,7 +128,14 @@ async function main() {
       continue;
     }
 
-    const { questions } = parseQuestionPaper(await textOf(entry.path));
+    const file = await fetchPaper(entry.driveFileId, entry.name);
+    if (!file) {
+      unreadable += 1;
+      console.log(`  !!  ${testSlug.padEnd(30)} could not download the scan — left as it was`);
+      continue;
+    }
+
+    const { questions } = parseQuestionPaper(await textOf(file));
     const usable = questions.filter((q) => q.warnings.length === 0);
 
     if (usable.length === 0) {
