@@ -31,7 +31,8 @@
     "db:prune:kas": "tsx prisma/prune-to-kas.ts",
     "db:synopses": "tsx prisma/install-synopses.ts",
     "db:free": "tsx prisma/make-everything-free.ts",
-    "db:import:pyq": "tsx prisma/import-pyq-questions.ts"
+    "db:import:pyq": "tsx prisma/import-pyq-questions.ts",
+    "db:import:papers": "tsx prisma/import-question-papers.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
