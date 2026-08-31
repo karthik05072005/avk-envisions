@@ -87,7 +87,8 @@ const OPTION = /^\(?([A-Da-d1-4])[).]\s*(.+)$/;
 /** The keyed answer, in any of the forms the documents use. */
 const ANSWER_INLINE =
   /^ANSWER\b[:\s·•—–-]*(?:Option\s*)?\(?([A-Da-d1-4])\)?[).]?\s*(?:[—–:-]\s*)?(.*)$/i;
-const ANSWER_BARE = /^\(?([A-Da-d1-4])[).]?\s*(.*)$/;
+// The key on its own line, as either "(3) text" or "Option 3 — text".
+const ANSWER_BARE = /^(?:Option\s*)?\(?([A-Da-d1-4])\)?[).]?\s*(?:[—–:-]\s*)?(.*)$/i;
 
 function markerToIndex(marker: string): number | null {
   const m = marker.toUpperCase();

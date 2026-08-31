@@ -87,17 +87,11 @@ async function main() {
   let skipped = 0;
 
   for (const paper of papers) {
-    // 2011 Paper I was transcribed by hand from the source paper and verified
-    // question by question. Parser output is good, but not better than that, so
-    // it is left alone rather than overwritten.
-    const alreadyCurated = await db.test.findFirst({
-      where: { id: paper.id, totalQuestions: { gt: 0 } },
-      select: { totalQuestions: true },
-    });
-    if (alreadyCurated && paper.slug === 'kas-pyq-2011-paper-1') {
-      console.log(
-        `  --  ${paper.slug.padEnd(30)} left alone (${alreadyCurated.totalQuestions} curated questions)`,
-      );
+    // 2011 is rebuilt from its own refreshed documents by `db:import:2011`.
+    // Running this over it would replace those with the older analysis text,
+    // which is exactly what that script exists to undo.
+    if (paper.slug.startsWith('kas-pyq-2011')) {
+      console.log(`  --  ${paper.slug.padEnd(30)} owned by db:import:2011, skipped`);
       continue;
     }
 

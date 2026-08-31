@@ -73,3 +73,6 @@ yarn-error.log*
 
 # Question-paper scans fetched at import time (production caches these in /var/lib/avkvisions)
 /question-papers/
+
+# 2011 source documents fetched at import time
+/kas-2011/
