@@ -22,7 +22,7 @@
  * Run with: npm run db:import:2011
  */
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, stat, unlink } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -39,6 +39,25 @@ const run = promisify(execFile);
 const DRY_RUN = process.argv.includes('--dry-run');
 
 const SERIES = 'kas-pyq-2011';
+
+/** Catalogue subject → the slug of that subject's drill. */
+const SUBJECT_SLUG: Record<string, string> = {
+  'Current Affairs': 'current-affairs',
+  'Indian Economy': 'indian-economy',
+  Geography: 'geography',
+  History: 'history',
+  'Indian Polity': 'indian-polity',
+  'Mental Ability': 'mental-ability',
+  Environment: 'environment',
+  'Science & Technology': 'science-technology',
+};
+
+/** Which test each supplied document is the analysis for. */
+function testSlugFor(source: { paperNumber: number; subject: string | null }): string | null {
+  if (source.subject === null) return `${SERIES}-paper-${source.paperNumber}`;
+  const slug = SUBJECT_SLUG[source.subject];
+  return slug ? `${SERIES}-subject-${slug}` : null;
+}
 
 function cacheDir(): string {
   return path.join(path.dirname(synopsisDir()), 'kas-2011');
@@ -274,6 +293,42 @@ async function main() {
     });
     console.log(`  ok  ${test.slug.padEnd(40)} ${unique.length} questions`);
   }
+
+  // --- Install these documents as the analysis PDFs ------------------------
+  //
+  // They are the same files: each carries the question, the answer and the
+  // commentary. Leaving the previous archive's copies in place would show a
+  // student an analysis of a paper that is no longer the one they sat.
+  const target = synopsisDir();
+  await mkdir(target, { recursive: true });
+  let installed = 0;
+
+  for (const source of KAS_2011_SOURCES) {
+    const slug = testSlugFor(source);
+    if (!slug) continue;
+
+    const cached = path.join(cacheDir(), source.name);
+    if (!(await stat(cached).catch(() => null))) continue;
+
+    const fileName = `${slug}.pdf`;
+    await copyFile(cached, path.join(target, fileName));
+
+    const changed = await db.test.updateMany({
+      where: { slug, deletedAt: null },
+      data: { synopsisFileName: fileName },
+    });
+    if (changed.count > 0) installed += 1;
+
+    // The series-level fallback follows Paper I.
+    if (source.subject === null && source.paperNumber === 1) {
+      await db.testSeries.updateMany({
+        where: { slug: SERIES },
+        data: { synopsisFileName: fileName },
+      });
+    }
+  }
+
+  console.log(`  ${installed} analysis documents replaced.`);
 
   console.log(`\n  ${created} questions written for 2011.\n`);
 }

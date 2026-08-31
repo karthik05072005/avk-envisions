@@ -32,7 +32,8 @@ const FORCE = process.argv.includes('--force');
 
 /** Series-level documents, used when a test has none of its own. */
 const SERIES_ASSETS: { seriesSlug: string; asset: string }[] = [
-  { seriesSlug: 'kas-pyq-2011', asset: 'kas-2011-paper1-analysis.pdf' },
+  // Empty: 2011's series-level document is set by `db:import:2011` from the
+  // refreshed papers.
 ];
 
 /** A Drive file is a real PDF only if it starts with the PDF magic bytes. */
@@ -79,6 +80,11 @@ async function main() {
 
   // --- Per-test documents --------------------------------------------------
   for (const entry of PYQ_SYNOPSES) {
+    // 2011 is owned by `db:import:2011`, which installs the refreshed
+    // documents. Re-installing the previous archive's copies here would show a
+    // student an analysis of a paper that is no longer the one they sat.
+    if (entry.testSlug.startsWith('kas-pyq-2011')) continue;
+
     const test = await db.test.findFirst({
       where: { slug: entry.testSlug, deletedAt: null },
       select: { id: true, title: true },
