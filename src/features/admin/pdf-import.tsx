@@ -8,6 +8,7 @@ import {
   Check,
   CheckCircle2,
   FileUp,
+  ImageIcon,
   Loader2,
   Trash2,
   Upload,
@@ -21,6 +22,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { FormField } from '@/components/ui/label';
 import { InlineError } from '@/components/ui/states';
 import { ApiClientError, api } from '@/lib/api-client';
+import { MARKS_PER_QUESTION, NEGATIVE_MARKS_PER_QUESTION } from '@/lib/marking';
 import { cn } from '@/lib/utils';
 
 /**
@@ -33,6 +35,19 @@ import { cn } from '@/lib/utils';
  * question, and any question whose key could not be resolved blocks the import
  * until it is set by hand.
  */
+/**
+ * Whether a question's wording depends on something it has to show.
+ *
+ * Used only to warn: a question saying "in the figure below" with no figure is
+ * unanswerable, and that is invisible in a text-only import. Over-matching
+ * costs a dismissible warning, so this errs towards asking.
+ */
+function needsFigure(body: string): boolean {
+  return /(figure|diagram|map|graph|chart|image|picture|given below|shown above|following pattern)/i.test(
+    body,
+  );
+}
+
 interface ParsedOption {
   marker: string;
   body: string;
@@ -45,6 +60,16 @@ interface ParsedQuestion {
   correctIndex: number | null;
   rawAnswer: string | null;
   warnings: string[];
+  /** The diagram this question needs, if the parser found one. */
+  imageUrl?: string;
+}
+
+interface ParsedFigure {
+  questionNumber: number | null;
+  page: number;
+  url: string;
+  width: number;
+  height: number;
 }
 
 interface ParseResponse {
@@ -54,6 +79,8 @@ interface ParseResponse {
   stats: { found: number; withAnswer: number; withoutAnswer: number; withWarnings: number };
   documentWarnings: string[];
   extractedText: string;
+  figures: ParsedFigure[];
+  figureWarnings: string[];
 }
 
 export interface ImportTarget {
@@ -91,13 +118,20 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
   const [category, setCategory] = React.useState('PREVIOUS_YEAR');
   const [accessType, setAccessType] = React.useState('FREE');
   const [durationMinutes, setDurationMinutes] = React.useState(120);
-  const [marks, setMarks] = React.useState(1);
-  const [negativeMarks, setNegativeMarks] = React.useState(0.25);
+  const [marks, setMarks] = React.useState(MARKS_PER_QUESTION);
+  const [negativeMarks, setNegativeMarks] = React.useState(NEGATIVE_MARKS_PER_QUESTION);
   const [source, setSource] = React.useState('');
   const [examYear, setExamYear] = React.useState<string>('');
   const [publish, setPublish] = React.useState(false);
 
   const exam = exams.find((e) => e.id === examId);
+
+  // A figure leaves this list as soon as some question is showing it, so
+  // assigning one from the tray makes it disappear from the tray.
+  const unassignedFigures = React.useMemo(() => {
+    const used = new Set(questions.map((q) => q.imageUrl).filter(Boolean));
+    return (parsed?.figures ?? []).filter((figure) => !used.has(figure.url));
+  }, [parsed, questions]);
 
   const unresolved = questions.filter((q) => q.correctIndex === null).length;
   const invalid = questions.filter((q) => q.options.length < 2 || !q.body.trim()).length;
@@ -127,7 +161,25 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
 
       const data = payload.data as ParseResponse;
       setParsed(data);
-      setQuestions(data.questions);
+
+      // Hand each figure to the question it was printed under, so the admin
+      // reviews the question and its diagram together rather than matching them
+      // up afterwards. Where a page carries several, the first wins and the
+      // rest stay in the unassigned list to be placed by hand.
+      const byQuestion = new Map<number, string>();
+      for (const figure of data.figures) {
+        if (figure.questionNumber === null) continue;
+        if (!byQuestion.has(figure.questionNumber)) {
+          byQuestion.set(figure.questionNumber, figure.url);
+        }
+      }
+
+      setQuestions(
+        data.questions.map((question) => {
+          const url = byQuestion.get(question.number);
+          return url ? { ...question, imageUrl: url } : question;
+        }),
+      );
       if (!title) setTitle(data.fileName.replace(/\.pdf$/i, ''));
       if (!source) setSource(data.fileName.replace(/\.pdf$/i, ''));
       setStep('review');
@@ -198,6 +250,7 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
             body: q.body,
             options: q.options.map((o) => ({ body: o.body })),
             correctIndex: q.correctIndex!,
+            ...(q.imageUrl ? { imageUrl: q.imageUrl } : {}),
           })),
         },
       );
@@ -385,9 +438,9 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
             </div>
           </div>
 
-          {parsed && parsed.documentWarnings.length > 0 && (
+          {parsed && [...parsed.documentWarnings, ...parsed.figureWarnings].length > 0 && (
             <ul className="mt-4 space-y-1.5">
-              {parsed.documentWarnings.map((warning) => (
+              {[...parsed.documentWarnings, ...parsed.figureWarnings].map((warning) => (
                 <li
                   key={warning}
                   className="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning"
@@ -397,6 +450,54 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
                 </li>
               ))}
             </ul>
+          )}
+
+          {unassignedFigures.length > 0 && (
+            <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3.5">
+              <p className="text-sm font-medium">
+                {unassignedFigures.length} diagram
+                {unassignedFigures.length === 1 ? '' : 's'} not matched to a question
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Pick the question each one belongs to. Anything left here is discarded.
+              </p>
+
+              <ul className="mt-3 flex flex-wrap gap-3">
+                {unassignedFigures.map((figure) => (
+                  <li
+                    key={figure.url}
+                    className="w-44 rounded-lg border border-border bg-card p-2"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={figure.url}
+                      alt={`Unassigned diagram from page ${figure.page}`}
+                      className="h-24 w-full rounded border border-border bg-white object-contain"
+                    />
+                    <p className="mt-1.5 text-xs text-muted-foreground">Page {figure.page}</p>
+                    <select
+                      value=""
+                      onChange={(event) => {
+                        const index = Number(event.target.value);
+                        if (Number.isInteger(index)) {
+                          updateQuestion(index, { imageUrl: figure.url });
+                        }
+                      }}
+                      aria-label={`Assign the diagram from page ${figure.page} to a question`}
+                      className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs"
+                    >
+                      <option value="">Assign to…</option>
+                      {questions.map((question, index) => (
+                        <option key={question.number} value={index}>
+                          Q{question.number}
+                          {question.imageUrl ? ' (replace)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {unresolved > 0 && (
@@ -686,6 +787,39 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
                   className="mt-3"
                   aria-label={`Question ${question.number} text`}
                 />
+
+                {question.imageUrl ? (
+                  <div className="mt-3 rounded-lg border border-border bg-muted/40 p-2.5">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                      <span className="text-xs text-muted-foreground">
+                        Diagram shown with this question
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-auto h-7 text-xs text-muted-foreground hover:text-destructive"
+                        onClick={() => updateQuestion(qIndex, { imageUrl: undefined })}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={question.imageUrl}
+                      alt={`Diagram for question ${question.number}`}
+                      className="mt-2 max-h-56 rounded border border-border bg-white"
+                    />
+                  </div>
+                ) : (
+                  needsFigure(question.body) && (
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-warning">
+                      <AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
+                      This question refers to a figure but has none. Assign one below, or add it
+                      later from the question editor.
+                    </p>
+                  )
+                )}
 
                 <ul className="mt-2.5 space-y-2">
                   {question.options.map((option, oIndex) => (

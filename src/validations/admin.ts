@@ -31,7 +31,21 @@ export const questionSchema = z
 
     body: z.string().trim().min(5, 'Write the question').max(10_000),
     passage: z.string().trim().max(10_000).nullish(),
-    imageUrl: z.string().trim().url().nullish().or(z.literal('')),
+    /**
+     * A figure lives under `/uploads/figures/...` on this host, so a bare
+     * `.url()` — which demands a scheme — would reject every image the PDF
+     * import produces. An absolute URL is still allowed for anything hosted
+     * elsewhere.
+     */
+    imageUrl: z
+      .string()
+      .trim()
+      .max(500)
+      .refine(
+        (value) => value === '' || value.startsWith('/') || /^https?:\/\//.test(value),
+        'Enter a path beginning with / or a full http(s) URL',
+      )
+      .nullish(),
 
     marks: z.coerce.number().min(0.25).max(100).default(MARKS_PER_QUESTION),
     negativeMarks: z.coerce.number().min(0).max(100).default(0),

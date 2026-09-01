@@ -77,6 +77,7 @@ export const POST = route(async ({ request, ip }) => {
             difficulty: question.difficulty,
             status,
             body: question.body,
+            imageUrl: question.imageUrl,
             marks: input.marks,
             negativeMarks: input.negativeMarks,
             source: input.source ?? null,
@@ -92,6 +93,7 @@ export const POST = route(async ({ request, ip }) => {
               create: question.options.map((option, index) => ({
                 label: String.fromCharCode(65 + index),
                 body: option.body,
+              imageUrl: option.imageUrl,
                 isCorrect: index === question.correctIndex,
                 sortOrder: index,
               })),

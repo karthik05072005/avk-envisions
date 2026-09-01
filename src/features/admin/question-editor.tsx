@@ -13,6 +13,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { FormField } from '@/components/ui/label';
 import { InlineError } from '@/components/ui/states';
 import { ApiClientError, api } from '@/lib/api-client';
+import { MARKS_PER_QUESTION, NEGATIVE_MARKS_PER_QUESTION } from '@/lib/marking';
 import { cn } from '@/lib/utils';
 
 /**
@@ -47,6 +48,7 @@ export interface QuestionDraft {
   status: string;
   body: string;
   passage: string | null;
+  imageUrl: string | null;
   marks: number;
   negativeMarks: number;
   numericalAnswer: number | null;
@@ -82,8 +84,9 @@ function blankDraft(exams: TaxonomyExam[]): QuestionDraft {
     status: 'DRAFT',
     body: '',
     passage: null,
-    marks: 1,
-    negativeMarks: 0.25,
+    imageUrl: null,
+    marks: MARKS_PER_QUESTION,
+    negativeMarks: NEGATIVE_MARKS_PER_QUESTION,
     numericalAnswer: null,
     numericalTolerance: 0.01,
     explanation: null,
@@ -213,6 +216,7 @@ export function QuestionEditor({
       options: draft.options.filter((o) => o.body.trim()),
       // Empty strings must become null, not fail URL/number validation.
       passage: draft.passage || null,
+      imageUrl: draft.imageUrl || null,
       explanation: draft.explanation || null,
       detailedSolution: draft.detailedSolution || null,
       concept: draft.concept || null,
@@ -386,6 +390,27 @@ export function QuestionEditor({
               rows={3}
               placeholder="Statements or a comprehension passage, if the question needs one"
             />
+          </FormField>
+
+          <FormField
+            label="Figure"
+            htmlFor="q-image"
+            hint="Optional. A map, diagram or chart shown above the options"
+          >
+            <Input
+              id="q-image"
+              value={draft.imageUrl ?? ''}
+              onChange={(event) => update('imageUrl', event.target.value)}
+              placeholder="/uploads/figures/… or a full https:// URL"
+            />
+            {draft.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={draft.imageUrl}
+                alt="The figure shown with this question"
+                className="mt-2 max-h-56 rounded-lg border border-border bg-white"
+              />
+            ) : null}
           </FormField>
 
           <FormField label="Question text" htmlFor="q-body" required>

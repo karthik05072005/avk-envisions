@@ -13,6 +13,8 @@ import { cuidSchema } from './common';
  */
 const reviewedOptionSchema = z.object({
   body: z.string().trim().min(1, 'An option cannot be empty').max(2000),
+  /** Set when an option is itself a diagram. */
+  imageUrl: z.string().trim().max(500).optional(),
 });
 
 export const reviewedQuestionSchema = z
@@ -23,6 +25,14 @@ export const reviewedQuestionSchema = z
     /** Zero-based. Must be resolved by the human before commit. */
     correctIndex: z.number().int().min(0),
     difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).default('MEDIUM'),
+    /**
+     * The figure this question depends on.
+     *
+     * Written by the parse step and confirmed by the admin. A question whose
+     * wording refers to a map or diagram is unanswerable without it, so this
+     * travels with the question rather than being attached afterwards.
+     */
+    imageUrl: z.string().trim().max(500).optional(),
   })
   .superRefine((input, ctx) => {
     if (input.correctIndex >= input.options.length) {

@@ -33,7 +33,8 @@
     "db:free": "tsx prisma/make-everything-free.ts",
     "db:import:pyq": "tsx prisma/import-pyq-questions.ts",
     "db:import:papers": "tsx prisma/import-question-papers.ts",
-    "db:import:2011": "tsx prisma/import-2011.ts"
+    "db:import:2011": "tsx prisma/import-2011.ts",
+    "db:figures": "tsx prisma/backfill-figures.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

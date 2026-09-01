@@ -34,6 +34,7 @@ export default async function EditQuestionPage({ params }: { params: Promise<{ i
         status: question.status,
         body: question.body,
         passage: question.passage,
+        imageUrl: question.imageUrl,
         marks: question.marks,
         negativeMarks: question.negativeMarks,
         numericalAnswer: question.numericalAnswer,
