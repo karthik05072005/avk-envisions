@@ -62,7 +62,9 @@ echo "==> Building"
 # Dev dependencies are needed to build, so install them, build, then prune.
 sudo -u "$APP_USER" npm ci --ignore-scripts
 sudo -u "$APP_USER" npx prisma generate
-sudo -u "$APP_USER" env NODE_OPTIONS=--max-old-space-size=2048 npm run build
+# 3072, not 2048: the build ran out of heap on the smaller setting and retried
+# itself into a half-written .next, which serves a 502 with no obvious cause.
+sudo -u "$APP_USER" env NODE_OPTIONS=--max-old-space-size=3072 npm run build
 sudo -u "$APP_USER" npm prune --omit=dev
 
 echo "==> Starting"
