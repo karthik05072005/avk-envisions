@@ -180,4 +180,70 @@ describe('parsePyqAnalysis', () => {
     expect(q.stem).toBe('A question?');
     expect(q.correctIndex).toBe(2);
   });
+
+  it('keeps a key printed as a bare digit under ANSWER', () => {
+    // Standalone numbers are page furniture in these documents, and stripping
+    // them took the answer with it. Twelve questions in the 2011 Paper I parsed
+    // perfectly, then had no key and were discarded.
+    const { questions } = parsePyqAnalysis(
+      [
+        'Q1. Smart-e-Pants are:',
+        'OPTIONS',
+        '(1) Underwear monitoring vital signs',
+        '(2) Diapers notifying parents',
+        '(3) Pants connected to a video game',
+        '(4) Electronic shorts for spinal-cord injuries',
+        'ANSWER',
+        '1',
+        'ABOUT THE QUESTION',
+        'Wearable health technology.',
+      ].join('\n'),
+    );
+
+    expect(questions).toHaveLength(1);
+    expect(questions[0]!.correctIndex).toBe(0);
+  });
+
+  it('still drops a bare number that is only a page number', () => {
+    const { questions } = parsePyqAnalysis(
+      [
+        'Q1. Which is the capital?',
+        '14',
+        'OPTIONS',
+        '(1) Bengaluru',
+        '(2) Mysuru',
+        'ANSWER',
+        '(1) Bengaluru',
+      ].join('\n'),
+    );
+
+    expect(questions[0]!.stem).not.toContain('14');
+  });
+
+  it('does not let one unanswered question swallow the rest of the paper', () => {
+    // A question printed with no ANSWER used to stall block-splitting, so every
+    // later question was absorbed into it. Two such questions in the 2011
+    // Paper II cost twenty of the hundred.
+    const { questions } = parsePyqAnalysis(
+      [
+        'Q1. First question?',
+        '(1) A',
+        '(2) B',
+        'ANSWER',
+        '(1) A',
+        'Q2. Second question, printed without a key?',
+        '(1) C',
+        '(2) D',
+        'SECTION 11 - QUANTITATIVE APTITUDE',
+        'Q3. Third question?',
+        '(1) E',
+        '(2) F',
+        'ANSWER',
+        '(2) F',
+      ].join('\n'),
+    );
+
+    expect(questions.map((q) => q.number)).toEqual([1, 2, 3]);
+    expect(questions[2]!.correctIndex).toBe(1);
+  });
 });

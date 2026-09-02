@@ -58,18 +58,35 @@ const FURNITURE = [
   /^Learn\s*[•·]\s*Practice\s*[•·]\s*Excel.*$/i,
 ];
 
+/** A bare page number, which is furniture — unless it is the answer. */
+const BARE_NUMBER = /^\d{1,3}$/;
+
 /** Section labels that end the stem or the option list. */
 const COMMENTARY = /^(ABOUT THE QUESTION|HOW TO SOLVE|CORE|FUTURE ANGLE|READING METHOD|IMPORTANT|REVISION FORMAT)\b/i;
 
 function stripFurniture(raw: string): string[] {
-  return raw
-    .split('\n')
-    .map((line) => line.replace(/\s+$/, ''))
-    .filter((line) => {
-      const t = line.trim();
-      if (t === '') return true;
-      return !FURNITURE.some((re) => re.test(t));
-    });
+  const lines = raw.split('\n').map((line) => line.replace(/\s+$/, ''));
+
+  return lines.filter((line, index) => {
+    const t = line.trim();
+    if (t === '') return true;
+
+    // A standalone number is normally a page number. But these documents also
+    // key the answer as a naked digit on the line after `ANSWER`, and dropping
+    // it silently cost twelve questions in one paper: they parsed perfectly,
+    // then had no key to mark against and were discarded. So a bare number
+    // survives when the previous non-empty line is the ANSWER label.
+    if (BARE_NUMBER.test(t)) {
+      for (let i = index - 1; i >= 0; i--) {
+        const previous = lines[i]?.trim() ?? '';
+        if (previous === '') continue;
+        return /^ANSWER\s*:?\s*$/i.test(previous);
+      }
+      return false;
+    }
+
+    return !FURNITURE.some((re) => re.test(t));
+  });
 }
 
 /**
@@ -148,10 +165,19 @@ export function parsePyqAnalysis(raw: string): ParseResult {
     if (/^ANSWER/i.test(trimmed) || COMMENTARY.test(trimmed)) answered = true;
 
     const heading = HEADING.exec(trimmed);
+
+    // A `Q` prefix removes the ambiguity the `answered` guard exists to handle:
+    // no option is ever written "Q2.", so such a line is a heading whatever the
+    // current block has reached. Requiring an answer first meant that a single
+    // question printed without one — two of them in the 2011 Paper II, where a
+    // section heading interrupts — stalled the parser and silently swallowed
+    // every remaining question in the paper. Twenty of them, in that case.
+    const unambiguous = /^Q\s*\d/i.test(trimmed);
+
     const opensBlock =
       heading &&
       Number(heading[1]) === lastNumber + 1 &&
-      (current === null || answered);
+      (current === null || answered || unambiguous);
 
     if (opensBlock && heading) {
       if (current) blocks.push(current);
