@@ -52,7 +52,9 @@ export const getAdminOverview = cache(async () => {
       where: { status: { in: [...TERMINAL_ATTEMPT_STATUSES] }, submittedAt: { gte: weekAgo } },
     }),
     db.supportTicket.count({ where: { status: { in: ['OPEN', 'WAITING'] } } }),
-    db.questionReport.count({ where: { status: 'OPEN' } }),
+    // REPORTED/REVIEWING, not 'OPEN' — that status does not exist on this
+    // model, so the dashboard reported zero however many were waiting.
+    db.questionReport.count({ where: { status: { in: ['REPORTED', 'REVIEWING'] } } }),
     db.order.count({ where: { status: 'PAID' } }),
     db.order.aggregate({ where: { status: 'PAID' }, _sum: { totalInPaise: true } }),
   ]);

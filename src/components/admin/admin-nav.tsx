@@ -11,6 +11,7 @@ import {
   FileUp,
   LayoutDashboard,
   LayoutGrid,
+  Flag,
   LifeBuoy,
   LogOut,
   Menu,
@@ -72,6 +73,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       { href: '/admin/users', label: 'Users', icon: Users },
       { href: '/admin/orders', label: 'Orders', icon: Receipt },
       { href: '/admin/support', label: 'Support', icon: LifeBuoy },
+      { href: '/admin/reports', label: 'Reported questions', icon: Flag },
     ],
   },
   {

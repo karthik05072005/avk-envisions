@@ -59,7 +59,7 @@ export default async function AdminDashboardPage() {
     overview.inbox.openReports > 0 && {
       label: `${overview.inbox.openReports} reported ${overview.inbox.openReports === 1 ? 'question' : 'questions'}`,
       detail: 'Students have flagged a possible mistake.',
-      href: '/admin/questions?flagged=1',
+      href: '/admin/reports',
       tone: 'warning' as const,
     },
     overview.questions.flagged > 0 && {

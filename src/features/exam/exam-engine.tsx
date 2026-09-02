@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { ApiClientError, api } from '@/lib/api-client';
 import { MULTI_SELECT_TYPES, type AnswerState } from '@/lib/enums';
 import { cn } from '@/lib/utils';
+import { ReportQuestion } from '@/features/practice/report-question';
 
 import { ExamTimer } from './exam-timer';
 import { QuestionPalette, type PaletteEntry } from './question-palette';
@@ -532,6 +533,10 @@ export function ExamEngine({
                 className="mt-5 max-w-full rounded-lg border border-border"
               />
             )}
+
+            {/* Reporting mid-test is the point: a student who spots a wrong key
+                while answering should not have to remember it until the end. */}
+            <ReportQuestion questionId={current.questionId} className="mt-4" />
 
             {/* Options / input */}
             <div className="mt-7">

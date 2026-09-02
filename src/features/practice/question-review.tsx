@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
+import { ReportQuestion } from './report-question';
+
 /**
  * A question shown with its answer key and solution revealed.
  *
@@ -245,12 +247,20 @@ export function QuestionReview({
         </div>
       )}
 
-      {chapter && (
-        <p className="mt-3 text-xs text-muted-foreground">
-          {subject} › {chapter}
-          {topic ? ` › ${topic}` : ''}
-        </p>
-      )}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+        {chapter ? (
+          <p className="text-xs text-muted-foreground">
+            {subject} › {chapter}
+            {topic ? ` › ${topic}` : ''}
+          </p>
+        ) : (
+          <span />
+        )}
+
+        {/* Beside the answer, where a student is looking when they realise the
+            key is wrong. */}
+        <ReportQuestion questionId={questionId} />
+      </div>
     </article>
   );
 }

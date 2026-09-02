@@ -28,7 +28,7 @@ export const getFeaturedExams = cache(async (limit = 8) => {
       category: true,
       colorHex: true,
       iconUrl: true,
-      _count: { select: { tests: true, testSeries: true } },
+      _count: { select: { tests: { where: { status: 'PUBLISHED', deletedAt: null } }, testSeries: true } },
     },
   });
 
@@ -56,7 +56,7 @@ export const getFeaturedTestSeries = cache(async (limit = 6) => {
       comparePriceInPaise: true,
       featuresJson: true,
       exam: { select: { name: true, shortName: true, slug: true } },
-      _count: { select: { tests: true } },
+      _count: { select: { tests: { where: { status: 'PUBLISHED', deletedAt: null } } } },
     },
   });
 
@@ -186,7 +186,7 @@ export const getAllExams = cache(async () => {
       description: true,
       category: true,
       colorHex: true,
-      _count: { select: { tests: true, testSeries: true, subjects: true, questions: true } },
+      _count: { select: { tests: { where: { status: 'PUBLISHED', deletedAt: null } }, testSeries: true, subjects: true, questions: true } },
     },
   });
 
@@ -247,7 +247,7 @@ export const getExamBySlug = cache(async (slug: string) => {
           tagline: true,
           priceInPaise: true,
           comparePriceInPaise: true,
-          _count: { select: { tests: true } },
+          _count: { select: { tests: { where: { status: 'PUBLISHED', deletedAt: null } } } },
         },
       },
       _count: { select: { questions: true, tests: true } },
@@ -281,7 +281,7 @@ export const getAllTestSeries = cache(async () => {
       featuresJson: true,
       isFeatured: true,
       exam: { select: { name: true, shortName: true, slug: true, colorHex: true } },
-      _count: { select: { tests: true } },
+      _count: { select: { tests: { where: { status: 'PUBLISHED', deletedAt: null } } } },
     },
   });
 
@@ -335,7 +335,7 @@ export const getTestSeriesBySlug = cache(async (slug: string) => {
           accessType: true,
         },
       },
-      _count: { select: { tests: true } },
+      _count: { select: { tests: { where: { status: 'PUBLISHED', deletedAt: null } } } },
     },
   });
 

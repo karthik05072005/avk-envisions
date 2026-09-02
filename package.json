@@ -2,7 +2,7 @@
   "name": "avk-visions",
   "version": "0.1.0",
   "private": true,
-  "description": "AVK Envisions — premium online test series and exam preparation platform.",
+  "description": "AVK Envisions \u2014 premium online test series and exam preparation platform.",
   "engines": {
     "node": ">=20.11.0"
   },
@@ -34,7 +34,9 @@
     "db:import:pyq": "tsx prisma/import-pyq-questions.ts",
     "db:import:papers": "tsx prisma/import-question-papers.ts",
     "db:import:2011": "tsx prisma/import-2011.ts",
-    "db:figures": "tsx prisma/backfill-figures.ts"
+    "db:figures": "tsx prisma/backfill-figures.ts",
+    "db:hide-empty": "tsx prisma/hide-empty-tests.ts",
+    "db:free-tests": "tsx prisma/build-free-tests.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
