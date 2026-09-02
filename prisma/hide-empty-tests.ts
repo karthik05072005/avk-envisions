@@ -53,8 +53,14 @@ async function main() {
     },
   });
 
+  // A series with no tests at all is just as empty as one whose tests are all
+  // empty — and slipped through when this only checked the latter. Five
+  // chapterwise series were advertised on the catalogue with nothing behind
+  // them, so a student clicking "Chapterwise Polity" got an empty page.
   const hollow = series.filter(
-    (s) => s.tests.length > 0 && s.tests.every((t) => t.totalQuestions === 0),
+    (s) =>
+      s.status === 'PUBLISHED' &&
+      (s.tests.length === 0 || s.tests.every((t) => t.totalQuestions === 0)),
   );
 
   for (const s of hollow) {

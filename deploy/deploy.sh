@@ -65,6 +65,23 @@ sudo -u "$APP_USER" npx prisma generate
 # 3072, not 2048: the build ran out of heap on the smaller setting and retried
 # itself into a half-written .next, which serves a 502 with no obvious cause.
 sudo -u "$APP_USER" env NODE_OPTIONS=--max-old-space-size=3072 npm run build
+
+# --- Content maintenance ------------------------------------------------------
+# Runs here, before the prune, because these are TypeScript and need `tsx` —
+# which the prune removes. Running them afterwards fails with a missing esbuild
+# binary, which is exactly what happened the first time these were handed over
+# as manual steps.
+#
+# Each is safe to re-run and safe to skip: a failure here leaves the deploy
+# alone rather than taking the site down for a content job.
+echo "==> Refreshing content"
+for script in   prisma/backfill-figures.ts   prisma/build-free-tests.ts   prisma/hide-empty-tests.ts
+do
+  if ! sudo -u "$APP_USER" npx tsx "$script"; then
+    echo "    WARNING: $script failed; continuing." >&2
+  fi
+done
+
 sudo -u "$APP_USER" npm prune --omit=dev
 
 echo "==> Starting"
