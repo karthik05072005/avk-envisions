@@ -12,6 +12,7 @@ import {
   CalendarCheck,
   CreditCard,
   FileQuestion,
+  Home,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
@@ -52,6 +53,9 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Prepare',
     items: [
+      // The public site is where the catalogue lives, and from inside the app
+      // shell the only route back was the logo — which does not read as a link.
+      { href: '/', label: 'Home', icon: Home },
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/my-tests', label: 'My tests', icon: FileQuestion },
       { href: '/practice', label: 'Practice', icon: Target },
@@ -90,7 +94,12 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           </p>
           <ul className="mt-2 space-y-0.5">
             {group.items.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              // Home matches only itself: every path starts with "/", so the
+              // prefix rule would mark it active everywhere.
+              const active =
+                item.href === '/'
+                  ? pathname === '/'
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = item.icon;
 
               return (

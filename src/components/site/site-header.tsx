@@ -13,6 +13,7 @@ import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
 const NAV_LINKS = [
+  { href: '/', label: 'Home' },
   { href: '/courses', label: 'Courses' },
   { href: '/pyq', label: 'PYQ Tests' },
   { href: '/chapterwise', label: 'Chapterwise' },
@@ -85,7 +86,13 @@ export function SiteHeader({ session }: SiteHeaderProps) {
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
           {NAV_LINKS.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            // Home matches only itself. `startsWith('/')` is true of every
+            // path, so the prefix rule below would light up Home on every page
+            // of the site.
+            const active =
+              link.href === '/'
+                ? pathname === '/'
+                : pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
