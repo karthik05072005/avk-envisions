@@ -218,7 +218,14 @@ export async function getQuestionForEdit(id: string) {
       reviewNote: true,
       options: {
         orderBy: { sortOrder: 'asc' },
-        select: { id: true, label: true, body: true, isCorrect: true, sortOrder: true },
+        select: {
+          id: true,
+          label: true,
+          body: true,
+          imageUrl: true,
+          isCorrect: true,
+          sortOrder: true,
+        },
       },
     },
   });

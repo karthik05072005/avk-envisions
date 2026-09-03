@@ -194,7 +194,7 @@ export default async function PricingPage() {
                   title="What you get"
                   items={[
                     `${free?.tests.length ?? 0} free mock tests`,
-                    '20 questions per test',
+                    'Full-length papers from previous-year questions',
                     'Basic performance report',
                     'Bookmarks and wrong-question review',
                     'Ideal to get started and build consistency',

@@ -57,6 +57,7 @@ export const PUT = route(async ({ request, params, ip }) => {
           questionId: id,
           label: String.fromCharCode(65 + index),
           body: option.body,
+          imageUrl: option.imageUrl ?? null,
           isCorrect: option.isCorrect,
           sortOrder: index,
         })),

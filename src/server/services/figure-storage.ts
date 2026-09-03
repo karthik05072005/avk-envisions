@@ -54,9 +54,33 @@ export function figureUrl(fileName: string): string {
  * A file already present with the same content is left alone — the name is its
  * hash, so identical bytes are the same file by definition.
  */
-export async function storeFigure(data: Buffer): Promise<string> {
+/**
+ * Image types an admin may upload.
+ *
+ * Deliberately narrow, and checked against the file's own leading bytes rather
+ * than its name or the browser's content-type — both are attacker-controlled.
+ * SVG is excluded on purpose: it is a document that can carry script, and these
+ * files are served from the same origin as the site.
+ */
+const SIGNATURES: { ext: string; test: (b: Buffer) => boolean }[] = [
+  { ext: 'png', test: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  { ext: 'jpg', test: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  { ext: 'gif', test: (b) => b.subarray(0, 6).toString('latin1').startsWith('GIF8') },
+  {
+    ext: 'webp',
+    test: (b) =>
+      b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP',
+  },
+];
+
+/** The image type these bytes actually are, or null if not a supported image. */
+export function imageKind(data: Buffer): string | null {
+  return SIGNATURES.find((s) => s.test(data))?.ext ?? null;
+}
+
+export async function storeFigure(data: Buffer, extension?: string): Promise<string> {
   const hash = createHash('sha256').update(data).digest('hex').slice(0, 32);
-  const fileName = `${hash}.png`;
+  const fileName = `${hash}.${extension ?? 'png'}`;
 
   const dir = figuresDir();
   await mkdir(dir, { recursive: true });

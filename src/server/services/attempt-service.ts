@@ -410,10 +410,19 @@ export async function getAttemptState(attemptId: string, userId: string): Promis
       if (!question) return null;
 
       // Apply this attempt's frozen option order.
+      //
+      // The order is stored as option ids, and an admin editing the question
+      // replaces its options wholesale — new rows, new ids. Every id in the
+      // snapshot then matches nothing and the question renders with no options
+      // at all: unanswerable, with no clue why. Falling back to the question's
+      // own order keeps the paper usable. The attempt loses its shuffle for
+      // that one question, which is a far smaller harm than losing the answers.
       const optionMap = new Map(question.options.map((o) => [o.id, o]));
       const ordered = entry.optionOrder
         .map((id) => optionMap.get(id))
         .filter((o): o is NonNullable<typeof o> => Boolean(o));
+
+      const options = ordered.length > 0 ? ordered : question.options;
 
       return {
         testQuestionId: entry.testQuestionId,
@@ -426,7 +435,7 @@ export async function getAttemptState(attemptId: string, userId: string): Promis
         body: question.body,
         passage: question.passage,
         imageUrl: question.imageUrl,
-        options: ordered.map((o) => ({
+        options: options.map((o) => ({
           id: o.id,
           label: o.label,
           body: o.body,
@@ -436,7 +445,10 @@ export async function getAttemptState(attemptId: string, userId: string): Promis
           ? {
               explanation: question.explanation ?? null,
               numericalAnswer: question.numericalAnswer ?? null,
-              correctOptionIds: ordered.filter((o) => o.isCorrect).map((o) => o.id),
+              // Same fallback: reading the key off `ordered` would return an
+              // empty list on an edited question, so the review page would show
+              // no correct answer at all.
+              correctOptionIds: options.filter((o) => o.isCorrect).map((o) => o.id),
             }
           : {}),
       };
@@ -978,6 +990,12 @@ export async function getAttemptResult(attemptId: string, userId: string) {
         .map((id) => optionMap.get(id))
         .filter((o): o is NonNullable<typeof o> => Boolean(o));
 
+      // Same fallback as the live attempt: an edited question leaves the
+      // snapshot's ids pointing at nothing, and a result page that shows the
+      // question with no options tells a student nothing about why they were
+      // marked as they were.
+      const reviewOptions = ordered.length > 0 ? ordered : question.options;
+
       return {
         sortOrder: entry.sortOrder,
         testQuestionId: entry.testQuestionId,
@@ -998,7 +1016,7 @@ export async function getAttemptResult(attemptId: string, userId: string) {
         timeSpentSeconds: answer?.timeSpentSeconds ?? 0,
         selectedOptionIds: selected,
         numericalValue: answer?.numericalValue ?? null,
-        options: ordered.map((o) => ({
+        options: reviewOptions.map((o) => ({
           id: o.id,
           label: o.label,
           body: o.body,

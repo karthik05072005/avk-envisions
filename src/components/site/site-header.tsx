@@ -3,11 +3,13 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Menu, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Logo } from '@/components/site/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
 const NAV_LINKS = [
@@ -29,6 +31,24 @@ export function SiteHeader({ session }: SiteHeaderProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const [signingOut, setSigningOut] = React.useState(false);
+
+  // Signing out used to live only in the app shell, so anyone reading a PYQ
+  // page, a synopsis or the catalogue had no way to leave their session without
+  // first navigating to the dashboard. On a shared or borrowed device that is
+  // not a minor inconvenience.
+  async function signOut() {
+    setSigningOut(true);
+    try {
+      await api.post('/api/auth/logout');
+      // A full reload, not a client navigation: every cached server component
+      // has to be discarded along with the session.
+      window.location.href = '/';
+    } catch {
+      toast.error('We could not sign you out. Please try again.');
+      setSigningOut(false);
+    }
+  }
 
   // Elevate the header once the page scrolls, so it separates from content.
   React.useEffect(() => {
@@ -86,12 +106,24 @@ export function SiteHeader({ session }: SiteHeaderProps) {
           <ThemeToggle className="hidden sm:inline-flex" />
 
           {session ? (
-            <Button asChild size="sm">
-              <Link href={session.dashboardHref}>
-                <LayoutDashboard aria-hidden="true" />
-                Dashboard
-              </Link>
-            </Button>
+            <>
+              <Button asChild size="sm">
+                <Link href={session.dashboardHref}>
+                  <LayoutDashboard aria-hidden="true" />
+                  Dashboard
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                disabled={signingOut}
+                className="hidden text-muted-foreground sm:inline-flex"
+              >
+                <LogOut aria-hidden="true" />
+                {signingOut ? 'Signing out…' : 'Sign out'}
+              </Button>
+            </>
           ) : (
             <>
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
@@ -133,7 +165,18 @@ export function SiteHeader({ session }: SiteHeaderProps) {
               </Link>
             ))}
 
-            {!session && (
+            {session ? (
+              // The desktop control is hidden below `sm`, so without this a
+              // phone has no way out of the session at all.
+              <button
+                type="button"
+                onClick={signOut}
+                disabled={signingOut}
+                className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                {signingOut ? 'Signing out…' : 'Sign out'}
+              </button>
+            ) : (
               <Link
                 href="/login"
                 className="rounded-lg px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"

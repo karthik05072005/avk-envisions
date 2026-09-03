@@ -71,7 +71,8 @@ export const importCommitSchema = z
       .default('PREVIOUS_YEAR'),
     accessType: z.enum(['FREE', 'PAID', 'SUBSCRIPTION']).default('FREE'),
     durationMinutes: z.coerce.number().int().min(1).max(600).default(120),
-    maxAttempts: z.coerce.number().int().min(0).max(50).default(2),
+    // 0 = unlimited; see the note in validations/admin.ts.
+    maxAttempts: z.coerce.number().int().min(0).max(50).default(0),
 
     // --- Marking ----------------------------------------------------------
     marks: z.coerce.number().min(0.25).max(100).default(MARKS_PER_QUESTION),

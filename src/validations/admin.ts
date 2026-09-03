@@ -16,6 +16,16 @@ const optionSchema = z.object({
   id: cuidSchema.optional(),
   body: z.string().trim().min(1, 'Option text cannot be empty').max(2000),
   isCorrect: z.boolean().default(false),
+  /** Set when the option is itself a diagram — a pictograph or a graph. */
+  imageUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine(
+      (value) => value === '' || value.startsWith('/') || /^https?:\/\//.test(value),
+      'Enter a path beginning with / or a full http(s) URL',
+    )
+    .nullish(),
 });
 
 export const questionSchema = z
@@ -121,7 +131,9 @@ export const testSchema = z.object({
 
   durationMinutes: z.coerce.number().int().min(1).max(600).default(60),
   /** 0 means unlimited re-attempts. */
-  maxAttempts: z.coerce.number().int().min(0).max(50).default(2),
+  // 0 = unlimited. Practice papers are for practising: capping retries
+  // stopped a student re-sitting a paper they had just learned from.
+  maxAttempts: z.coerce.number().int().min(0).max(50).default(0),
   passingMarks: z.coerce.number().min(0).max(10_000).default(0),
 
   negativeMarkingEnabled: z.boolean().default(true),

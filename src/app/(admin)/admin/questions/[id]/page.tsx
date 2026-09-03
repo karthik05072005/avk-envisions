@@ -48,6 +48,9 @@ export default async function EditQuestionPage({ params }: { params: Promise<{ i
         options: question.options.map((option) => ({
           body: option.body,
           isCorrect: option.isCorrect,
+          // Loaded, not dropped: omitting this wipes an option's image on the
+          // next save, because the editor sends back what it was given.
+          imageUrl: option.imageUrl,
         })),
       }}
     />

@@ -70,8 +70,14 @@ const EVERYTHING_IS_FREE = true;
 /** Minutes for one free sampler test. */
 const FREE_TEST_MINUTES = 25;
 
-/** The free tier is the first ten tests of the published timetable. */
-const FREE_SERIES_SCHEDULE = KAS_2026_SCHEDULE.slice(0, 10);
+/**
+ * The free tier samples the first two tests of the published timetable.
+ *
+ * Ten were seeded previously and eight of them never got questions, so the
+ * catalogue advertised empty papers. Two that are actually full is a better
+ * offer than ten that are not.
+ */
+const FREE_SERIES_SCHEDULE = KAS_2026_SCHEDULE.slice(0, 2);
 
 const RETIRED_SUBJECTS: { slug: string; mergeIntoSlug?: string }[] = [
   { slug: 'indian-history', mergeIntoSlug: 'history' },
@@ -295,7 +301,7 @@ async function main() {
         // correction to it has to reach papers that already exist.
         instructions: input.instructions ?? FULL_PAPER_INSTRUCTIONS,
         description: input.description,
-        maxAttempts: input.maxAttempts ?? 2,
+        maxAttempts: input.maxAttempts ?? 0,
         accessType: input.accessType,
         durationMinutes: input.durationMinutes,
         paperNumber: input.paperNumber,
@@ -315,7 +321,7 @@ async function main() {
         durationMinutes: input.durationMinutes,
         accessType: input.accessType,
         // Retakes are capped at two, per the course rules.
-        maxAttempts: input.maxAttempts ?? 2,
+        maxAttempts: input.maxAttempts ?? 0,
         negativeMarkingEnabled: true,
         defaultNegativeRatio: 0.25,
         paperNumber: input.paperNumber,
@@ -610,7 +616,7 @@ async function main() {
         subjectId: subjectIds.get(subject.name),
         // Capped at two like every other test, per the course rules. Raise this
         // to 0 (unlimited) if subject drills should be freely repeatable.
-        maxAttempts: 2,
+        maxAttempts: 0,
         description: `Only the ${subject.name} questions from the ${label} paper.`,
         instructions: [
           `This test contains only the ${subject.name} questions from the ${label} KAS Prelims paper.`,

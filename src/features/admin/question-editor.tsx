@@ -14,6 +14,8 @@ import { FormField } from '@/components/ui/label';
 import { InlineError } from '@/components/ui/states';
 import { ApiClientError, api } from '@/lib/api-client';
 import { MARKS_PER_QUESTION, NEGATIVE_MARKS_PER_QUESTION } from '@/lib/marking';
+
+import { FigurePicker } from './figure-picker';
 import { cn } from '@/lib/utils';
 
 /**
@@ -59,7 +61,7 @@ export interface QuestionDraft {
   source: string | null;
   examYear: number | null;
   reviewNote: string | null;
-  options: { body: string; isCorrect: boolean }[];
+  options: { body: string; isCorrect: boolean; imageUrl?: string | null }[];
 }
 
 const TYPES = [
@@ -397,20 +399,10 @@ export function QuestionEditor({
             htmlFor="q-image"
             hint="Optional. A map, diagram or chart shown above the options"
           >
-            <Input
-              id="q-image"
-              value={draft.imageUrl ?? ''}
-              onChange={(event) => update('imageUrl', event.target.value)}
-              placeholder="/uploads/figures/… or a full https:// URL"
+            <FigurePicker
+              value={draft.imageUrl}
+              onChange={(url) => update('imageUrl', url)}
             />
-            {draft.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={draft.imageUrl}
-                alt="The figure shown with this question"
-                className="mt-2 max-h-56 rounded-lg border border-border bg-white"
-              />
-            ) : null}
           </FormField>
 
           <FormField label="Question text" htmlFor="q-body" required>
@@ -503,6 +495,23 @@ export function QuestionEditor({
                       placeholder={`Option ${String.fromCharCode(65 + index)}`}
                       className="min-h-[44px] flex-1"
                     />
+
+                    {draft.type !== 'TRUE_FALSE' && (
+                      <div className="mt-1 shrink-0">
+                        <FigurePicker
+                          label={`Option ${String.fromCharCode(65 + index)} image`}
+                          value={option.imageUrl ?? null}
+                          onChange={(url) =>
+                            update(
+                              'options',
+                              draft.options.map((o, i) =>
+                                i === index ? { ...o, imageUrl: url } : o,
+                              ),
+                            )
+                          }
+                        />
+                      </div>
+                    )}
 
                     {draft.options.length > 2 && draft.type !== 'TRUE_FALSE' && (
                       <Button

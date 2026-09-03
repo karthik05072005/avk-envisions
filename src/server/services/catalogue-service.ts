@@ -56,7 +56,9 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
     ribbon: null,
     comingSoon: false,
     benefits: [
-      '20 questions per test',
+      // The count was wrong — these are full-length papers now — and naming a
+      // small number was talking the free tests down rather than up.
+      'Full-length papers drawn from previous-year questions',
       'Sectional tests across the syllabus',
       'Exam-like interface and timing',
       'Detailed solutions after each test',

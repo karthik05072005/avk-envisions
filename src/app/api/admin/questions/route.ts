@@ -58,6 +58,7 @@ export const POST = route(async ({ request, ip }) => {
         create: input.options.map((option, index) => ({
           label: String.fromCharCode(65 + index),
           body: option.body,
+          imageUrl: option.imageUrl ?? null,
           isCorrect: option.isCorrect,
           sortOrder: index,
         })),
