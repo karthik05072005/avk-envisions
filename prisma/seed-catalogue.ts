@@ -706,8 +706,40 @@ async function main() {
     console.log(`  ok  wired ${realQuestions.length} real questions into 2024 December Polity`);
   }
 
-  const empty = await db.test.count({ where: { totalQuestions: 0, status: 'PUBLISHED' } });
-  console.log(`\n  note: ${empty} tests have no questions yet and show as "content being added".`);
+  // Hide what has nothing behind it.
+  //
+  // Publishing structure before content exists is right for a fresh install and
+  // wrong for a live site: a student browsing the catalogue met more empty tests
+  // than full ones, and a series advertising twelve papers that all lead nowhere
+  // reads as abandoned rather than forthcoming. Every row stays in place, so a
+  // test republishes the moment it has questions.
+  const hidden = await db.test.updateMany({
+    where: { deletedAt: null, status: 'PUBLISHED', totalQuestions: 0 },
+    data: { status: 'DRAFT' },
+  });
+
+  const published = await db.testSeries.findMany({
+    where: { deletedAt: null, status: 'PUBLISHED' },
+    select: {
+      id: true,
+      tests: { where: { deletedAt: null }, select: { totalQuestions: true } },
+    },
+  });
+  const hollow = published.filter(
+    (series) =>
+      series.tests.length === 0 || series.tests.every((test) => test.totalQuestions === 0),
+  );
+  if (hollow.length > 0) {
+    await db.testSeries.updateMany({
+      where: { id: { in: hollow.map((s) => s.id) } },
+      data: { status: 'DRAFT' },
+    });
+  }
+
+  console.log(
+    `\n  ${hidden.count} test(s) hidden until they have questions` +
+      `${hollow.length > 0 ? `, along with ${hollow.length} empty series` : ''}.`,
+  );
   console.log('\nDone. View at /courses\n');
 }
 
