@@ -12,15 +12,30 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function EditQuestionPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditQuestionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const { id } = await params;
   await enforceAdminArea(`/admin/questions/${id}`);
 
-  const [question, exams] = await Promise.all([getQuestionForEdit(id), getTaxonomyTree()]);
+  const [question, exams, query] = await Promise.all([
+    getQuestionForEdit(id),
+    getTaxonomyTree(),
+    searchParams,
+  ]);
   if (!question) notFound();
+
+  // Carries the paper the editor came from, so saving returns there instead of
+  // to the unfiltered bank.
+  const returnTo = query.testId ? `/admin/questions?testId=${query.testId}` : undefined;
 
   return (
     <QuestionEditor
+      returnTo={returnTo}
       exams={exams.filter((exam) => exam.subjects.length > 0)}
       initial={{
         id: question.id,

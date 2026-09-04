@@ -265,7 +265,13 @@ export default async function AdminQuestionsPage({
               {result.rows.map((question) => (
                 <li key={question.id}>
                   <Link
-                    href={`/admin/questions/${question.id}`}
+                    // Carries the paper through, so saving comes back here
+                    // rather than to the unfiltered bank.
+                    href={
+                      params.testId
+                        ? `/admin/questions/${question.id}?testId=${params.testId}`
+                        : `/admin/questions/${question.id}`
+                    }
                     className="group flex items-start gap-4 p-4 transition-colors hover:bg-muted/40"
                   >
                     <div className="min-w-0 flex-1">

@@ -109,12 +109,30 @@ function blankDraft(exams: TaxonomyExam[]): QuestionDraft {
 export function QuestionEditor({
   exams,
   initial,
+  returnTo,
 }: {
   exams: TaxonomyExam[];
   initial?: QuestionDraft;
+  /**
+   * Where saving and the back link go.
+   *
+   * Someone correcting a paper works through it question by question, and
+   * returning to the unfiltered bank each time meant re-selecting the paper for
+   * every single correction — a hundred round trips through the picker to edit
+   * a hundred questions.
+   */
+  returnTo?: string;
 }) {
   const router = useRouter();
   const isEdit = Boolean(initial?.id);
+
+  // Only a path on this site: `returnTo` arrives from the query string, so an
+  // absolute URL here would let a crafted admin link bounce someone off-site
+  // after saving.
+  const back =
+    returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
+      ? returnTo
+      : '/admin/questions';
 
   const [draft, setDraft] = React.useState<QuestionDraft>(initial ?? blankDraft(exams));
   const [saving, setSaving] = React.useState(false);
@@ -232,7 +250,7 @@ export function QuestionEditor({
         : await api.post<{ id: string; code: string }>('/api/admin/questions', payload);
 
       toast.success(isEdit ? `Saved ${result.code}.` : `Created ${result.code}.`);
-      router.push('/admin/questions');
+      router.push(back);
       router.refresh();
     } catch (caught) {
       const message =
@@ -249,9 +267,9 @@ export function QuestionEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Button asChild variant="ghost" size="sm" className="-ml-3">
-            <Link href="/admin/questions">
+            <Link href={back}>
               <ArrowLeft aria-hidden="true" />
-              Question bank
+              {back === '/admin/questions' ? 'Question bank' : 'Back to the paper'}
             </Link>
           </Button>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
