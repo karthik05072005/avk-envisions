@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/states';
 import { formatDate } from '@/lib/utils';
 import { enforceAdminArea } from '@/server/auth/guards';
-import { getTaxonomyTree, listQuestions } from '@/server/services/admin-service';
+import { getTaxonomyTree, listPaperGroups, listQuestions } from '@/server/services/admin-service';
 
 export const metadata: Metadata = {
   title: 'Question bank',
@@ -33,7 +33,14 @@ export default async function AdminQuestionsPage({
 
   const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1);
 
-  const [result, exams] = await Promise.all([
+  // The bank opens on the papers, not on every question ever imported.
+  // Content is written and corrected one paper at a time, and reaching the 2011
+  // Paper II questions in a flat list of 1,273 meant paging past a thousand
+  // unrelated ones. A search or filter still searches everything.
+  const browsing =
+    !params.testId && !params.q && !params.subjectId && !params.status && !params.difficulty && params.flagged !== '1';
+
+  const [result, exams, groups] = await Promise.all([
     listQuestions({
       search: params.q,
       examId: params.examId,
@@ -41,10 +48,16 @@ export default async function AdminQuestionsPage({
       status: params.status,
       difficulty: params.difficulty,
       flagged: params.flagged === '1',
+      testId: params.testId,
       page,
     }),
     getTaxonomyTree(),
+    browsing ? listPaperGroups() : Promise.resolve([]),
   ]);
+
+  const paper = params.testId
+    ? (await listPaperGroups()).flatMap((g) => g.papers).find((t) => t.id === params.testId)
+    : undefined;
 
   /** Preserves the active filters when only the page changes. */
   function pageHref(target: number) {
@@ -67,9 +80,21 @@ export default async function AdminQuestionsPage({
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Question bank</h1>
+          {paper && (
+            <Link
+              href="/admin/questions"
+              className="mb-1 inline-block text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              ← All papers
+            </Link>
+          )}
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {paper ? paper.title : 'Question bank'}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {result.total} {result.total === 1 ? 'question' : 'questions'}
+            {browsing
+              ? `${result.total} ${result.total === 1 ? 'question' : 'questions'} across all papers`
+              : `${result.total} ${result.total === 1 ? 'question' : 'questions'}`}
             {activeFilters.length > 0 && ` matching ${activeFilters.join(', ')}`}
           </p>
         </div>
@@ -82,10 +107,49 @@ export default async function AdminQuestionsPage({
         </Button>
       </header>
 
+      {/* Paper picker ----------------------------------------------------- */}
+      {browsing && (
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <Card key={group.seriesSlug}>
+              <CardContent className="p-4 sm:p-5">
+                <h2 className="text-sm font-semibold tracking-tight">{group.seriesName}</h2>
+
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.papers.map((item) => (
+                    <li key={item.id}>
+                      <Link
+                        href={`/admin/questions?testId=${item.id}`}
+                        className="flex h-full flex-col rounded-xl border border-border p-3 transition-colors hover:border-primary hover:bg-primary-muted/40"
+                      >
+                        <span className="text-sm font-medium">{item.title}</span>
+                        <span className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                          {item.questionCount}{' '}
+                          {item.questionCount === 1 ? 'question' : 'questions'}
+                          {item.status !== 'PUBLISHED' && (
+                            <Badge variant="warning" size="sm">
+                              {item.status.toLowerCase()}
+                            </Badge>
+                          )}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* Filters --------------------------------------------------------- */}
+      {!browsing && (
       <Card>
         <CardContent className="p-4">
           <form method="get" className="flex flex-wrap items-end gap-3">
+            {/* A filter inside a paper must stay inside it; without this the
+                form would drop testId and jump back to the whole bank. */}
+            {params.testId && <input type="hidden" name="testId" value={params.testId} />}
             <div className="min-w-[200px] flex-1">
               <label htmlFor="q" className="text-xs font-medium text-muted-foreground">
                 Search
@@ -180,9 +244,10 @@ export default async function AdminQuestionsPage({
           </form>
         </CardContent>
       </Card>
+      )}
 
       {/* Results --------------------------------------------------------- */}
-      {result.rows.length === 0 ? (
+      {browsing ? null : result.rows.length === 0 ? (
         <EmptyState
           icon={FileQuestion}
           title="No questions match"

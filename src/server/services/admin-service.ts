@@ -126,6 +126,8 @@ export interface QuestionFilters {
   status?: string;
   difficulty?: string;
   flagged?: boolean;
+  /** Narrow to the questions on one paper. */
+  testId?: string;
   page?: number;
   pageSize?: number;
 }
@@ -141,6 +143,7 @@ export async function listQuestions(filters: QuestionFilters = {}) {
     ...(filters.status ? { status: filters.status } : {}),
     ...(filters.difficulty ? { difficulty: filters.difficulty } : {}),
     ...(filters.flagged ? { reviewNote: { not: null } } : {}),
+    ...(filters.testId ? { testQuestions: { some: { testId: filters.testId } } } : {}),
     ...(filters.search
       ? {
           OR: [
@@ -154,7 +157,9 @@ export async function listQuestions(filters: QuestionFilters = {}) {
   const [rows, total] = await Promise.all([
     db.question.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      // Newest first across the whole bank, but a paper is read in its own
+      // order — an editor checking question 40 wants it between 39 and 41.
+      orderBy: filters.testId ? { code: 'asc' } : { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
       select: {
@@ -187,6 +192,64 @@ export async function listQuestions(filters: QuestionFilters = {}) {
     pageSize,
     totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+/**
+ * The papers an editor picks between, grouped by series.
+ *
+ * A flat list of 1,273 questions is not something anyone can work through:
+ * finding the 2011 Paper II questions meant paging past a thousand others.
+ * Content work happens one paper at a time, so the bank opens on the papers.
+ *
+ * Includes unpublished tests and empty ones — those are exactly the papers
+ * needing work, and hiding them would hide the job.
+ */
+export interface PaperGroup {
+  seriesName: string;
+  seriesSlug: string;
+  papers: {
+    id: string;
+    title: string;
+    slug: string;
+    status: string;
+    questionCount: number;
+  }[];
+}
+
+export async function listPaperGroups(): Promise<PaperGroup[]> {
+  const tests = await db.test.findMany({
+    where: { deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      testSeries: { select: { name: true, slug: true } },
+      _count: { select: { questions: true } },
+    },
+    orderBy: { slug: 'asc' },
+  });
+
+  const groups = new Map<string, PaperGroup>();
+
+  for (const test of tests) {
+    const name = test.testSeries?.name ?? 'Standalone tests';
+    const slug = test.testSeries?.slug ?? 'standalone';
+
+    const group = groups.get(slug) ?? { seriesName: name, seriesSlug: slug, papers: [] };
+    group.papers.push({
+      id: test.id,
+      title: test.title,
+      slug: test.slug,
+      status: test.status,
+      questionCount: test._count.questions,
+    });
+    groups.set(slug, group);
+  }
+
+  // Papers within a series read in their printed order, and the most recent
+  // year is the one being worked on, so series come newest first.
+  return [...groups.values()].sort((a, b) => b.seriesSlug.localeCompare(a.seriesSlug));
 }
 
 /** Full question record for the editor. */
