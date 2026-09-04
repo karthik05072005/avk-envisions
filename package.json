@@ -36,7 +36,8 @@
     "db:import:2011": "tsx prisma/import-2011.ts",
     "db:figures": "tsx prisma/backfill-figures.ts",
     "db:hide-empty": "tsx prisma/hide-empty-tests.ts",
-    "db:free-tests": "tsx prisma/build-free-tests.ts"
+    "db:free-tests": "tsx prisma/build-free-tests.ts",
+    "db:reformat": "tsx prisma/reformat-questions.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

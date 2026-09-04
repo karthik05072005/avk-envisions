@@ -74,6 +74,20 @@ sudo -u "$APP_USER" env NODE_OPTIONS=--max-old-space-size=3072 npm run build
 #
 # Each is safe to re-run and safe to skip: a failure here leaves the deploy
 # alone rather than taking the site down for a content job.
+# --- Uploads must stay readable by the web server -----------------------------
+# Caddy serves /uploads/* off disk as its own user. A fresh upload inherits the
+# app user's umask and can land unreadable, and the data directory itself was
+# mode 750 — so diagrams returned 403 and an uploaded image simply never
+# appeared. Re-applied on every deploy because a new file can reintroduce it.
+# The database and backups stay private: 751 lets caddy traverse without
+# listing, and backups are explicitly closed off.
+echo "==> Fixing upload permissions"
+chmod 751 "$DATA_DIR"
+mkdir -p "$DATA_DIR/uploads/figures"
+chown -R "$APP_USER:$APP_USER" "$DATA_DIR/uploads"
+chmod -R 755 "$DATA_DIR/uploads"
+chmod 700 "$DATA_DIR/backups" 2>/dev/null || true
+
 echo "==> Refreshing content"
 for script in   prisma/backfill-figures.ts   prisma/build-free-tests.ts   prisma/hide-empty-tests.ts
 do

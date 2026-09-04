@@ -79,6 +79,17 @@ mkdir -p "$APP_DIR" "$DATA_DIR" "$DATA_DIR/uploads" "$DATA_DIR/backups"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR" "$DATA_DIR"
 chmod 750 "$DATA_DIR"
 
+# Caddy serves /uploads/* straight off disk, as a different user. With the data
+# directory at 750 it could not traverse into it, so every question diagram
+# returned 403 — uploading an image appeared to work and the image never
+# showed. The database sits in this same directory, so the fix grants the
+# traverse bit on the parent and read access to the uploads subtree only:
+# `caddy` can walk through $DATA_DIR but cannot list it, and cannot read
+# production.db.
+chmod 751 "$DATA_DIR"
+chmod -R 755 "$DATA_DIR/uploads"
+chmod 700 "$DATA_DIR/backups"
+
 # --- Firewall -----------------------------------------------------------------
 echo "==> Configuring firewall"
 ufw allow OpenSSH >/dev/null
