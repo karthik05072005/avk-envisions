@@ -8,6 +8,7 @@ import {
   BookOpen,
   ClipboardList,
   FileQuestion,
+  FileText,
   FileUp,
   LayoutDashboard,
   LayoutGrid,
@@ -62,6 +63,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { href: '/admin/questions', label: 'Question bank', icon: FileQuestion },
       { href: '/admin/import', label: 'Import from PDF', icon: FileUp },
+      { href: '/admin/synopsis', label: 'Analysis PDFs', icon: FileText },
       { href: '/admin/tests', label: 'Tests', icon: ClipboardList },
       { href: '/admin/test-series', label: 'Test series', icon: LayoutGrid },
       { href: '/admin/exams', label: 'Exams & syllabus', icon: BookOpen },

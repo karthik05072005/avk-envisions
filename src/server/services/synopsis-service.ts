@@ -1,5 +1,5 @@
 import { createReadStream, existsSync } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { mkdir, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { AppError, errors } from '@/lib/api';
@@ -218,4 +218,61 @@ export async function openSynopsis(fileName: string) {
 
   const info = await stat(full);
   return { stream: createReadStream(full), size: info.size, path: full };
+}
+
+
+// ---------------------------------------------------------------------------
+// Admin management
+// ---------------------------------------------------------------------------
+
+/** A PDF and nothing else — these are served to students on request. */
+export const MAX_SYNOPSIS_BYTES = 100 * 1024 * 1024;
+
+export function isPdf(buffer: Buffer): boolean {
+  return buffer.subarray(0, 5).toString('latin1') === '%PDF-';
+}
+
+/**
+ * Stores an analysis document for one test, replacing whatever it had.
+ *
+ * Named after the test rather than the upload, so a re-upload overwrites in
+ * place and the database keeps pointing at a file that exists. The previous
+ * file is not kept: two copies of an 80 MB PDF on a 30 GB disk is not a
+ * trade worth making, and the source lives in Drive.
+ */
+export async function storeTestSynopsis(
+  testSlug: string,
+  data: Buffer,
+): Promise<string> {
+  const dir = synopsisDir();
+  await mkdir(dir, { recursive: true });
+
+  const fileName = `${path.basename(testSlug)}.pdf`;
+  await writeFile(path.join(dir, fileName), data);
+  return fileName;
+}
+
+/**
+ * Removes a stored document.
+ *
+ * A missing file is not an error: the row and the file can fall out of step,
+ * and the caller's intent — "this test should have no synopsis" — is satisfied
+ * either way.
+ */
+export async function deleteSynopsisFile(fileName: string): Promise<void> {
+  await unlink(resolveSynopsisPath(fileName)).catch(() => {});
+}
+
+/** Whether a registered document is actually on disk, and how large. */
+export async function synopsisStatus(
+  fileName: string | null,
+): Promise<{ present: boolean; sizeBytes: number }> {
+  if (!fileName) return { present: false, sizeBytes: 0 };
+
+  try {
+    const info = await stat(resolveSynopsisPath(fileName));
+    return { present: info.size > 0, sizeBytes: info.size };
+  } catch {
+    return { present: false, sizeBytes: 0 };
+  }
 }
