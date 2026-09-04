@@ -53,18 +53,19 @@ export interface TrackSummary {
 const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount' | 'fromPriceInPaise' | 'isFree'>> = {
   DAILY_CHALLENGE: {
     key: 'DAILY_CHALLENGE',
-    title: '50 Questions · 50 Days',
-    blurb: 'One 50-question paper every day, for fifty days, right up to the exam.',
+    title: 'AVK Envisions KS50',
+    blurb: '50 Questions × 50 Days — test, analyse, revise, excel.',
     href: '/50-days',
-    ctaLabel: "Start today's paper",
+    ctaLabel: 'Join KS50',
     iconName: 'CalendarDays',
-    ribbon: null,
+    ribbon: 'New',
     comingSoon: false,
     benefits: [
-      'A fresh 50-question paper every day',
-      'Covers the full syllabus across the fifty days',
-      'Answers and explanations the moment you finish',
-      'Your streak and accuracy tracked day by day',
+      '50 carefully curated questions every day',
+      'PYQ-based and current affairs integrated',
+      'Syllabus-wise structured',
+      'Detailed explanations with PYQ connections',
+      'Track your progress and improve daily',
     ],
   },
   FREE_SERIES: {
@@ -106,10 +107,10 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
   },
   PYQ: {
     key: 'PYQ',
-    title: 'Solve Previous Question Papers',
+    title: 'Previous Year Question Papers',
     blurb: 'Experience the real exam environment by solving previous year papers.',
     href: '/pyq',
-    ctaLabel: 'Solve papers',
+    ctaLabel: 'Solve PYQs',
     iconName: 'FileQuestion',
     ribbon: 'Most important',
     comingSoon: false,
@@ -123,10 +124,10 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
   },
   CHAPTERWISE: {
     key: 'CHAPTERWISE',
-    title: 'Solve Chapterwise',
-    blurb: 'Practice chapterwise questions by subject.',
+    title: 'Chapter-wise Practice',
+    blurb: 'Master the syllabus one topic at a time.',
     href: '/chapterwise',
-    ctaLabel: 'Explore chapterwise',
+    ctaLabel: 'Explore Chapter-wise',
     iconName: 'Layers',
     ribbon: 'Coming soon',
     comingSoon: true,
@@ -139,7 +140,20 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
   },
 };
 
-const TRACK_ORDER: TrackKey[] = ['FREE_SERIES', 'PAID_SERIES', 'PYQ', 'CHAPTERWISE'];
+/**
+ * Display order, and the first two are the featured pair.
+ *
+ * The daily challenge leads because it is the current offer, and the free
+ * series sits beside it so the first thing a visitor sees costs nothing. The
+ * paid, chapterwise and PYQ tracks follow in a second row.
+ */
+const TRACK_ORDER: TrackKey[] = [
+  'DAILY_CHALLENGE',
+  'FREE_SERIES',
+  'PAID_SERIES',
+  'CHAPTERWISE',
+  'PYQ',
+];
 
 /** The four widgets on the landing page and /courses. */
 export const getCourseTracks = cache(async (): Promise<TrackSummary[]> => {

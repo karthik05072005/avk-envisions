@@ -1,6 +1,7 @@
-import Link from 'next/link';
+import Link from "next/link";
 import {
   ArrowRight,
+  CalendarDays,
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
@@ -8,15 +9,16 @@ import {
   FileQuestion,
   Layers,
   Star,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { formatPaise } from '@/lib/utils';
-import type { TrackSummary } from '@/server/services/catalogue-service';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { formatPaise } from "@/lib/utils";
+import type { TrackSummary } from "@/server/services/catalogue-service";
 
 const ICONS: Record<string, typeof ClipboardCheck> = {
+  CalendarDays,
   ClipboardCheck,
   ClipboardList,
   FileQuestion,
@@ -31,112 +33,147 @@ const ICONS: Record<string, typeof ClipboardCheck> = {
  * the site ended up advertising different prices in different places.
  */
 export function TrackCards({ tracks }: { tracks: TrackSummary[] }) {
+  // The first two lead — the current offer and the free entry point — so they
+  // get a wider row of their own. Everything after sits in a denser second row,
+  // which keeps the whole set on one screen instead of a long even column.
+  const featured = tracks.slice(0, 2);
+  const rest = tracks.slice(2);
+
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {tracks.map((track) => {
-        const Icon = ICONS[track.iconName] ?? Layers;
-        const highlight = track.ribbon === 'Most useful' || track.ribbon === 'Most important';
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        {featured.map((track) => (
+          <TrackCard key={track.key} track={track} featured />
+        ))}
+      </div>
 
-        return (
-          <Card key={track.key} className={highlight ? 'relative border-primary/40' : 'relative'}>
-            <CardContent className="flex h-full flex-col p-6">
-              <div className="flex items-start justify-between gap-3">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="size-6" aria-hidden="true" />
-                </span>
+      {rest.length > 0 && (
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {rest.map((track) => (
+            <TrackCard key={track.key} track={track} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <Badge variant="muted" size="sm">
-                    KAS
-                  </Badge>
-                  {track.ribbon && (
-                    <Badge
-                      variant={track.comingSoon ? 'info' : highlight ? 'warning' : 'success'}
-                      size="sm"
-                    >
-                      {track.comingSoon ? (
-                        <Clock aria-hidden="true" />
-                      ) : (
-                        <Star aria-hidden="true" />
-                      )}
-                      {track.ribbon}
-                    </Badge>
-                  )}
-                  {track.isFree && (
-                    <Badge variant="success" size="sm">
-                      Free
-                    </Badge>
-                  )}
-                </div>
-              </div>
+function TrackCard({
+  track,
+  featured = false,
+}: {
+  track: TrackSummary;
+  featured?: boolean;
+}) {
+  const Icon = ICONS[track.iconName] ?? Layers;
+  const highlight =
+    featured ||
+    track.ribbon === "Most useful" ||
+    track.ribbon === "Most important";
 
-              <h3 className="mt-4 text-lg font-semibold leading-tight tracking-tight">
-                {track.title}
-              </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{track.blurb}</p>
+  return (
+    <Card className={highlight ? "relative border-primary/40" : "relative"}>
+      <CardContent className="flex h-full flex-col p-6">
+        <div className="flex items-start justify-between gap-3">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Icon className="size-6" aria-hidden="true" />
+          </span>
 
-              <ul className="mt-5 flex-1 space-y-2.5">
-                {track.benefits.map((benefit) => (
-                  <li key={benefit} className="flex items-start gap-2 text-sm">
-                    <CheckCircle2
-                      className="mt-0.5 size-4 shrink-0 text-success"
-                      aria-hidden="true"
-                    />
-                    <span className="leading-relaxed text-muted-foreground">{benefit}</span>
-                  </li>
-                ))}
-              </ul>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Badge variant="muted" size="sm">
+              KAS
+            </Badge>
+            {track.ribbon && (
+              <Badge
+                variant={
+                  track.comingSoon ? "info" : highlight ? "warning" : "success"
+                }
+                size="sm"
+              >
+                {track.comingSoon ? (
+                  <Clock aria-hidden="true" />
+                ) : (
+                  <Star aria-hidden="true" />
+                )}
+                {track.ribbon}
+              </Badge>
+            )}
+            {track.isFree && (
+              <Badge variant="success" size="sm">
+                Free
+              </Badge>
+            )}
+          </div>
+        </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border text-center">
-                <div className="bg-card px-2 py-3">
-                  <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
-                    Price
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold tabular-nums">
-                    {/* An unreleased track shows no price: quoting one for
+        <h3 className="mt-4 text-lg font-semibold leading-tight tracking-tight">
+          {track.title}
+        </h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          {track.blurb}
+        </p>
+
+        <ul className="mt-5 flex-1 space-y-2.5">
+          {track.benefits.map((benefit) => (
+            <li key={benefit} className="flex items-start gap-2 text-sm">
+              <CheckCircle2
+                className="mt-0.5 size-4 shrink-0 text-success"
+                aria-hidden="true"
+              />
+              <span className="leading-relaxed text-muted-foreground">
+                {benefit}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border text-center">
+          <div className="bg-card px-2 py-3">
+            <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
+              Price
+            </p>
+            <p className="mt-0.5 text-sm font-semibold tabular-nums">
+              {/* An unreleased track shows no price: quoting one for
                         something nobody can buy invites a question that has
                         not been answered yet. */}
-                    {track.comingSoon
-                      ? '—'
-                      : track.isFree || track.fromPriceInPaise === 0
-                        ? 'Free'
-                        : formatPaise(track.fromPriceInPaise)}
-                  </p>
-                </div>
-                <div className="bg-card px-2 py-3">
-                  <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
-                    Tests
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold tabular-nums">
-                    {track.testCount > 0 ? track.testCount : '—'}
-                  </p>
-                </div>
-              </div>
+              {track.comingSoon
+                ? "—"
+                : track.isFree || track.fromPriceInPaise === 0
+                  ? "Free"
+                  : formatPaise(track.fromPriceInPaise)}
+            </p>
+          </div>
+          <div className="bg-card px-2 py-3">
+            <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
+              Tests
+            </p>
+            <p className="mt-0.5 text-sm font-semibold tabular-nums">
+              {track.testCount > 0 ? track.testCount : "—"}
+            </p>
+          </div>
+        </div>
 
-              {/* Shown only while an early-bird tier is genuinely running. */}
-              {track.earlyBirdLimit != null && (
-                <p className="mt-2 text-center text-xs font-semibold leading-tight text-primary">
-                  Early bird offer — only for the first {track.earlyBirdLimit} members
-                </p>
-              )}
+        {/* Shown only while an early-bird tier is genuinely running. */}
+        {track.earlyBirdLimit != null && (
+          <p className="mt-2 text-center text-xs font-semibold leading-tight text-primary">
+            Early bird offer — only for the first {track.earlyBirdLimit} members
+          </p>
+        )}
 
-              {track.comingSoon ? (
-                <Button disabled fullWidth className="mt-4">
-                  <Clock aria-hidden="true" />
-                  Coming soon
-                </Button>
-              ) : (
-                <Button asChild fullWidth className="mt-4">
-                  <Link href={track.href}>
-                    {track.ctaLabel}
-                    <ArrowRight aria-hidden="true" />
-                  </Link>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+        {track.comingSoon ? (
+          <Button disabled fullWidth className="mt-4">
+            <Clock aria-hidden="true" />
+            Coming soon
+          </Button>
+        ) : (
+          <Button asChild fullWidth className="mt-4">
+            <Link href={track.href}>
+              {track.ctaLabel}
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -397,8 +397,8 @@ function TrackChooser({ tracks }: { tracks: Awaited<ReturnType<typeof getCourseT
           Choose the right path for your preparation
         </h2>
         <p className="mt-3 text-pretty leading-relaxed text-muted-foreground">
-          Start free to find your level, then move to full-length tests, previous year papers and
-          chapterwise drills as your preparation sharpens.
+          Start free to find your level, then move to daily practice, chapter-wise drills,
+          full-length tests and previous year papers as your preparation sharpens.
         </p>
       </div>
 
