@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'Courses' },
   { href: '/pyq', label: 'PYQ Tests' },
+  { href: '/50-days', label: '50 Days' },
   { href: '/chapterwise', label: 'Chapterwise' },
   { href: '/test-series', label: 'Test Series' },
   { href: '/pricing', label: 'Pricing' },

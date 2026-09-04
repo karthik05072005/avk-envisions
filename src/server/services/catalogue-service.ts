@@ -20,7 +20,12 @@ import {
  * worse than admitting it is not ready.
  */
 
-export type TrackKey = 'FREE_SERIES' | 'PAID_SERIES' | 'PYQ' | 'CHAPTERWISE';
+export type TrackKey =
+  | 'FREE_SERIES'
+  | 'PAID_SERIES'
+  | 'PYQ'
+  | 'CHAPTERWISE'
+  | 'DAILY_CHALLENGE';
 
 export interface TrackSummary {
   key: TrackKey;
@@ -46,6 +51,22 @@ export interface TrackSummary {
 
 /** Static presentation for each track; counts are filled from the database. */
 const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount' | 'fromPriceInPaise' | 'isFree'>> = {
+  DAILY_CHALLENGE: {
+    key: 'DAILY_CHALLENGE',
+    title: '50 Questions · 50 Days',
+    blurb: 'One 50-question paper every day, for fifty days, right up to the exam.',
+    href: '/50-days',
+    ctaLabel: "Start today's paper",
+    iconName: 'CalendarDays',
+    ribbon: null,
+    comingSoon: false,
+    benefits: [
+      'A fresh 50-question paper every day',
+      'Covers the full syllabus across the fifty days',
+      'Answers and explanations the moment you finish',
+      'Your streak and accuracy tracked day by day',
+    ],
+  },
   FREE_SERIES: {
     key: 'FREE_SERIES',
     title: 'Free Test Series',

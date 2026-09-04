@@ -556,3 +556,9 @@ export const JobStatus = buildEnum([
   'DEAD',
 ] as const);
 export type JobStatus = (typeof JobStatus.values)[number];
+
+/** Series slug for the "50 Questions · 50 Days" challenge. */
+export const DAILY_CHALLENGE_SLUG = 'kas-50-questions-50-days';
+
+/** Slug prefix for its per-day papers. */
+export const DAILY_CHALLENGE_TEST_PREFIX = 'kas-50-days-';

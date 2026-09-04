@@ -37,7 +37,8 @@
     "db:figures": "tsx prisma/backfill-figures.ts",
     "db:hide-empty": "tsx prisma/hide-empty-tests.ts",
     "db:free-tests": "tsx prisma/build-free-tests.ts",
-    "db:reformat": "tsx prisma/reformat-questions.ts"
+    "db:reformat": "tsx prisma/reformat-questions.ts",
+    "db:50days": "tsx prisma/seed-50-days.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

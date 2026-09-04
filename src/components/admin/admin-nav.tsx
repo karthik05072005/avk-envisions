@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   BarChart3,
   BookOpen,
+  CalendarDays,
   ClipboardList,
   FileQuestion,
   FileText,
@@ -66,6 +67,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       { href: '/admin/synopsis', label: 'Analysis PDFs', icon: FileText },
       { href: '/admin/tests', label: 'Tests', icon: ClipboardList },
       { href: '/admin/test-series', label: 'Test series', icon: LayoutGrid },
+      { href: '/admin/50-days', label: '50 Days challenge', icon: CalendarDays },
       { href: '/admin/exams', label: 'Exams & syllabus', icon: BookOpen },
     ],
   },
