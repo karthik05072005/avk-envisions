@@ -63,7 +63,9 @@ export default async function FiftyDaysPage() {
         <dl className="mt-6 flex flex-wrap justify-center gap-x-10 gap-y-3">
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Papers ready</dt>
-            <dd className="text-xl font-semibold tabular-nums">{challenge.readyCount} / 50</dd>
+            <dd className="text-xl font-semibold tabular-nums">
+              {challenge.readyCount} / {challenge.plannedCount}
+            </dd>
           </div>
           {session && (
             <>
@@ -134,9 +136,7 @@ export default async function FiftyDaysPage() {
                   </div>
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {day.questionCount > 0
-                      ? `${day.questionCount} questions · ${day.durationMinutes} min`
-                      : 'Being prepared'}
+                    {day.questionCount} questions · {day.durationMinutes} min
                   </p>
 
                   {day.attempt ? (

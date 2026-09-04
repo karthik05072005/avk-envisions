@@ -49,6 +49,8 @@ export interface ChallengeOverview {
   days: ChallengeDay[];
   /** Days with questions attached — what a student can actually sit. */
   readyCount: number;
+  /** How many days the challenge is planned to run to, for the "x of 50" line. */
+  plannedCount: number;
   completedCount: number;
   /** Consecutive finished days counting back from the latest available. */
   currentStreak: number;
@@ -145,6 +147,10 @@ export async function getChallenge(userId?: string | null): Promise<ChallengeOve
           : null,
       };
     })
+    // Only days that actually hold questions. Fifty placeholder cards for
+    // papers nobody has written yet is noise on the page and a promise the
+    // site cannot keep — a day appears the moment the admin fills it.
+    .filter((day) => day.questionCount > 0)
     .sort((a, b) => a.dayNumber - b.dayNumber);
 
   // Counted backwards from the most recent open day: the streak a student cares
@@ -162,7 +168,8 @@ export async function getChallenge(userId?: string | null): Promise<ChallengeOve
     description: series.description,
     isPublished: series.status === 'PUBLISHED',
     days,
-    readyCount: days.filter((d) => d.questionCount > 0).length,
+    readyCount: days.length,
+    plannedCount: series.tests.length,
     completedCount: days.filter((d) => d.attempt).length,
     currentStreak,
   };

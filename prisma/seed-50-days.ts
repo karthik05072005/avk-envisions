@@ -23,7 +23,25 @@ import { DAILY_CHALLENGE_SLUG, DAILY_CHALLENGE_TEST_PREFIX } from '../src/lib/en
 const db = new PrismaClient();
 const DRY_RUN = process.argv.includes('--dry-run');
 
-const DAYS = 50;
+/**
+ * How many day-papers to lay out.
+ *
+ * One by default. The public page only lists days that actually have questions,
+ * so creating all fifty up front buys nothing and leaves forty-nine empty
+ * drafts cluttering the admin console. Add more as the content is written:
+ *
+ *   npm run db:50days -- --days 10
+ */
+function dayCount(): number {
+  const flag = process.argv.indexOf('--days');
+  if (flag === -1) return 1;
+
+  const value = Number(process.argv[flag + 1]);
+  if (!Number.isInteger(value) || value < 1 || value > 50) {
+    throw new Error('--days needs a whole number from 1 to 50');
+  }
+  return value;
+}
 const QUESTIONS_PER_DAY = 50;
 const MINUTES_PER_DAY = 60;
 
@@ -45,6 +63,7 @@ function startDate(): Date {
 
 async function main() {
   const day1 = startDate();
+  const DAYS = dayCount();
   console.log(
     `\nSetting up 50 Questions · 50 Days${DRY_RUN ? ' (dry run)' : ''}` +
       `\n  day 1 opens ${day1.toDateString()}\n`,
