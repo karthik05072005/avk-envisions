@@ -76,3 +76,8 @@ yarn-error.log*
 
 # 2011 source documents fetched at import time
 /kas-2011/
+
+# Source documents dropped in the project root for import. The copies the app
+# actually serves live under prisma/assets, so committing both would carry the
+# same megabytes twice.
+/*.pdf

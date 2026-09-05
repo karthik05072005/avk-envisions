@@ -142,7 +142,20 @@ export default async function FiftyDaysPage({
           </dl>
         </div>
 
-        <p className="rounded-xl bg-primary-muted/60 px-4 py-3 text-sm font-semibold leading-snug">
+        <div className="flex flex-col items-start gap-3">
+          {/* Outside the day list on purpose: the plan is what someone wants to
+              read before any paper is published, which is exactly when the
+              table below has nothing in it. Opens in the reader rather than
+              downloading, like every other document here. */}
+          <Link
+            href="/50-days/syllabus"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <FileText className="size-4" aria-hidden="true" />
+            View Syllabus
+          </Link>
+
+          <p className="rounded-xl bg-primary-muted/60 px-4 py-3 text-sm font-semibold leading-snug">
           <Trophy className="mb-1 size-5 text-primary" aria-hidden="true" />
           <br />
           Stay consistent.
@@ -150,7 +163,8 @@ export default async function FiftyDaysPage({
           Practice daily.
           <br />
           Crack KAS.
-        </p>
+          </p>
+        </div>
       </header>
 
       {challenge.days.length === 0 ? (
