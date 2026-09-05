@@ -131,6 +131,14 @@ export default async function PricingPage() {
       tier1Limit: true,
       tier2PriceInPaise: true,
       tier2Limit: true,
+      // Whether the series has anything attemptable. A plan can be published
+      // and priced while its papers are still being written, and offering a
+      // buy button then takes money for nothing.
+      tests: {
+        where: { status: 'PUBLISHED', deletedAt: null, totalQuestions: { gt: 0 } },
+        select: { id: true },
+        take: 1,
+      },
     },
   });
 
@@ -174,8 +182,12 @@ export default async function PricingPage() {
               ? resolvePricing(row, enrolled.get(row.id) ?? 0)
               : null;
 
-            // A plan with no series, or one still in draft, is not for sale.
-            const available = Boolean(row && row.status === 'PUBLISHED');
+            // For sale only when it is published *and* has a paper someone can
+            // actually sit. Checkout refuses an empty series, so a button here
+            // would lead to an error rather than a purchase.
+            const available = Boolean(
+              row && row.status === 'PUBLISHED' && row.tests.length > 0,
+            );
             const isFree = pricing !== null && pricing.priceInPaise === 0;
 
             // The early-bird rung is only announced while it is genuinely open.
