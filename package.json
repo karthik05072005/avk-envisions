@@ -40,7 +40,8 @@
     "db:reformat": "tsx prisma/reformat-questions.ts",
     "db:50days": "tsx prisma/seed-50-days.ts",
     "db:free-test-1": "tsx prisma/import-free-test-1.ts",
-    "db:orphans": "tsx prisma/find-orphan-questions.ts"
+    "db:orphans": "tsx prisma/find-orphan-questions.ts",
+    "db:pricing": "tsx prisma/set-pricing.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

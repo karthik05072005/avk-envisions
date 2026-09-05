@@ -1,354 +1,304 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import {
-  CalendarDays,
-  CheckCircle2,
-  ClipboardCheck,
-  Clock,
-  FileQuestion,
-  HelpCircle,
-  Info,
-  Users,
-} from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Flame, Target, TrendingUp, Trophy } from 'lucide-react';
 
-import { PageHeader } from '@/components/site/page-header';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MARKS_PER_QUESTION } from '@/lib/marking';
-import { formatPaise } from '@/lib/utils';
+import { cn, formatPaise } from '@/lib/utils';
 import { db } from '@/server/db';
-import { countEnrolledMany, resolvePricing, type PricingRung } from '@/server/services/pricing-service';
+import { countEnrolledMany, resolvePricing } from '@/server/services/pricing-service';
 
 export const metadata: Metadata = {
   title: 'Pricing',
   description:
-    'Start free with real mock tests and a real performance report. Previous year papers from ₹50 and the full-length test series from ₹199, at early-bird prices.',
+    'Start free with real mock tests. Previous year papers, the fifty-day challenge and full-length mocks at early-bird prices for the first fifty members.',
   alternates: { canonical: '/pricing' },
 };
 
 export const dynamic = 'force-dynamic';
 
-/** Slugs the three published offers are built from. */
-const FREE_SLUG = 'kas-prelims-free-test-series';
-const PAID_SLUG = 'kas-prelims-paid-test-series';
-
-interface Stat {
-  icon: typeof Clock;
-  label: string;
-  value: string;
-}
-
-function StatGrid({ stats }: { stats: Stat[] }) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      {stats.map((stat) => (
-        <div key={stat.label} className="rounded-lg border border-border bg-card px-4 py-3">
-          <p className="flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-wide text-primary">
-            <stat.icon className="size-3.5" aria-hidden="true" />
-            {stat.label}
-          </p>
-          <p className="mt-1 text-lg font-semibold tabular-nums">{stat.value}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Benefits({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4">
-      <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-primary">{title}</p>
-      <ul className="mt-2.5 space-y-2">
-        {items.map((item) => (
-          <li key={item} className="flex items-start gap-2 text-sm">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-            <span className="leading-relaxed text-muted-foreground">{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** The early-bird ladder as a small table, current rung marked. */
-function Ladder({ title, rungs }: { title: string; rungs: PricingRung[] }) {
-  if (rungs.length === 0) return null;
-
-  return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4">
-      <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-primary">{title}</p>
-      <ul className="mt-2.5 divide-y divide-border">
-        {rungs.map((rung) => (
-          <li key={rung.label} className="flex items-center justify-between gap-3 py-2 text-sm">
-            <span className="flex items-center gap-2 text-muted-foreground">
-              <Users className="size-3.5 shrink-0" aria-hidden="true" />
-              {rung.label}
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="font-semibold tabular-nums">{formatPaise(rung.priceInPaise)}</span>
-              {rung.active && (
-                <Badge variant="success" size="sm">
-                  Now
-                </Badge>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 /**
- * `/pricing` — the three published offers.
+ * The plans, in the order they are offered.
  *
- * Prices and seat counts are read live rather than written into the page, so
- * this cannot advertise a figure that checkout will not honour. The plan table
- * that used to live here described subscription tiers the platform does not
- * sell.
+ * Colour and copy live here; price, seats sold and availability come from the
+ * database, so a plan cannot advertise a price nobody is charged. A slug that
+ * is missing or unpublished simply does not render.
  */
+interface PlanCard {
+  slug: string | null;
+  number: number;
+  title: string;
+  blurb: string;
+  benefits: [string, string];
+  cta: string;
+  href: string;
+  /** Tailwind classes, kept whole so the compiler can see them. */
+  tint: string;
+  accent: string;
+  button: string;
+  ribbon: string;
+  badge?: string;
+}
+
+const PLANS: PlanCard[] = [
+  {
+    slug: 'kas-prelims-free-test-series',
+    number: 1,
+    title: 'Free Test Series',
+    blurb: 'Try our free tests and evaluate your preparation level.',
+    benefits: ['Exam-style practice', 'Detailed solutions'],
+    cta: 'Start Free Tests',
+    href: '/test-series/kas-prelims-free-test-series',
+    tint: 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20',
+    accent: 'bg-emerald-600 text-white',
+    button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+    ribbon: 'bg-emerald-600',
+  },
+  {
+    slug: 'kas-pyq-2015',
+    number: 2,
+    title: 'KAS Previous Year Question Papers',
+    blurb: 'Full-length and subject-wise papers to understand the exam pattern.',
+    benefits: ['Subject-wise papers', 'Detailed solutions'],
+    cta: 'Get Now',
+    href: '/pyq',
+    tint: 'border-blue-200 bg-blue-50/60 dark:border-blue-900/40 dark:bg-blue-950/20',
+    accent: 'bg-blue-600 text-white',
+    button: 'bg-blue-600 hover:bg-blue-700 text-white',
+    ribbon: 'bg-rose-500',
+  },
+  {
+    slug: 'kas-50-questions-50-days',
+    number: 3,
+    title: 'KAS 50 Days 50 Tests (KAS50)',
+    blurb: '50 days. 50 tests. One powerful preparation journey.',
+    benefits: ['Daily practice', 'Track your progress'],
+    cta: 'Start KAS50',
+    href: '/50-days',
+    tint: 'border-rose-200 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20',
+    accent: 'bg-rose-500 text-white',
+    button: 'bg-rose-500 hover:bg-rose-600 text-white',
+    ribbon: 'bg-rose-500',
+    badge: 'Most Popular',
+  },
+  {
+    slug: 'kas-prelims-paid-test-series',
+    number: 4,
+    title: 'Test Series (Full-Length Mock Tests)',
+    blurb: 'Full-length tests in the exact prelims pattern with detailed analysis.',
+    benefits: ['All India ranking', 'Performance analysis'],
+    cta: 'Enrol Now',
+    href: '/test-series/kas-prelims-paid-test-series',
+    tint: 'border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/20',
+    accent: 'bg-amber-500 text-white',
+    button: 'bg-amber-500 hover:bg-amber-600 text-white',
+    ribbon: 'bg-orange-500',
+  },
+  {
+    // No series behind it yet, so it renders as the coming-soon card rather
+    // than advertising a price nobody can pay.
+    slug: null,
+    number: 5,
+    title: 'Chapter-wise Practice',
+    blurb: 'Strengthen every chapter, step by step.',
+    benefits: ['Topic-wise tests', 'Concept clarity'],
+    cta: 'Stay Tuned',
+    href: '/chapterwise',
+    tint: 'border-violet-200 bg-violet-50/60 dark:border-violet-900/40 dark:bg-violet-950/20',
+    accent: 'bg-violet-600 text-white',
+    button: 'bg-violet-600 hover:bg-violet-700 text-white',
+    ribbon: 'bg-violet-600',
+  },
+];
+
+const PROMISES = [
+  { icon: Target, title: 'Practice', detail: 'Effectively' },
+  { icon: TrendingUp, title: 'Track Your', detail: 'Progress' },
+  { icon: Trophy, title: 'Be Exam', detail: 'Ready' },
+];
+
 export default async function PricingPage() {
+  const slugs = PLANS.map((p) => p.slug).filter((s): s is string => s !== null);
+
   const series = await db.testSeries.findMany({
-    where: { slug: { in: [FREE_SLUG, PAID_SLUG] }, deletedAt: null },
+    where: { slug: { in: slugs }, deletedAt: null },
     select: {
       id: true,
       slug: true,
+      status: true,
       priceInPaise: true,
       tier1PriceInPaise: true,
       tier1Limit: true,
       tier2PriceInPaise: true,
       tier2Limit: true,
-      tests: { where: { status: 'PUBLISHED', deletedAt: null }, select: { durationMinutes: true } },
     },
   });
 
-  const pyq = await db.testSeries.findMany({
-    where: { track: 'PYQ', status: 'PUBLISHED', deletedAt: null },
-    select: {
-      id: true,
-      priceInPaise: true,
-      tier1PriceInPaise: true,
-      tier1Limit: true,
-      tier2PriceInPaise: true,
-      tier2Limit: true,
-      _count: { select: { tests: true } },
-    },
-  });
-
-  const enrolments = await countEnrolledMany([...series.map((s) => s.id), ...pyq.map((s) => s.id)]);
-
-  const free = series.find((s) => s.slug === FREE_SLUG);
-  const paid = series.find((s) => s.slug === PAID_SLUG);
-
-  const freeMinutes = free?.tests[0]?.durationMinutes ?? 25;
-  const paidMinutes = paid?.tests[0]?.durationMinutes ?? 120;
-
-  const paidPricing = paid ? resolvePricing(paid, enrolments.get(paid.id) ?? 0) : null;
-
-  // Every paper shares one ladder, so the cheapest paid year represents it.
-  const paidYears = pyq.filter((y) => y.priceInPaise > 0);
-  const pyqPricing = paidYears[0]
-    ? resolvePricing(paidYears[0], enrolments.get(paidYears[0].id) ?? 0)
-    : null;
-  const pyqTests = pyq.reduce((sum, y) => sum + y._count.tests, 0);
+  // Seats sold are counted from live entitlements, so the early-bird rung
+  // closes on its own the moment the fiftieth person buys.
+  const enrolled = await countEnrolledMany(series.map((s) => s.id));
+  const bySlug = new Map(series.map((s) => [s.slug, s]));
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Pricing"
-        title="Choose the right plan for your preparation"
-        description="Start free, with real mock tests and a real performance report. Upgrade only when it has earned it."
-      />
+    <div className="bg-gradient-to-b from-sky-50/60 to-transparent dark:from-sky-950/10">
+      <div className="container max-w-4xl py-10 sm:py-14">
+        <header>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            KAS Prelims
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+            Choose Your <span className="text-primary">Plan</span>
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            Flexible options. Focused preparation. Your success.
+          </p>
 
-      <section className="container space-y-6 py-14 sm:py-16">
-        {/* 1. Free ------------------------------------------------------- */}
-        <Card>
-          <CardContent className="grid gap-6 p-6 lg:grid-cols-[1fr_16rem]">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-success/10 text-success">
-                  <ClipboardCheck className="size-5" aria-hidden="true" />
+          <ul className="mt-6 flex flex-wrap gap-x-8 gap-y-3">
+            {PROMISES.map((promise) => (
+              <li key={promise.title} className="flex items-center gap-2.5">
+                <promise.icon className="size-5 text-primary" aria-hidden="true" />
+                <span className="text-sm font-medium leading-tight">
+                  {promise.title}
+                  <br />
+                  <span className="text-muted-foreground">{promise.detail}</span>
                 </span>
-                <h2 className="text-lg font-semibold tracking-tight">1. Free Test Series</h2>
-                <Badge variant="success" size="sm">
-                  Free
-                </Badge>
-              </div>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Try our free tests and evaluate your preparation level.
-              </p>
+              </li>
+            ))}
+          </ul>
+        </header>
 
-              <div className="mt-5">
-                <StatGrid
-                  stats={[
-                    { icon: FileQuestion, label: 'Total tests', value: String(free?.tests.length ?? 0) },
-                    { icon: HelpCircle, label: 'Questions per test', value: '20 questions' },
-                    { icon: Clock, label: 'Duration per test', value: `${freeMinutes} minutes` },
-                  ]}
-                />
-              </div>
+        <ul className="mt-8 space-y-4">
+          {PLANS.map((plan) => {
+            const row = plan.slug ? bySlug.get(plan.slug) : undefined;
+            const pricing = row
+              ? resolvePricing(row, enrolled.get(row.id) ?? 0)
+              : null;
 
-              <div className="mt-4">
-                <Benefits
-                  title="What you get"
-                  items={[
-                    `${free?.tests.length ?? 0} free mock tests`,
-                    'Full-length papers from previous-year questions',
-                    'Basic performance report',
-                    'Bookmarks and wrong-question review',
-                    'Ideal to get started and build consistency',
-                  ]}
-                />
-              </div>
-            </div>
+            // A plan with no series, or one still in draft, is not for sale.
+            const available = Boolean(row && row.status === 'PUBLISHED');
+            const isFree = pricing !== null && pricing.priceInPaise === 0;
 
-            <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-muted/20 p-5 text-center">
-              <p className="text-3xl font-semibold tracking-tight">Free</p>
-              <p className="text-sm text-success">Always free</p>
-              <Button asChild fullWidth variant="outline" className="mt-3">
-                <Link href="/courses/free-test-series">Start free tests</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            // The early-bird rung is only announced while it is genuinely open.
+            const earlyBird =
+              pricing?.ladder.find((rung) => rung.active && rung.limit !== null) ?? null;
+            const standard = pricing?.ladder.find((rung) => rung.limit === null) ?? null;
 
-        {/* 2. Previous year papers --------------------------------------- */}
-        <Card className="border-primary/30">
-          <CardContent className="grid gap-6 p-6 lg:grid-cols-[1fr_16rem]">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <FileQuestion className="size-5" aria-hidden="true" />
-                </span>
-                <h2 className="text-lg font-semibold tracking-tight">
-                  2. Previous Year Question Papers
-                </h2>
-                <Badge variant="warning" size="sm">
-                  Most important
-                </Badge>
-              </div>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Solve real exam papers and understand the pattern deeply.
-              </p>
+            return (
+              <li key={plan.number}>
+                <Card className={cn('overflow-hidden', plan.tint)}>
+                  <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
+                    <span
+                      className={cn(
+                        'flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+                        plan.accent,
+                      )}
+                      aria-hidden="true"
+                    >
+                      {plan.number}
+                    </span>
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Benefits
-                  title="What you get"
-                  items={[
-                    `${pyq.length} full-length previous year papers`,
-                    'All subject-wise papers',
-                    'Detailed solutions and explanations',
-                    'Topic-wise analysis',
-                    'Complete analysis document for every paper',
-                  ]}
-                />
-                {pyqPricing && <Ladder title="Pricing" rungs={pyqPricing.ladder} />}
-              </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-bold leading-tight tracking-tight">
+                          {plan.title}
+                        </h2>
+                        {plan.badge && available && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500 px-2 py-0.5 text-[0.7rem] font-semibold text-white">
+                            <Flame className="size-3" aria-hidden="true" />
+                            {plan.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{plan.blurb}</p>
 
-              <p className="mt-3 text-xs text-muted-foreground">
-                {pyqTests} tests across {pyq.length} papers. Offer valid only for a limited time.
-              </p>
-            </div>
+                      <ul className="mt-2.5 flex flex-wrap gap-x-6 gap-y-1.5">
+                        {plan.benefits.map((benefit) => (
+                          <li key={benefit} className="flex items-center gap-1.5 text-sm">
+                            <CheckCircle2
+                              className="size-4 shrink-0 text-success"
+                              aria-hidden="true"
+                            />
+                            {benefit}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
 
-            <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted/20 p-5 text-center">
-              <p className="text-xs text-muted-foreground">Start solving at</p>
-              <p className="text-3xl font-semibold tracking-tight text-primary">
-                {pyqPricing ? formatPaise(pyqPricing.priceInPaise) : '—'}
-              </p>
-              {pyqPricing?.activeTier && (
-                <p className="text-[0.7rem] font-semibold leading-tight text-primary">
-                  Only for the first {pyqPricing.tierLimit} members
-                </p>
-              )}
-              <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                <li>Lifetime validity</li>
-                <li>Solve anytime</li>
-              </ul>
-              <Button asChild fullWidth className="mt-3">
-                <Link href="/pyq">Get now</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                    {/* Price and call to action */}
+                    <div className="shrink-0 sm:w-56">
+                      {!available ? (
+                        <div className="rounded-xl border border-border bg-card/60 p-3 text-center">
+                          <p className="text-base font-bold text-violet-600 dark:text-violet-400">
+                            Coming Soon
+                          </p>
+                          <p className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+                            <Clock className="size-3.5" aria-hidden="true" />
+                            {plan.cta}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="overflow-hidden rounded-xl border border-border bg-card/70">
+                          {earlyBird && (
+                            <p
+                              className={cn(
+                                'px-3 py-1 text-center text-[0.7rem] font-semibold leading-tight text-white',
+                                plan.ribbon,
+                              )}
+                            >
+                              Special Price
+                              <br />
+                              for First {earlyBird.limit} Members
+                            </p>
+                          )}
 
-        {/* 3. Full-length test series ------------------------------------ */}
-        <Card className="border-primary/40">
-          <CardContent className="grid gap-6 p-6 lg:grid-cols-[1fr_16rem]">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <CalendarDays className="size-5" aria-hidden="true" />
-                </span>
-                <h2 className="text-lg font-semibold tracking-tight">
-                  3. Test Series (Full-Length Mock Tests)
-                </h2>
-                <Badge variant="brand" size="sm">
-                  Premium
-                </Badge>
-              </div>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Full-length tests in the exact prelims pattern, with detailed analysis.
-              </p>
+                          <div className="flex items-stretch">
+                            <p className="flex-1 px-3 py-2.5 text-center text-2xl font-bold tabular-nums">
+                              {isFree ? '₹0' : formatPaise(pricing!.priceInPaise)}
+                            </p>
 
-              <div className="mt-5">
-                <StatGrid
-                  stats={[
-                    { icon: FileQuestion, label: 'Total tests', value: String(paid?.tests.length ?? 0) },
-                    { icon: HelpCircle, label: 'Questions per test', value: '100 questions' },
-                    { icon: Clock, label: 'Duration per test', value: `${paidMinutes / 60} hours` },
-                  ]}
-                />
-              </div>
+                            {earlyBird && standard && (
+                              <p className="flex-1 border-l border-border px-2 py-2.5 text-center text-xs leading-tight text-muted-foreground">
+                                Later Price
+                                <br />
+                                <span className="font-semibold text-foreground tabular-nums">
+                                  {formatPaise(standard.priceInPaise)}
+                                </span>
+                              </p>
+                            )}
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Benefits
-                  title="What you get"
-                  items={[
-                    `${paid?.tests.length ?? 0} full-length mock tests`,
-                    'All tests in real exam pattern',
-                    'All India ranking and percentile',
-                    'Detailed performance analysis',
-                    'Topic-wise strength and weakness',
-                    'Up to 2 attempts per test',
-                  ]}
-                />
-                {paidPricing && <Ladder title="Early bird offer" rungs={paidPricing.ladder} />}
-              </div>
-            </div>
+                            {isFree && (
+                              <p className="flex-1 border-l border-border px-2 py-2.5 text-center text-xs text-muted-foreground">
+                                Always
+                                <br />
+                                <span className="font-semibold text-foreground">Free</span>
+                              </p>
+                            )}
+                          </div>
 
-            <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted/20 p-5 text-center">
-              <p className="text-xs text-muted-foreground">Start your test series at</p>
-              <p className="text-3xl font-semibold tracking-tight text-primary">
-                {paidPricing ? formatPaise(paidPricing.priceInPaise) : '—'}
-              </p>
-              {paidPricing?.activeTier && (
-                <p className="text-[0.7rem] font-semibold leading-tight text-primary">
-                  Only for the first {paidPricing.tierLimit} members
-                </p>
-              )}
-              <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                <li>{paidMinutes / 60} hours per test</li>
-                <li>All India ranking</li>
-                <li>Detailed analysis after every test</li>
-              </ul>
-              <Button asChild fullWidth variant="brand" className="mt-3">
-                <Link href="/courses/paid-test-series">Enrol now</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                          <Link
+                            href={plan.href}
+                            className={cn(
+                              'flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold transition-colors',
+                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              plan.button,
+                            )}
+                          >
+                            {plan.cta}
+                            <ArrowRight className="size-4" aria-hidden="true" />
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
 
-        <div className="flex items-start gap-2.5 rounded-xl border border-warning/40 bg-warning/5 px-5 py-4 text-sm leading-relaxed text-muted-foreground">
-          <Info className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
-          <span>
-            All prices are in Indian Rupees and inclusive of applicable taxes. Prices increase
-            automatically once an early-bird limit is reached. Every test carries{' '}
-            {MARKS_PER_QUESTION} marks per question with negative marking, matching the KPSC
-            prelims scheme.
-          </span>
-        </div>
-      </section>
-    </>
+        <p className="mt-8 text-center text-sm font-medium italic text-muted-foreground">
+          Small steps everyday lead to big results.
+        </p>
+      </div>
+    </div>
   );
 }
