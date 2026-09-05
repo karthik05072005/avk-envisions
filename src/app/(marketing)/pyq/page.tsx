@@ -1,22 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import {
-  ArrowRight,
-  BadgeIndianRupee,
-  CalendarDays,
-  CheckCircle2,
-  FileQuestion,
-  Layers,
-  Lock,
-  Star,
-} from 'lucide-react';
+import { ArrowRight, CalendarDays, FileText, Layers, Lock } from 'lucide-react';
 
-import { PageHeader } from '@/components/site/page-header';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/states';
-import { formatPaise } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { getPyqYears } from '@/server/services/catalogue-service';
 
 export const metadata: Metadata = {
@@ -26,310 +13,202 @@ export const metadata: Metadata = {
   alternates: { canonical: '/pyq' },
 };
 
-/** Distinct accent per year card, cycled so the grid reads as a set. */
-const ACCENTS = [
-  'text-primary bg-primary/10',
-  'text-success bg-success/10',
-  'text-warning bg-warning/10',
-  'text-info bg-info/10',
-  'text-destructive bg-destructive/10',
-  'text-exam-review bg-exam-review/10',
-];
+export const dynamic = 'force-dynamic';
 
-/** What unlocking the papers gets you, as advertised. */
-const UNLOCK_BENEFITS = [
-  'Genuine KPSC previous year questions',
-  'Relevant article or case for every question',
-  'Topic-level performance analytics',
-  'Complete analysis to gain clarity',
+/**
+ * A colour per year, cycled so the grid reads as a set rather than a list.
+ *
+ * Kept whole rather than composed, so the compiler can see every class.
+ */
+const ACCENTS = [
+  { chip: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' },
+  { chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
+  { chip: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+  { chip: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' },
+  { chip: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300' },
+  { chip: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' },
 ];
 
 export default async function PyqPage() {
   const years = await getPyqYears();
-
-  // Every paid year shares one ladder, so the banner can quote any of them.
-  const paid = years.find((y) => !y.isFree);
-  const offer = paid?.pricing ?? null;
+  const free = years.find((year) => year.isFree);
 
   return (
-    <>
-      {offer?.activeTier && (
-        <div className="border-b border-border bg-warning/10">
-          <div className="container flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-sm">
-            <BadgeIndianRupee className="size-4 shrink-0 text-primary" aria-hidden="true" />
-            <span className="font-semibold">Price update:</span>
-            <span>
-              {formatPaise(offer.priceInPaise)} for the first {offer.tierLimit} members.
-            </span>
-            {offer.nextPriceInPaise !== null && (
-              <span className="text-muted-foreground">
-                Price then rises to {formatPaise(offer.nextPriceInPaise)}.
-              </span>
-            )}
+    <div className="container max-w-5xl py-10 sm:py-12">
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          KAS Prelims
+        </p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          Previous year question papers
+        </h1>
+        <p className="mt-3 max-w-2xl text-muted-foreground">
+          Each paper is reproduced in the real exam format, with the actual timing and marking
+          scheme. Attempt the full paper end to end, or drill one subject at a time using only
+          that subject&rsquo;s questions from the paper.
+        </p>
+
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <div className="rounded-xl border border-border bg-card px-5 py-3.5">
+            <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+              <CalendarDays className="size-3.5" aria-hidden="true" />
+              KAS Prelims conducted
+            </p>
+            <p className="mt-0.5 text-lg font-semibold tabular-nums">
+              {years.length} {years.length === 1 ? 'paper' : 'papers'} available
+            </p>
           </div>
+
+          <Link
+            href="/test-series"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Explore Other Test Series
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
         </div>
-      )}
+      </header>
 
-      <PageHeader
-        eyebrow="PYQ Tests"
-        title="Previous year question papers"
-        description="Each paper is reproduced in the real exam format, with the actual timing and marking scheme. Attempt the full paper end to end, or drill one subject at a time using only that subject's questions from the paper."
-      >
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <div className="inline-flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-3.5">
-            <CalendarDays className="size-5 text-primary" aria-hidden="true" />
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                KAS Prelims conducted
-              </p>
-              <p className="text-sm font-semibold">
-                {years.length} {years.length === 1 ? 'paper' : 'papers'} available
-              </p>
-            </div>
-          </div>
-
-          {/* Previous papers are where visitors land; the test series is what
-              they are here to buy, so it gets a first-class route out of this
-              page rather than only a nav item. */}
-          <Button asChild size="lg" variant="brand">
-            <Link href="/test-series">
-              <Layers aria-hidden="true" />
-              Explore test series
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-      </PageHeader>
-
-      {/* Free paper, offered before the paid one — a visitor should be invited
-          to try the product before being asked to buy it. */}
-      {years.some((y) => y.isFree) && (
-        <section className="container pt-12">
-          {years
-            .filter((y) => y.isFree)
-            .map((y) => (
-              <div
-                key={y.id}
-                className="flex flex-col gap-4 rounded-xl border border-success/40 bg-success/5 p-5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-start gap-3.5">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
-                    <FileQuestion className="size-5" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold leading-tight">
-                        Try the {y.examYear} paper free
-                      </p>
-                      <Badge variant="success" size="sm">
-                        No payment needed
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      The complete {y.examYear} paper with its full analysis, open to everyone. See
-                      exactly what you get before paying for any other year.
-                    </p>
-                  </div>
-                </div>
-
-                <Button asChild size="lg" variant="brand" className="shrink-0">
-                  <Link href={`/pyq/${y.slug}`}>
-                    Start free
-                    <ArrowRight aria-hidden="true" />
-                  </Link>
-                </Button>
-              </div>
-            ))}
-        </section>
-      )}
-
-      {offer && (
-        <section className="container pt-12" aria-labelledby="unlock-heading">
-          <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex items-start gap-4">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <FileQuestion className="size-6" aria-hidden="true" />
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 id="unlock-heading" className="font-semibold tracking-tight">
-                      Unlock all previous year questions — complete analysis
-                    </h2>
-                    <Badge variant="warning" size="sm">
-                      <Star aria-hidden="true" />
-                      Most important
-                    </Badge>
-                  </div>
-                  <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-                    Complete access to every previous year paper with detailed solutions,
-                    topic-wise analysis, the relevant article or case for each question, and
-                    performance insights.
-                  </p>
-                </div>
-              </div>
-
-              <div className="shrink-0 text-right">
-                <p className="text-3xl font-semibold tabular-nums text-primary">
-                  {formatPaise(offer.priceInPaise)}
-                </p>
-                {offer.activeTier && offer.nextPriceInPaise !== null && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    for the first {offer.tierLimit} members · then{' '}
-                    {formatPaise(offer.nextPriceInPaise)}
-                  </p>
-                )}
-                <Button asChild size="lg" variant="brand" className="mt-3">
-                  <Link href="/pricing">Get access</Link>
-                </Button>
-              </div>
-            </div>
-
-            <ul className="mt-5 grid gap-2.5 border-t border-primary/20 pt-5 sm:grid-cols-2 lg:grid-cols-4">
-              {UNLOCK_BENEFITS.map((benefit) => (
-                <li key={benefit} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2
-                    className="mt-0.5 size-4 shrink-0 text-primary"
-                    aria-hidden="true"
-                  />
-                  {benefit}
-                </li>
-              ))}
-            </ul>
-
-            {/* Seats are counted from real enrolments, so this bar reflects
-                actual sales rather than a number chosen to create urgency. */}
-            {offer.activeTier && offer.seatsLeftInTier !== null && offer.tierLimit !== null && (
-              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-4 py-3">
-                <p className="text-sm">
-                  <span className="font-semibold tabular-nums">{offer.enrolled}</span>
-                  <span className="text-muted-foreground"> / {offer.tierLimit} enrolled</span>
-                </p>
-                <div
-                  className="h-2 min-w-[8rem] flex-1 overflow-hidden rounded-full bg-muted"
-                  role="progressbar"
-                  aria-valuenow={offer.enrolled}
-                  aria-valuemin={0}
-                  aria-valuemax={offer.tierLimit}
-                  aria-label="Early bird seats taken"
-                >
-                  <div
-                    className="h-full rounded-full bg-success transition-[width]"
-                    style={{ width: `${Math.min(100, (offer.enrolled / offer.tierLimit) * 100)}%` }}
-                  />
-                </div>
-                <p className="text-sm font-medium text-primary tabular-nums">
-                  {offer.seatsLeftInTier} left at {formatPaise(offer.priceInPaise)}
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      <section className="container py-14 sm:py-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Select question paper
-        </h2>
-
-        {years.length === 0 ? (
+      {years.length === 0 ? (
+        <div className="mt-8">
           <EmptyState
-            className="mt-5"
-            icon={FileQuestion}
-            title="No papers published yet"
-            description="Previous year papers appear here as they are added."
-            action={{ label: 'Browse courses', href: '/courses' }}
+            icon={FileText}
+            title="Papers are being prepared"
+            description="Previous year papers will appear here as they are published."
           />
-        ) : (
-          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        </div>
+      ) : (
+        <>
+          <h2 className="mt-10 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Select question paper
+          </h2>
+
+          {/* The free year, promoted. It is the reason to try any of this, and a
+              student should sit a complete paper before being asked to pay. */}
+          {free && (
+            <div className="mt-3 flex flex-wrap items-center gap-4 rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20 sm:p-5">
+              <span
+                className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                aria-hidden="true"
+              >
+                <FileText className="size-5" />
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-center gap-2 font-semibold leading-tight">
+                  Try the {free.examYear} paper free
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    No payment needed
+                  </span>
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  The complete {free.examYear} paper with its full analysis, open to everyone. See
+                  exactly what you get before paying for any other year.
+                </p>
+              </div>
+
+              <Link
+                href={`/pyq/${free.slug}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Start free
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
+          )}
+
+          <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {years.map((year, index) => {
               const accent = ACCENTS[index % ACCENTS.length]!;
-              const label = year.sessionLabel
-                ? `${year.sessionLabel} ${year.examYear}`
-                : `${year.examYear}`;
 
               return (
-                <Card
-                  key={year.id}
-                  interactive
-                  className={year.isFree ? 'h-full border-primary/40 ring-1 ring-primary/20' : 'h-full'}
-                >
-                  <CardContent className="flex h-full flex-col p-6">
-                    <div className="flex items-start justify-between gap-3">
+                <li key={year.id}>
+                  <div
+                    className={cn(
+                      'flex h-full flex-col rounded-2xl border bg-card p-4',
+                      year.isFree ? 'border-emerald-300/70 dark:border-emerald-900/50' : 'border-border',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
                       <span
-                        className={`flex size-14 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${accent}`}
+                        className={cn(
+                          'rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums',
+                          accent.chip,
+                        )}
                       >
                         {year.examYear}
                       </span>
-                      <Badge variant="success" size="sm">
-                        Free
-                      </Badge>
+
+                      {year.isFree ? (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                          Free
+                        </span>
+                      ) : (
+                        <Lock
+                          className="size-4 text-muted-foreground"
+                          aria-label="Locked until purchased"
+                        />
+                      )}
                     </div>
 
-                    <h3 className="mt-4 font-semibold leading-tight tracking-tight">
-                      {label} KAS Prelims
+                    <h3 className="mt-3 text-base font-semibold leading-snug tracking-tight">
+                      {year.examYear} KAS Prelims
+                      {year.sessionLabel ? ` — ${year.sessionLabel}` : ''}
                     </h3>
 
-                    <ul className="mt-4 flex-1 space-y-2.5">
-                      <li className="flex items-center gap-2.5 rounded-lg border border-border p-2.5">
-                        <FileQuestion
-                          className="size-4 shrink-0 text-muted-foreground"
+                    <ul className="mt-3 space-y-2">
+                      <li className="flex items-start gap-2 rounded-lg border border-border/70 px-3 py-2">
+                        <FileText
+                          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
                           aria-hidden="true"
                         />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium leading-tight">Full-Length PYQ Test</p>
-                          <p className="text-xs text-muted-foreground">
-                            {year.fullLengthCount} {year.fullLengthCount === 1 ? 'paper' : 'papers'}
-                          </p>
-                        </div>
+                        <span className="text-sm leading-tight">
+                          Full-Length PYQ Test
+                          <br />
+                          <span className="text-xs text-muted-foreground">
+                            {year.fullLengthCount}{' '}
+                            {year.fullLengthCount === 1 ? 'paper' : 'papers'}
+                          </span>
+                        </span>
                       </li>
-                      <li className="flex items-center gap-2.5 rounded-lg border border-border p-2.5">
+
+                      <li className="flex items-start gap-2 rounded-lg border border-border/70 px-3 py-2">
                         <Layers
-                          className="size-4 shrink-0 text-muted-foreground"
+                          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
                           aria-hidden="true"
                         />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium leading-tight">Subject-wise Tests</p>
-                          <p className="text-xs text-muted-foreground">
-                            {year.subjectCount} subjects
-                          </p>
-                        </div>
+                        <span className="text-sm leading-tight">
+                          Subject-wise Tests
+                          <br />
+                          <span className="text-xs text-muted-foreground">
+                            {year.subjectCount} {year.subjectCount === 1 ? 'subject' : 'subjects'}
+                          </span>
+                        </span>
                       </li>
                     </ul>
 
-                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
-                      <span className="text-sm font-semibold tabular-nums">
-                        {year.isFree ? 'Free' : formatPaise(year.pricing.priceInPaise)}
-                      </span>
-                      <Button asChild size="sm" variant={year.isFree ? 'brand' : 'outline'}>
-                        <Link href={`/pyq/${year.slug}`}>
-                          {year.isFree ? (
-                            <>
-                              Start free
-                              <ArrowRight aria-hidden="true" />
-                            </>
-                          ) : (
-                            <>
-                              <Lock aria-hidden="true" />
-                              Unlock
-                            </>
-                          )}
-                        </Link>
-                      </Button>
+                    <div className="mt-4 flex items-center justify-between gap-2 pt-1">
+                      {year.isFree ? (
+                        <span className="text-sm font-semibold">Free</span>
+                      ) : (
+                        <Lock className="size-4 text-muted-foreground" aria-hidden="true" />
+                      )}
+
+                      <Link
+                        href={`/pyq/${year.slug}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {year.isFree ? 'Start free' : 'Proceed to buy'}
+                        <ArrowRight className="size-4" aria-hidden="true" />
+                      </Link>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </li>
               );
             })}
-          </div>
-        )}
-
-        <p className="mt-8 rounded-xl border border-border bg-muted/30 px-5 py-4 text-sm leading-relaxed text-muted-foreground">
-          The full-length test contains the complete paper. Subject-wise tests contain only the
-          questions from that subject in the same paper — useful once you know which subject is
-          costing you marks.
-        </p>
-      </section>
-    </>
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
