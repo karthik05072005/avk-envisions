@@ -95,14 +95,14 @@ const PLANS: PlanCard[] = [
     ribbon: 'bg-orange-500',
   },
   {
-    // No series behind it yet, so it renders as the coming-soon card rather
-    // than advertising a price nobody can pay.
-    slug: null,
+    // Priced per subject; Polity is the first, and the chapterwise page offers
+    // the rest. The card quotes what that first subject costs.
+    slug: 'chapterwise-polity',
     number: 5,
     title: 'Chapter-wise Practice',
     blurb: 'Strengthen every chapter, step by step.',
     benefits: ['Topic-wise tests', 'Concept clarity'],
-    cta: 'Stay Tuned',
+    cta: 'Explore Subjects',
     href: '/chapterwise',
     tint: 'border-violet-200 bg-violet-50/60 dark:border-violet-900/40 dark:bg-violet-950/20',
     accent: 'bg-violet-600 text-white',
@@ -182,12 +182,11 @@ export default async function PricingPage() {
               ? resolvePricing(row, enrolled.get(row.id) ?? 0)
               : null;
 
-            // For sale only when it is published *and* has a paper someone can
-            // actually sit. Checkout refuses an empty series, so a button here
-            // would lead to an error rather than a purchase.
-            const available = Boolean(
-              row && row.status === 'PUBLISHED' && row.tests.length > 0,
-            );
+            // A published, priced plan is for sale, whether or not its papers
+            // are written yet — these series are sold on their published
+            // schedule, and the buyer is enrolling for a course that runs to a
+            // timetable rather than buying a finished library.
+            const available = Boolean(row && row.status === 'PUBLISHED');
             const isFree = pricing !== null && pricing.priceInPaise === 0;
 
             // The early-bird rung is only announced while it is genuinely open.

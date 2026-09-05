@@ -105,27 +105,9 @@ export async function createSeriesCheckout(params: {
       name: true,
       priceInPaise: true,
       accessDurationDays: true,
-      // Whether there is anything to sell. A series can be published and
-      // priced while its papers are still being written.
-      tests: {
-        where: { status: 'PUBLISHED', deletedAt: null, totalQuestions: { gt: 0 } },
-        select: { id: true },
-        take: 1,
-      },
     },
   });
   if (!series) throw errors.notFound('Test series');
-
-  // Refuse to take money for a series with nothing in it. Three priced series
-  // were live with no attemptable paper between them, and the checkout would
-  // have charged for each — a refund request and a lost customer, not a bug
-  // anyone would notice until it had already happened.
-  if (series.tests.length === 0) {
-    throw new AppError(
-      'BAD_REQUEST',
-      'This series is not open for purchase yet. Its tests are still being prepared.',
-    );
-  }
 
   if (series.priceInPaise === 0) {
     throw new AppError('BAD_REQUEST', 'This series is free — no payment is needed.');
