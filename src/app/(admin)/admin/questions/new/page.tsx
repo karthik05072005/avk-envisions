@@ -12,9 +12,17 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewQuestionPage() {
+export default async function NewQuestionPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   await enforceAdminArea('/admin/questions/new');
-  const exams = await getTaxonomyTree();
+  const [exams, query] = await Promise.all([getTaxonomyTree(), searchParams]);
+
+  // The paper this was opened from: the new question joins it, and saving
+  // returns there rather than to the unfiltered bank.
+  const testId = query.testId;
 
   // A question must belong to a subject, so there is nothing to render until
   // the taxonomy exists. Say so rather than showing empty dropdowns.
@@ -32,5 +40,11 @@ export default async function NewQuestionPage() {
     );
   }
 
-  return <QuestionEditor exams={usable} />;
+  return (
+    <QuestionEditor
+      exams={usable}
+      attachToTestId={testId}
+      returnTo={testId ? `/admin/questions?testId=${testId}` : undefined}
+    />
+  );
 }

@@ -100,9 +100,17 @@ export default async function AdminQuestionsPage({
         </div>
 
         <Button asChild>
-          <Link href="/admin/questions/new">
+          {/* Carries the paper, so a question created here joins it rather than
+              landing in the bank alone. */}
+          <Link
+            href={
+              params.testId
+                ? `/admin/questions/new?testId=${params.testId}`
+                : '/admin/questions/new'
+            }
+          >
             <Plus aria-hidden="true" />
-            New question
+            {paper ? 'Add a question to this paper' : 'New question'}
           </Link>
         </Button>
       </header>
@@ -256,7 +264,12 @@ export default async function AdminQuestionsPage({
               ? 'Try widening the filters, or clear them to see the whole bank.'
               : 'The question bank is empty. Create the first question to get started.'
           }
-          action={{ label: 'New question', href: '/admin/questions/new' }}
+          action={{
+            label: 'New question',
+            href: params.testId
+              ? `/admin/questions/new?testId=${params.testId}`
+              : '/admin/questions/new',
+          }}
         />
       ) : (
         <Card>

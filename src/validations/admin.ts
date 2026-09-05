@@ -70,6 +70,15 @@ export const questionSchema = z
     examYear: z.coerce.number().int().min(1950).max(2100).nullish(),
     reviewNote: z.string().trim().max(2000).nullish(),
 
+    /**
+     * Attach the new question to this test as well as the bank.
+     *
+     * Creating a question from inside a paper put it in the bank and nowhere
+     * else, so the paper's count never moved and the question appeared to
+     * vanish. Optional: creating from the bank itself attaches nothing.
+     */
+    attachToTestId: cuidSchema.optional(),
+
     options: z.array(optionSchema).max(10).default([]),
   })
   .superRefine((input, ctx) => {

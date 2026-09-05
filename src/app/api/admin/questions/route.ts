@@ -68,6 +68,50 @@ export const POST = route(async ({ request, ip }) => {
     select: { id: true, code: true },
   });
 
+  // Attach to the paper it was created from, and keep that paper's totals in
+  // step. Without this the question reached the bank and stopped there: the
+  // paper's count never moved, so a new question looked as though it had been
+  // silently discarded.
+  if (input.attachToTestId) {
+    const test = await db.test.findFirst({
+      where: { id: input.attachToTestId, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (test) {
+      const last = await db.testQuestion.aggregate({
+        where: { testId: test.id },
+        _max: { sortOrder: true },
+      });
+
+      await db.testQuestion.create({
+        data: {
+          testId: test.id,
+          questionId: question.id,
+          sortOrder: (last._max.sortOrder ?? 0) + 1,
+          marks: input.marks,
+          negativeMarks: input.negativeMarks,
+        },
+      });
+
+      // Recomputed from the rows rather than incremented, so a count that has
+      // already drifted is corrected rather than carried forward.
+      const totals = await db.testQuestion.aggregate({
+        where: { testId: test.id },
+        _count: true,
+        _sum: { marks: true },
+      });
+
+      await db.test.update({
+        where: { id: test.id },
+        data: {
+          totalQuestions: totals._count,
+          totalMarks: totals._sum.marks ?? 0,
+        },
+      });
+    }
+  }
+
   await audit({
     actor: { id: admin.id, email: admin.email, role: admin.role },
     action: AUDIT_ACTIONS.QUESTION_CREATED,

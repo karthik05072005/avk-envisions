@@ -110,6 +110,7 @@ export function QuestionEditor({
   exams,
   initial,
   returnTo,
+  attachToTestId,
 }: {
   exams: TaxonomyExam[];
   initial?: QuestionDraft;
@@ -122,6 +123,8 @@ export function QuestionEditor({
    * a hundred questions.
    */
   returnTo?: string;
+  /** Attach a newly created question to this paper as well as the bank. */
+  attachToTestId?: string;
 }) {
   const router = useRouter();
   const isEdit = Boolean(initial?.id);
@@ -242,6 +245,7 @@ export function QuestionEditor({
       concept: draft.concept || null,
       source: draft.source || null,
       reviewNote: draft.reviewNote || null,
+      ...(attachToTestId && !isEdit ? { attachToTestId } : {}),
     };
 
     try {
