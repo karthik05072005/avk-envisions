@@ -25,6 +25,59 @@ export const POST = route(async ({ request, params, ip }) => {
   });
   if (!test) throw errors.notFound('Test');
 
+  if (input.action === 'publish') {
+    // Publishes drafts that are already on this test. A draft is attached but
+    // skipped when a student sits the paper, so this is the fix for the warning
+    // that reports them — offered here rather than leaving someone to open each
+    // question in turn.
+    //
+    // Scoped to this test's own questions: an id sent from elsewhere must not
+    // be able to publish arbitrary content through this route.
+    const attached = await db.testQuestion.findMany({
+      where: { testId, questionId: { in: input.questionIds } },
+      select: { questionId: true },
+    });
+
+    const publishable = await db.question.findMany({
+      where: {
+        id: { in: attached.map((row) => row.questionId) },
+        deletedAt: null,
+        status: { not: 'PUBLISHED' },
+        // Never publish something unanswerable: a question with no correct
+        // option would mark every student wrong.
+        options: { some: { isCorrect: true } },
+      },
+      select: { id: true },
+    });
+
+    await db.question.updateMany({
+      where: { id: { in: publishable.map((q) => q.id) } },
+      data: { status: 'PUBLISHED', publishedAt: new Date() },
+    });
+
+    await audit({
+      actor: { id: admin.id, email: admin.email, role: admin.role },
+      action: AUDIT_ACTIONS.TEST_UPDATED,
+      entityType: 'Test',
+      entityId: testId,
+      meta: { published: publishable.length },
+      ipAddress: ip,
+    });
+
+    return {
+      data: {
+        attached: 0,
+        skipped: attached.length - publishable.length,
+        published: publishable.length,
+        ...(await refreshTestTotals(testId)),
+      },
+      message:
+        publishable.length === 1
+          ? 'Question published.'
+          : `${publishable.length} questions published.`,
+    };
+  }
+
   if (input.action === 'attach') {
     // Only attach questions that exist, are not archived, and are not already
     // on the test — silently skipping the rest beats failing the whole batch.

@@ -83,7 +83,14 @@ function blankDraft(exams: TaxonomyExam[]): QuestionDraft {
     topicId: null,
     type: 'SINGLE_CORRECT',
     difficulty: 'MEDIUM',
-    status: 'DRAFT',
+    // Published by default.
+    //
+    // A draft is attached to its paper but skipped when a student sits it, so
+    // defaulting to DRAFT meant someone could write a question, save it, see it
+    // listed on the test, and have it silently not count. Anyone deliberately
+    // parking a half-finished question can still choose Draft from the status
+    // field; the common case is a question meant to be used.
+    status: 'PUBLISHED',
     body: '',
     passage: null,
     imageUrl: null,

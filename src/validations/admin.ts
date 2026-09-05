@@ -159,7 +159,7 @@ export type TestInput = z.infer<typeof testSchema>;
 
 /** Attach, detach or reorder the questions on a test. */
 export const testQuestionsSchema = z.object({
-  action: z.enum(['attach', 'detach', 'reorder']),
+  action: z.enum(['attach', 'detach', 'reorder', 'publish']),
   questionIds: z.array(cuidSchema).max(500).default([]),
   /** For reorder: the full ordered list of testQuestion ids. */
   order: z.array(cuidSchema).max(500).default([]),

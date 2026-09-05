@@ -129,6 +129,27 @@ export function TestBuilder({ exams, series, initial, attached = [] }: BuilderPr
 
   const totalMarks = rows.reduce((sum, r) => sum + r.marks, 0);
   const unpublished = rows.filter((r) => r.status !== 'PUBLISHED').length;
+  const [publishing, setPublishing] = React.useState(false);
+
+  /** Publishes every attached question that is still a draft. */
+  async function publishAttached() {
+    setPublishing(true);
+    try {
+      const ids = rows.filter((r) => r.status !== 'PUBLISHED').map((r) => r.questionId);
+      await api.post(`/api/admin/tests/${initial?.id}/questions`, {
+        action: 'publish',
+        questionIds: ids,
+      });
+      toast.success(ids.length === 1 ? 'Question published.' : `${ids.length} questions published.`);
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof ApiClientError ? error.message : 'Those could not be published.',
+      );
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   function update<K extends keyof TestDraft>(key: K, value: TestDraft[K]) {
     setDraft((previous) => ({ ...previous, [key]: value }));
@@ -438,12 +459,21 @@ export function TestBuilder({ exams, series, initial, attached = [] }: BuilderPr
             </div>
 
             {unpublished > 0 && (
-              <p className="mt-3 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning">
+              <div className="mt-3 flex flex-wrap items-start gap-3 rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                {unpublished} attached {unpublished === 1 ? 'question is' : 'questions are'} not
-                published, so {unpublished === 1 ? 'it' : 'they'} will be skipped when a student
-                starts this test.
-              </p>
+                <p className="min-w-0 flex-1">
+                  {unpublished} attached {unpublished === 1 ? 'question is' : 'questions are'} not
+                  published, so {unpublished === 1 ? 'it' : 'they'} will be skipped when a student
+                  starts this test.
+                </p>
+
+                {/* Fixable where it is reported. Saying what is wrong and
+                    leaving someone to find each question by hand is the slow
+                    half of the problem. */}
+                <Button size="sm" onClick={publishAttached} disabled={publishing}>
+                  {publishing ? 'Publishing…' : `Publish ${unpublished === 1 ? 'it' : 'them'}`}
+                </Button>
+              </div>
             )}
 
             {rows.length === 0 ? (
