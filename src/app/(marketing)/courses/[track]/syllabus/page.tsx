@@ -11,8 +11,14 @@ import { formatDate } from '@/lib/utils';
 import { SynopsisViewer } from '@/features/student/synopsis-viewer';
 import { getTrackSeries, type TrackKey } from '@/server/services/catalogue-service';
 
+/**
+ * Tracks with a syllabus worth a page of its own.
+ *
+ * The free series is deliberately absent: its tests can be attempted on any
+ * day in any order, so there is no timetable to publish, and the page only
+ * repeated the schedule already on the track page.
+ */
 const TRACKS: Record<string, { key: TrackKey; title: string; schedulePdf?: string }> = {
-  'free-test-series': { key: 'FREE_SERIES', title: 'KPSC KAS Prelims — Free Test Series' },
   'paid-test-series': {
     key: 'PAID_SERIES',
     title: 'KPSC KAS Prelims — Paid Test Series',

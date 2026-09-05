@@ -137,6 +137,9 @@ function ScheduleAction({ row }: { row: ScheduleRow }) {
   }
 }
 
+/** Tracks with a schedule document behind the button. */
+const HAS_TIMETABLE = new Set(['paid-test-series']);
+
 export default async function TrackPage({ params }: { params: Promise<{ track: string }> }) {
   const { track } = await params;
   const meta = TRACKS[track];
@@ -302,15 +305,21 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
         </section>
       )}
 
-      <section className="container pt-8">
-        <Button asChild fullWidth size="lg" variant="brand">
-          <Link href={`/courses/${track}/syllabus`}>
-            <FileText aria-hidden="true" />
-            View syllabus &amp; timetable
-            <ArrowRight aria-hidden="true" />
-          </Link>
-        </Button>
-      </section>
+      {/* Only where a published timetable exists to open. The free series has
+          no schedule document — its tests can be attempted on any day, in any
+          order — so the button led to a page repeating what is already in the
+          table above it. */}
+      {HAS_TIMETABLE.has(track) && (
+        <section className="container pt-8">
+          <Button asChild fullWidth size="lg" variant="brand">
+            <Link href={`/courses/${track}/syllabus`}>
+              <FileText aria-hidden="true" />
+              View syllabus &amp; timetable
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+        </section>
+      )}
 
       <section className="container py-12">
         <Button asChild variant="ghost" size="sm" className="-ml-3">
