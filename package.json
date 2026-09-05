@@ -42,7 +42,8 @@
     "db:free-test-1": "tsx prisma/import-free-test-1.ts",
     "db:orphans": "tsx prisma/find-orphan-questions.ts",
     "db:pricing": "tsx prisma/set-pricing.ts",
-    "db:50days:schedule": "tsx prisma/import-50-days-schedule.ts"
+    "db:50days:schedule": "tsx prisma/import-50-days-schedule.ts",
+    "db:paid:schedule": "tsx prisma/import-paid-schedule.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

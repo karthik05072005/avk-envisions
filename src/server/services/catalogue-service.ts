@@ -435,7 +435,12 @@ export async function getTrackSeries(track: TrackKey, userId?: string) {
       featuresJson: true,
       synopsisFileName: true,
       tests: {
-        where: { status: 'PUBLISHED', deletedAt: null },
+        // Drafts are included here on purpose. A scheduled series is bought on
+        // the strength of its timetable, so a buyer has to see every test that
+        // is coming — hiding the unwritten ones showed "Total tests 0" for a
+        // twelve-test series. Each row's own state says whether it can be
+        // attempted; `state` resolves an empty test to COMING_SOON.
+        where: { deletedAt: null },
         // Timetable position first. Falling back to the title sorted an
         // unscheduled series alphabetically, which put CSAT before Polity.
         orderBy: [{ sortOrder: 'asc' }, { startDate: 'asc' }, { title: 'asc' }],
@@ -443,6 +448,7 @@ export async function getTrackSeries(track: TrackKey, userId?: string) {
           id: true,
           title: true,
           slug: true,
+          status: true,
           startDate: true,
           durationMinutes: true,
           totalQuestions: true,
@@ -487,6 +493,9 @@ export async function getTrackSeries(track: TrackKey, userId?: string) {
       const state: ScheduleState = (() => {
         if (live) return 'IN_PROGRESS';
         if (test.totalQuestions === 0) return 'COMING_SOON';
+        // A test that has questions but is not published cannot be started —
+        // `startAttempt` refuses it — so it must not offer a Start button.
+        if (test.status !== 'PUBLISHED') return 'COMING_SOON';
         if (test.startDate && test.startDate > now) return 'LOCKED';
         if (test.maxAttempts > 0 && attemptsUsed >= test.maxAttempts) return 'COMPLETED';
         return 'AVAILABLE';

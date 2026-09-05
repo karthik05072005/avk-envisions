@@ -8,11 +8,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/states';
 import { formatDate } from '@/lib/utils';
+import { SynopsisViewer } from '@/features/student/synopsis-viewer';
 import { getTrackSeries, type TrackKey } from '@/server/services/catalogue-service';
 
-const TRACKS: Record<string, { key: TrackKey; title: string }> = {
+const TRACKS: Record<string, { key: TrackKey; title: string; schedulePdf?: string }> = {
   'free-test-series': { key: 'FREE_SERIES', title: 'KPSC KAS Prelims — Free Test Series' },
-  'paid-test-series': { key: 'PAID_SERIES', title: 'KPSC KAS Prelims — Paid Test Series' },
+  'paid-test-series': {
+    key: 'PAID_SERIES',
+    title: 'KPSC KAS Prelims — Paid Test Series',
+    // The published timetable carries the per-test syllabus in full, which the
+    // schedule rows do not. Shown alongside them rather than instead: the rows
+    // say what is attemptable now, the document says what each test covers.
+    schedulePdf: '/api/schedule/paid',
+  },
 };
 
 export const dynamic = 'force-dynamic';
@@ -82,6 +90,18 @@ export default async function SyllabusPage({ params }: { params: Promise<{ track
           </div>
         </div>
       </PageHeader>
+
+      {meta.schedulePdf && (
+        <section className="container pt-10">
+          <h2 className="text-lg font-semibold tracking-tight">The published timetable</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every test with its date, sitting time and the syllabus it covers.
+          </p>
+          <div className="mt-4">
+            <SynopsisViewer src={meta.schedulePdf} title={`${meta.title} timetable`} />
+          </div>
+        </section>
+      )}
 
       <section className="container py-12">
         <Button asChild variant="ghost" size="sm" className="-ml-3">
