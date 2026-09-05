@@ -130,8 +130,8 @@ function ScheduleAction({ row }: { row: ScheduleRow }) {
     default:
       return (
         <Button size="sm" variant="ghost" disabled className="w-full sm:w-32">
-          <Timer aria-hidden="true" />
-          Soon
+          <Lock aria-hidden="true" />
+          Unlocks soon
         </Button>
       );
   }
@@ -153,6 +153,19 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
   // free and paid tracks) that is a single number.
   const durations = [...new Set(allRows.map((r) => r.durationMinutes))];
   const perTestMinutes = durations.length === 1 ? (durations[0] ?? null) : null;
+
+  // The typical paper length, not a strict single value: one paper differing
+  // by a question or two — because an item failed to parse, or was withdrawn —
+  // should not turn a real figure into "Varies". Papers with nothing in them
+  // are ignored so an unwritten one does not count as zero.
+  const lengths = allRows.map((r) => r.totalQuestions).filter((n) => n > 0);
+  const questionsPerTest =
+    lengths.length === 0
+      ? null
+      : [...lengths].sort(
+          (a, b) =>
+            lengths.filter((n) => n === b).length - lengths.filter((n) => n === a).length,
+        )[0]!;
   // Quote the live early-bird price, not the regular one, so the figure here
   // matches what checkout will charge.
   const first = series[0];
@@ -173,7 +186,7 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
           <div className="rounded-xl border border-border bg-card px-5 py-3.5">
             <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
               <Clock className="size-3.5" aria-hidden="true" />
-              Duration per test
+              Durations per test
             </p>
             <p className="mt-0.5 text-xl font-semibold tabular-nums">
               {perTestMinutes === null
@@ -183,6 +196,16 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                   : `${perTestMinutes} minutes`}
             </p>
           </div>
+          {questionsPerTest !== null && (
+            <div className="rounded-xl border border-border bg-card px-5 py-3.5">
+              <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+                <BookOpen className="size-3.5" aria-hidden="true" />
+                Questions per test
+              </p>
+              <p className="mt-0.5 text-xl font-semibold tabular-nums">{questionsPerTest}</p>
+            </div>
+          )}
+
           <div className="rounded-xl border border-border bg-card px-5 py-3.5">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Price</p>
             <p className="mt-0.5 text-xl font-semibold tabular-nums">
@@ -340,7 +363,16 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium leading-tight">{row.title}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium leading-tight">{row.title}</p>
+                          {/* The paper's own subtitle, where the content team
+                              has written one — not a label this page invents. */}
+                          {row.description && (
+                            <span className="rounded-full bg-primary-muted px-2 py-0.5 text-xs font-medium text-primary">
+                              {row.description}
+                            </span>
+                          )}
+                        </div>
                         <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <BookOpen className="size-3" aria-hidden="true" />

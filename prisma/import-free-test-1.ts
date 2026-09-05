@@ -25,7 +25,14 @@ import { synopsisDir } from '../src/server/services/synopsis-service';
 const db = new PrismaClient();
 const DRY_RUN = process.argv.includes('--dry-run');
 
-const TEST_SLUG = 'kas-free-1';
+/** Which free test to fill, from `--test`. Defaults to the first. */
+function testSlug(): string {
+  const flag = process.argv.indexOf('--test');
+  const value = flag === -1 ? null : process.argv[flag + 1];
+  return value && /^kas-free-\d+$/.test(value) ? value : 'kas-free-1';
+}
+
+const TEST_SLUG = testSlug();
 
 /** The PDF, from `--file` or the default drop location. */
 function sourceFile(): string {
@@ -70,8 +77,8 @@ interface Parsed {
 
 /** `1. India-France Innovation Roadmap 2030` — a numbered question heading. */
 const HEADING = /^(\d{1,2})\.\s+(.{4,120})$/;
-/** `A. 1 and 2 only` */
-const OPTION = /^([A-D])\.\s+(.+)$/;
+/** `A. 1 and 2 only` or `(A) 1 and 2 only` — both papers are in use. */
+const OPTION = /^\(?([A-D])[).]\s+(.+)$/;
 /** `ANSWER: B. 1, 2 and 3 only` or `ANSWER: C` */
 const ANSWER = /^ANSWER:\s*([A-D])\b/i;
 
@@ -81,9 +88,19 @@ const ANSWER = /^ANSWER:\s*([A-D])\b/i;
  * This is what tells a question heading apart from a numbered statement, since
  * the two are written identically.
  */
+const STEM_OPENER = /^(Consider the following|Which of the|How many of the|Study the following|With reference to|Arrange the following|Match the following)/i;
+
 function nextOpensStem(lines: string[], index: number): boolean {
+  const line = lines[index] ?? '';
   const next = lines[index + 1] ?? '';
-  return /^(Consider the following|Which of the|How many of the|Study the following)/i.test(next);
+
+  // Two layouts are in use. Paper 1 prints a short title and the stem beneath
+  // it; Paper 2 puts the stem straight after the number. Accepting only the
+  // first read nothing at all from Paper 2.
+  const titleThenStem = STEM_OPENER.test(next);
+  const numberThenStem = STEM_OPENER.test(line.replace(/^\d{1,2}\.\s+/, ''));
+
+  return titleThenStem || numberThenStem;
 }
 
 /** Page furniture that would otherwise land inside a question. */
@@ -103,7 +120,7 @@ function parse(text: string): Parsed[] {
   // fail to match and stalled the parse after the first question.
   let expected = 1;
   let subject = 'Current Affairs';
-  let mode: 'STEM' | 'OPTIONS' | 'AFTER' = 'STEM';
+  let mode: 'STEM' | 'OPTIONS' | 'ANSWER' | 'AFTER' = 'STEM';
 
   const push = () => {
     if (current && current.options.length >= 2) found.push(current);
@@ -155,6 +172,21 @@ function parse(text: string): Parsed[] {
         };
         mode = 'STEM';
       }
+      continue;
+    }
+
+    // `ANSWER: B …` on one line, or a bare `ANSWER` with the key beneath it.
+    // Paper 2 uses the second form, so matching only the first read every one
+    // of its questions with no key and discarded all twenty.
+    if (/^ANSWER\s*:?\s*$/i.test(line)) {
+      mode = 'ANSWER';
+      continue;
+    }
+
+    if (mode === 'ANSWER') {
+      const bare = /^\(?([A-D])[).]?\s/.exec(line) ?? /^\(?([A-D])\)?$/.exec(line);
+      if (bare) current.correctIndex = bare[1]!.toUpperCase().charCodeAt(0) - 65;
+      mode = 'AFTER';
       continue;
     }
 
@@ -307,13 +339,15 @@ async function main() {
   await db.test.update({
     where: { id: test.id },
     data: {
-      title: 'Free Test 1 — 25 Most Probable Questions',
-      description:
-        'Twenty-five most probable questions for KAS Prelims 2026, across current affairs, polity, history, geography and economy.',
+      // Title and subtitle follow the schedule's own naming, so the series
+      // page reads consistently whichever paper is imported.
+      description: '25 Most Probable Questions',
       totalQuestions: ids.length,
       totalMarks: ids.length * MARKS_PER_QUESTION,
       passingMarks: Math.round(ids.length * MARKS_PER_QUESTION * 0.35),
-      durationMinutes: Math.max(20, Math.round(ids.length * 1.2)),
+      // Left as configured. Deriving it from the question count made Test 2
+      // read 23 minutes because one question failed to parse, which is a
+      // parsing accident rather than a decision about how long the paper runs.
       accessType: 'FREE',
       status: 'PUBLISHED',
       synopsisFileName: synopsisName,
