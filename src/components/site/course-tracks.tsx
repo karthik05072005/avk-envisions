@@ -4,168 +4,181 @@ import {
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
+  Clock,
   FileQuestion,
+  Gift,
   Layers,
-  Lock,
   type LucideIcon,
 } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { cn, formatPaise } from '@/lib/utils';
-import type { TrackSummary } from '@/server/services/catalogue-service';
+import { cn } from '@/lib/utils';
+import type { TrackKey, TrackSummary } from '@/server/services/catalogue-service';
 
-/**
- * The four course tracks.
- *
- * This is the platform's front door: a student's first decision is which of
- * these four paths they are on, so the widgets state plainly what each one
- * costs and how much of it is actually ready to attempt today.
- */
 const ICONS: Record<string, LucideIcon> = {
+  CalendarDays,
   ClipboardCheck,
   ClipboardList,
   FileQuestion,
   Layers,
-  CalendarDays,
 };
 
-/** Per-track accent, kept here so the four cards read as a set. */
-const ACCENTS: Record<string, { ring: string; chip: string; button: string }> = {
+/**
+ * Per-track presentation, keyed by track.
+ *
+ * Colour, ordering and the details link live here; the title, blurb, price and
+ * whether a track is ready come from the catalogue, so a card cannot advertise
+ * something the site does not have.
+ */
+interface Skin {
+  order: number;
+  /** `/courses/<slug>` — the details page for this track. */
+  detailsSlug: string;
+  wash: string;
+  button: string;
+  chip: string;
+}
+
+const SKINS: Record<TrackKey, Skin> = {
   FREE_SERIES: {
-    ring: 'border-success/30 hover:border-success/60',
-    chip: 'bg-success/10 text-success',
-    button: 'bg-success text-success-foreground hover:bg-success/90',
-  },
-  PAID_SERIES: {
-    ring: 'border-warning/30 hover:border-warning/60',
-    chip: 'bg-warning/10 text-warning',
-    button: 'bg-warning text-warning-foreground hover:bg-warning/90',
+    order: 1,
+    detailsSlug: 'free-test-series',
+    wash: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300',
+    button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+    chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   },
   PYQ: {
-    ring: 'border-primary/30 hover:border-primary/60',
-    chip: 'bg-primary/10 text-primary',
-    button: 'bg-primary text-primary-foreground hover:bg-primary/90',
+    order: 2,
+    detailsSlug: 'previous-year-papers',
+    wash: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300',
+    button: 'bg-indigo-600 hover:bg-indigo-700 text-white',
+    chip: 'bg-muted text-muted-foreground',
+  },
+  DAILY_CHALLENGE: {
+    order: 3,
+    detailsSlug: 'kas-50',
+    wash: 'bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300',
+    button: 'bg-violet-600 hover:bg-violet-700 text-white',
+    chip: 'bg-muted text-muted-foreground',
+  },
+  PAID_SERIES: {
+    order: 4,
+    detailsSlug: 'paid-test-series',
+    wash: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300',
+    button: 'bg-amber-500 hover:bg-amber-600 text-white',
+    chip: 'bg-muted text-muted-foreground',
   },
   CHAPTERWISE: {
-    ring: 'border-info/30 hover:border-info/60',
-    chip: 'bg-info/10 text-info',
-    button: 'bg-info text-info-foreground hover:bg-info/90',
+    order: 5,
+    detailsSlug: 'chapterwise',
+    wash: 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-300',
+    button: 'bg-sky-600 hover:bg-sky-700 text-white',
+    chip: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
   },
 };
 
-export function CourseTracks({
-  tracks,
-  className,
-}: {
-  tracks: TrackSummary[];
-  className?: string;
-}) {
+/**
+ * The preparation tracks, as a card grid.
+ *
+ * Shared by `/courses` and the home page so the two cannot drift apart — they
+ * were separately maintained copies of the same cards, which is how the site
+ * ended up advertising different prices in different places.
+ */
+export function CourseTracks({ tracks }: { tracks: TrackSummary[] }) {
+  const ordered = [...tracks].sort(
+    (a, b) => (SKINS[a.key]?.order ?? 99) - (SKINS[b.key]?.order ?? 99),
+  );
+
   return (
-    <div className={cn('grid gap-5 lg:grid-cols-2', className)}>
-      {tracks.map((track, index) => {
-        const Icon = ICONS[track.iconName] ?? ClipboardList;
-        const accent = ACCENTS[track.key] ?? ACCENTS.PYQ!;
+    <ul className="grid gap-5 lg:grid-cols-2">
+      {ordered.map((track) => {
+        const skin = SKINS[track.key];
+        const Icon = ICONS[track.iconName] ?? Layers;
+        if (!skin) return null;
 
         return (
-          <div
-            key={track.key}
-            className={cn(
-              'group relative flex flex-col rounded-xl border bg-card p-6 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated',
-              accent.ring,
-            )}
-          >
-            <div className="flex items-start gap-4">
-              <span
-                className={cn(
-                  'relative flex size-12 shrink-0 items-center justify-center rounded-xl',
-                  accent.chip,
-                )}
-              >
-                <Icon className="size-5" aria-hidden="true" />
-                {!track.isFree && (
-                  <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border-2 border-card bg-muted text-muted-foreground">
-                    <Lock className="size-2.5" aria-hidden="true" />
-                  </span>
-                )}
-              </span>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold leading-tight tracking-tight">
-                    <span className="text-muted-foreground">{index + 1}.</span> {track.title}
-                  </h3>
-                  {track.isFree ? (
-                    <Badge variant="success" size="sm">
-                      Free
-                    </Badge>
-                  ) : (
-                    <Badge variant="muted" size="sm">
-                      Paid
-                    </Badge>
+          <li key={track.key}>
+            <div
+              className={cn(
+                'flex h-full flex-col rounded-2xl border bg-card p-5',
+                track.comingSoon ? 'border-border' : 'border-border',
+              )}
+            >
+              <div className="flex items-start gap-4">
+                <span
+                  className={cn(
+                    'flex size-12 shrink-0 items-center justify-center rounded-xl',
+                    skin.wash,
                   )}
+                  aria-hidden="true"
+                >
+                  <Icon className="size-6" />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base font-bold leading-snug tracking-tight">
+                      {skin.order}. {track.title}
+                    </h2>
+
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                        track.comingSoon
+                          ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
+                          : track.isFree
+                            ? skin.chip
+                            : 'bg-muted text-muted-foreground',
+                      )}
+                    >
+                      {track.comingSoon ? 'Coming Soon' : track.isFree ? 'Free' : 'Paid'}
+                    </span>
+                  </div>
+
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    {track.blurb}
+                  </p>
                 </div>
+              </div>
 
-                <p className="mt-1.5 text-pretty text-sm leading-relaxed text-muted-foreground">
-                  {track.blurb}
+              {/* The free sample year, which is the reason to try PYQs at all. */}
+              {track.key === 'PYQ' && !track.comingSoon && (
+                <p className="mt-3 flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2.5 text-sm font-medium text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300">
+                  <Gift className="size-4 shrink-0" aria-hidden="true" />
+                  2011 Paper is FREE — Try now!
                 </p>
-              </div>
-            </div>
+              )}
 
-            {/* Counts are real, never planned figures. */}
-            <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-4 text-center">
-              <div>
-                <dt className="text-[0.6875rem] uppercase tracking-wide text-muted-foreground">
-                  {track.key === 'PYQ' ? 'Papers' : track.key === 'CHAPTERWISE' ? 'Subjects' : 'Series'}
-                </dt>
-                <dd className="mt-0.5 text-lg font-semibold tabular-nums">{track.seriesCount}</dd>
-              </div>
-              <div>
-                <dt className="text-[0.6875rem] uppercase tracking-wide text-muted-foreground">
-                  Tests
-                </dt>
-                <dd className="mt-0.5 text-lg font-semibold tabular-nums">{track.testCount}</dd>
-              </div>
-              <div>
-                <dt className="text-[0.6875rem] uppercase tracking-wide text-muted-foreground">
-                  {track.isFree ? 'Price' : 'From'}
-                </dt>
-                <dd className="mt-0.5 text-lg font-semibold tabular-nums">
-                  {track.comingSoon
-                    ? '—'
-                    : track.fromPriceInPaise === 0
-                      ? 'Free'
-                      : formatPaise(track.fromPriceInPaise)}
-                </dd>
-                {/* The price only holds for the early-bird band, and a buyer
-                    should see that beside the number rather than discover it
-                    at checkout. */}
-                {track.earlyBirdLimit != null && (
-                  <dd className="mt-0.5 text-[0.6875rem] font-bold leading-tight text-primary">
-                    Early bird offer
-                    <br />
-                    Only for first {track.earlyBirdLimit} members
-                  </dd>
+              <div className="mt-auto flex gap-2.5 pt-4">
+                <Link
+                  href={`/courses/${skin.detailsSlug}`}
+                  className="inline-flex flex-1 items-center justify-center rounded-lg border border-border px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  View details
+                </Link>
+
+                {track.comingSoon ? (
+                  <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-muted px-3 py-2.5 text-sm font-semibold text-muted-foreground">
+                    <Clock className="size-4" aria-hidden="true" />
+                    Coming Soon
+                  </span>
+                ) : (
+                  <Link
+                    href={track.href}
+                    className={cn(
+                      'inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      skin.button,
+                    )}
+                  >
+                    {track.ctaLabel}
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </Link>
                 )}
               </div>
-            </dl>
-
-            <div className="mt-5 flex flex-1 items-end gap-2.5">
-              <Button asChild variant="outline" size="sm" className="flex-1">
-                <Link href={track.href}>View details</Link>
-              </Button>
-              <Button asChild size="sm" className={cn('flex-1', accent.button)}>
-                <Link href={track.href}>
-                  {track.ctaLabel}
-                  <ArrowRight aria-hidden="true" />
-                </Link>
-              </Button>
             </div>
-
-            {/* Honest readiness signal rather than a silent empty catalogue. */}
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

@@ -53,10 +53,10 @@ export interface TrackSummary {
 const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount' | 'fromPriceInPaise' | 'isFree'>> = {
   DAILY_CHALLENGE: {
     key: 'DAILY_CHALLENGE',
-    title: 'AVK Envisions KS50',
+    title: 'AVK Envisions KAS-50',
     blurb: '50 Questions × 50 Days — test, analyse, revise, excel.',
     href: '/50-days',
-    ctaLabel: 'Join KS50',
+    ctaLabel: 'Join KAS-50',
     iconName: 'CalendarDays',
     ribbon: 'Popular',
     comingSoon: false,

@@ -45,6 +45,29 @@ const TRACKS: Record<string, { key: TrackKey; title: string; eyebrow: string; bl
     blurb:
       'Full-length tests in the exact prelims pattern, each followed by All India ranking, percentile and a complete subject-level breakdown.',
   },
+  // The three remaining tracks. Without these, "View details" on the courses
+  // page 404'd for previous-year papers, KAS-50 and chapterwise.
+  'previous-year-papers': {
+    key: 'PYQ',
+    title: 'KPSC KAS Prelims — Previous Year Papers',
+    eyebrow: 'Previous Year Question Papers',
+    blurb:
+      'Every paper KPSC has set, with the full analysis for each. The complete 2011 paper is free, so you can see exactly what you get before paying for another year.',
+  },
+  'kas-50': {
+    key: 'DAILY_CHALLENGE',
+    title: 'AVK Envisions KAS-50',
+    eyebrow: 'KAS 50 Questions × 50 Days',
+    blurb:
+      'One fifty-question paper a day for fifty days, with answers and explanations the moment you finish and your streak tracked throughout.',
+  },
+  'chapterwise': {
+    key: 'CHAPTERWISE',
+    title: 'KPSC KAS Prelims — Chapter-wise Practice',
+    eyebrow: 'Chapter-wise Practice',
+    blurb:
+      'Work through the standard reference books chapter by chapter — Laxmikanth, Spectrum, NCERT, Shankar IAS and the Economic Survey — with a test for each chapter.',
+  },
 };
 
 export function generateStaticParams() {
