@@ -49,6 +49,7 @@ async function main() {
       id: true,
       slug: true,
       status: true,
+      priceInPaise: true,
       tests: { where: { deletedAt: null }, select: { status: true, totalQuestions: true } },
     },
   });
@@ -57,9 +58,14 @@ async function main() {
   // empty — and slipped through when this only checked the latter. Five
   // chapterwise series were advertised on the catalogue with nothing behind
   // them, so a student clicking "Chapterwise Polity" got an empty page.
+  // A priced series is a deliberate offer whose content is still being
+  // written, and its page says so — locked cards, an unlock button, no claim
+  // that anything is attemptable. Hiding those would take the shelf down
+  // rather than the empty promise, which is the opposite of the intent here.
   const hollow = series.filter(
     (s) =>
       s.status === 'PUBLISHED' &&
+      s.priceInPaise === 0 &&
       (s.tests.length === 0 || s.tests.every((t) => t.totalQuestions === 0)),
   );
 

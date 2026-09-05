@@ -349,8 +349,13 @@ export const getPyqPaper = cache(async (slug: string) => {
 // ---------------------------------------------------------------------------
 
 export const getChapterwiseSubjects = cache(async () => {
+  // Drafts are included deliberately. These subjects are a published, priced
+  // offer whose chapter tests are still being written, and the page shows them
+  // locked rather than hiding the shelf entirely — a visitor should be able to
+  // see what the series covers before buying it. Whether one is attemptable is
+  // decided per subject below, not by hiding the row.
   const series = await db.testSeries.findMany({
-    where: { track: 'CHAPTERWISE', status: 'PUBLISHED', deletedAt: null },
+    where: { track: 'CHAPTERWISE', deletedAt: null },
     orderBy: { sortOrder: 'asc' },
     select: {
       id: true,
@@ -360,11 +365,14 @@ export const getChapterwiseSubjects = cache(async () => {
       description: true,
       iconName: true,
       accentHex: true,
+      status: true,
       priceInPaise: true,
       comparePriceInPaise: true,
+      tier1PriceInPaise: true,
+      tier1Limit: true,
       featuresJson: true,
       tests: {
-        where: { status: 'PUBLISHED', deletedAt: null },
+        where: { deletedAt: null },
         select: { totalQuestions: true },
       },
     },
@@ -374,6 +382,8 @@ export const getChapterwiseSubjects = cache(async () => {
     ...s,
     features: parseJsonColumn(s.featuresJson, stringArraySchema, []),
     chapterCount: s.tests.length,
+    /** Ready to attempt: published, and with at least one chapter test in it. */
+    isReady: s.status === 'PUBLISHED' && s.tests.some((t) => t.totalQuestions > 0),
   }));
 });
 

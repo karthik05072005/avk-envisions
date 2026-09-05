@@ -53,6 +53,14 @@ const PLANS: Plan[] = [
 
   // Full-length mocks — ₹99 for the first 50, then ₹199.
   { slug: 'kas-prelims-paid-test-series', price: 199, earlyBird: 99, earlyBirdLimit: 50 },
+
+  // Chapterwise, priced per subject. Each is bought on its own, which is why
+  // the page offers both "Unlock Now" per subject and "Unlock All Subjects".
+  { slug: 'chapterwise-polity', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
+  { slug: 'chapterwise-history', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
+  { slug: 'chapterwise-geography', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
+  { slug: 'chapterwise-environment', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
+  { slug: 'chapterwise-economy', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
 ];
 
 async function main() {
