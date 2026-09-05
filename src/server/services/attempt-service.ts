@@ -925,7 +925,18 @@ export async function getAttemptResult(attemptId: string, userId: string) {
       startedAt: true,
       submittedAt: true,
       snapshotJson: true,
-      test: { select: { id: true, title: true, slug: true, durationMinutes: true } },
+      test: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          durationMinutes: true,
+          synopsisFileName: true,
+          // The series document is the fallback, which is how one 2011
+          // analysis serves every paper cut from it.
+          testSeries: { select: { synopsisFileName: true } },
+        },
+      },
       answers: {
         select: {
           testQuestionId: true,

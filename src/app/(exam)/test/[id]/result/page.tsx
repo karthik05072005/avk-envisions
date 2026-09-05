@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CircleSlash,
   Clock,
+  FileText,
   Gauge,
   Target,
   RotateCcw,
@@ -65,6 +66,11 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
 
   const result = await getAttemptResult(id, user.id).catch(() => null);
   if (!result) notFound();
+
+  // The test's own analysis, or the series document it falls back to.
+  const hasSynopsis = Boolean(
+    result.test.synopsisFileName ?? result.test.testSeries?.synopsisFileName,
+  );
 
   const { attempt, test, review, breakdowns } = result;
 
@@ -197,6 +203,18 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
                 <Button asChild size="sm" variant="outline">
                   <Link href="/wrong-questions">Review incorrect questions</Link>
                 </Button>
+
+                {/* The analysis, offered where a student has just earned it.
+                    It was reachable only from the series page, which is a step
+                    backwards from the result they are already looking at. */}
+                {hasSynopsis && (
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/synopsis/test/${result.test.id}`}>
+                      <FileText aria-hidden="true" />
+                      Read the analysis
+                    </Link>
+                  </Button>
+                )}
               </div>
 
               {!retake.canRetake && retake.max > 0 && (

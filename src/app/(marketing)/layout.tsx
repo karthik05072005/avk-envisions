@@ -1,3 +1,4 @@
+import { FeedbackWidget } from '@/components/site/feedback-widget';
 import { SiteFooter } from '@/components/site/site-footer';
 import { SiteHeader } from '@/components/site/site-header';
 import { currentUser } from '@/server/auth/guards';
@@ -32,6 +33,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
       />
       <main id="main-content" className="flex-1">
         {children}
+      <FeedbackWidget />
       </main>
       <SiteFooter />
     </div>

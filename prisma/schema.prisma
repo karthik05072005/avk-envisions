@@ -104,6 +104,7 @@ model User {
 
   notifications  Notification[]
   ticketsOpened  SupportTicket[]  @relation("TicketAuthor")
+  feedback       Feedback[]       @relation("FeedbackAuthor")
   ticketsAssigned SupportTicket[] @relation("TicketAssignee")
   supportMessages SupportMessage[]
 
@@ -2234,4 +2235,33 @@ model Job {
   @@index([status, runAt, priority])
   @@index([type, status])
   @@map("jobs")
+}
+
+/// Site-wide feedback: "Your feedback helps us improve".
+///
+/// Separate from SupportTicket, which requires an account and expects a
+/// conversation. This is a single message anyone can leave — including a guest
+/// browsing the catalogue, who is exactly the person most likely to notice
+/// something confusing and least likely to sign up to say so.
+model Feedback {
+  id String @id @default(cuid())
+
+  /// Null for a guest.
+  userId String?
+  user   User?   @relation("FeedbackAuthor", fields: [userId], references: [id], onDelete: SetNull)
+
+  /// Where they were when they wrote it, which is most of the context.
+  page String
+
+  message String
+  /// Optional, so someone can be replied to if they want a reply.
+  email   String?
+
+  /// NEW | READ | ACTIONED
+  status String @default("NEW")
+
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@map("feedback")
 }

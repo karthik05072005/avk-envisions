@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Clock, Flame, Target, TrendingUp, Trophy } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { BuyButton } from '@/features/checkout/buy-button';
 import { cn, formatPaise } from '@/lib/utils';
 import { db } from '@/server/db';
 import { countEnrolledMany, resolvePricing } from '@/server/services/pricing-service';
@@ -274,17 +275,30 @@ export default async function PricingPage() {
                             )}
                           </div>
 
-                          <Link
-                            href={plan.href}
-                            className={cn(
-                              'flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold transition-colors',
-                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                              plan.button,
-                            )}
-                          >
-                            {plan.cta}
-                            <ArrowRight className="size-4" aria-hidden="true" />
-                          </Link>
+                          {/* A priced plan opens checkout here. Sending someone
+                              to a catalogue page to find a buy button somewhere
+                              else is how the pricing page ended up with no way
+                              to pay from it at all. */}
+                          {isFree || !plan.slug ? (
+                            <Link
+                              href={plan.href}
+                              className={cn(
+                                'flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold transition-colors',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                plan.button,
+                              )}
+                            >
+                              {plan.cta}
+                              <ArrowRight className="size-4" aria-hidden="true" />
+                            </Link>
+                          ) : (
+                            <BuyButton
+                              seriesSlug={plan.slug}
+                              label={plan.cta}
+                              size="default"
+                              className={cn('w-full rounded-none', plan.button)}
+                            />
+                          )}
                         </div>
                       )}
                     </div>

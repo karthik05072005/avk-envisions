@@ -17,6 +17,7 @@ import {
   LifeBuoy,
   LogOut,
   Menu,
+  MessageSquare,
   Newspaper,
   Receipt,
   Settings,
@@ -80,6 +81,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       { href: '/admin/orders', label: 'Orders', icon: Receipt },
       { href: '/admin/support', label: 'Support', icon: LifeBuoy },
       { href: '/admin/reports', label: 'Reported questions', icon: Flag },
+      { href: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
     ],
   },
   {
