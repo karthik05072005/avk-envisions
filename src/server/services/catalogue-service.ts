@@ -58,7 +58,7 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
     href: '/50-days',
     ctaLabel: 'Join KS50',
     iconName: 'CalendarDays',
-    ribbon: 'New',
+    ribbon: 'Popular',
     comingSoon: false,
     benefits: [
       '50 carefully curated questions every day',
@@ -94,7 +94,7 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
     href: '/courses/paid-test-series',
     ctaLabel: 'Explore tests',
     iconName: 'ClipboardList',
-    ribbon: 'Most useful',
+    ribbon: 'Most Useful',
     comingSoon: false,
     benefits: [
       '100 questions per test, just like the real exam',
@@ -112,7 +112,7 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
     href: '/pyq',
     ctaLabel: 'Solve PYQs',
     iconName: 'FileQuestion',
-    ribbon: 'Most important',
+    ribbon: 'Most Important',
     comingSoon: false,
     benefits: [
       'Year-wise previous year questions',
