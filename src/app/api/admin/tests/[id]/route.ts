@@ -40,7 +40,11 @@ export const PUT = route(async ({ request, params, ip }) => {
     where: { id },
     data: {
       examId: input.examId,
-      testSeriesId: input.testSeriesId ?? null,
+      // `undefined` means "leave alone" to Prisma; `null` means "clear it".
+      // Collapsing both to null detached a test from its series whenever the
+      // caller simply did not send the field — which silently removed a day
+      // from the fifty-day challenge and lost its schedule date with it.
+      testSeriesId: input.testSeriesId === undefined ? undefined : input.testSeriesId,
       title: input.title,
       slug: input.slug,
       description: input.description ?? null,
@@ -57,8 +61,8 @@ export const PUT = route(async ({ request, params, ip }) => {
       randomizeQuestions: input.randomizeQuestions,
       randomizeOptions: input.randomizeOptions,
       showResultImmediately: input.showResultImmediately,
-      startDate: input.startDate ?? null,
-      endDate: input.endDate ?? null,
+      startDate: input.startDate === undefined ? undefined : input.startDate,
+      endDate: input.endDate === undefined ? undefined : input.endDate,
       publishedAt:
         input.status === 'PUBLISHED' ? (existing.publishedAt ?? new Date()) : existing.publishedAt,
     },

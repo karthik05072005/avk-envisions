@@ -27,7 +27,14 @@ export interface ChallengeDay {
   testId: string;
   slug: string;
   dayNumber: number;
+  /** The day's key focus — what the admin titles the paper. */
   title: string;
+  /** The topics it covers, from the test's description. */
+  topics: string | null;
+  /** 1 or 2, so the page can filter by paper. */
+  paperNumber: number | null;
+  /** Subject name, which is what the schedule groups by. */
+  subject: string | null;
   questionCount: number;
   durationMinutes: number;
   /** Null when the admin has not dated this day yet. */
@@ -81,6 +88,9 @@ export async function getChallenge(userId?: string | null): Promise<ChallengeOve
           id: true,
           slug: true,
           title: true,
+          description: true,
+          paperNumber: true,
+          subject: { select: { name: true } },
           status: true,
           startDate: true,
           durationMinutes: true,
@@ -131,6 +141,9 @@ export async function getChallenge(userId?: string | null): Promise<ChallengeOve
         slug: test.slug,
         dayNumber: dayNumberOf(test.slug),
         title: test.title,
+        topics: test.description,
+        paperNumber: test.paperNumber,
+        subject: test.subject?.name ?? null,
         questionCount: test.totalQuestions,
         durationMinutes: test.durationMinutes,
         opensAt,

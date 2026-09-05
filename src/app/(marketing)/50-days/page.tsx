@@ -1,32 +1,72 @@
+import * as React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { CalendarDays, CheckCircle2, Flame, Lock } from 'lucide-react';
+import {
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Lock,
+  Target,
+  Trophy,
+} from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/states';
 import { cn, formatDate } from '@/lib/utils';
 import { getSession } from '@/server/auth/session';
-import { getChallenge } from '@/server/services/daily-challenge-service';
+import { getChallenge, type ChallengeDay } from '@/server/services/daily-challenge-service';
 
 export const metadata: Metadata = {
-  title: 'KAS 50 Questions · 50 Days',
+  title: 'KAS 50 Days · 50 Questions',
   description:
-    'One 50-question KAS paper every day for fifty days, with answers and explanations as soon as you finish.',
+    'A fifty-day KAS Prelims schedule: one paper a day, subject by subject, with answers and a synopsis after each test.',
 };
 
 export const dynamic = 'force-dynamic';
 
-/**
- * The fifty-day challenge.
- *
- * Lives in the marketing group, not the app shell, so it is readable without an
- * account — the whole point is that someone can see the plan before committing
- * to it. Signing in adds their progress and streak.
- */
-export default async function FiftyDaysPage() {
-  const session = await getSession();
+/** Colour per subject block, cycled so a new subject still reads as a group. */
+const BAND_TINTS = [
+  'bg-blue-50 text-blue-900 dark:bg-blue-950/30 dark:text-blue-200',
+  'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200',
+  'bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200',
+  'bg-violet-50 text-violet-900 dark:bg-violet-950/30 dark:text-violet-200',
+  'bg-rose-50 text-rose-900 dark:bg-rose-950/30 dark:text-rose-200',
+  'bg-sky-50 text-sky-900 dark:bg-sky-950/30 dark:text-sky-200',
+];
+
+/** Days in order, split into the consecutive runs that share a subject. */
+function groupBySubject(days: ChallengeDay[]) {
+  const bands: { key: string; heading: string; days: ChallengeDay[] }[] = [];
+
+  for (const day of days) {
+    const heading = [
+      day.paperNumber ? `Paper ${day.paperNumber}` : null,
+      day.subject,
+    ]
+      .filter(Boolean)
+      .join(' – ')
+      .toUpperCase();
+
+    const last = bands[bands.length - 1];
+    // A run ends when the heading changes, so the same subject appearing again
+    // later in the schedule forms its own band rather than being merged into
+    // the earlier one and losing its place in the calendar.
+    if (last && last.heading === heading) {
+      last.days.push(day);
+    } else {
+      bands.push({ key: `${heading}-${day.dayNumber}`, heading: heading || 'SCHEDULE', days: [day] });
+    }
+  }
+
+  return bands;
+}
+
+export default async function FiftyDaysPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const [session, query] = await Promise.all([getSession(), searchParams]);
   const challenge = await getChallenge(session?.user.id ?? null);
 
   if (!challenge || !challenge.isPublished) {
@@ -34,133 +74,216 @@ export default async function FiftyDaysPage() {
       <div className="container py-16">
         <EmptyState
           icon={CalendarDays}
-          title="50 Questions · 50 Days is on its way"
-          description="The challenge has not opened yet. Check back shortly."
+          title="KAS 50 Days is on its way"
+          description="The schedule has not opened yet. Check back shortly."
           action={{ label: 'Browse the test series', href: '/test-series' }}
         />
       </div>
     );
   }
 
-  const today = challenge.days.find((day) => day.isToday && day.isAvailable);
-  // Falls back to the most recent open day, so someone arriving late — or on a
-  // day with no paper — still has something to start.
-  const next =
-    today ?? [...challenge.days].reverse().find((day) => day.isAvailable) ?? null;
+  const paperFilter = query.paper === '1' || query.paper === '2' ? Number(query.paper) : null;
+  const shown = paperFilter
+    ? challenge.days.filter((day) => day.paperNumber === paperFilter)
+    : challenge.days;
+
+  const paper1 = challenge.days.filter((d) => d.paperNumber === 1).length;
+  const paper2 = challenge.days.filter((d) => d.paperNumber === 2).length;
+
+  const dated = challenge.days.filter((d) => d.opensAt !== null);
+  const firstDay = dated[0]?.opensAt ?? null;
+  const lastDay = dated[dated.length - 1]?.opensAt ?? null;
+  const totalQuestions = challenge.days.reduce((sum, d) => sum + d.questionCount, 0);
+
+  const bands = groupBySubject(shown);
+
+  const TABS: { label: string; href: string; active: boolean }[] = [
+    {
+      label: `All Tests (${challenge.days.length})`,
+      href: '/50-days',
+      active: paperFilter === null,
+    },
+    ...(paper1 > 0
+      ? [{ label: `Paper 1 (${paper1})`, href: '/50-days?paper=1', active: paperFilter === 1 }]
+      : []),
+    ...(paper2 > 0
+      ? [{ label: `Paper 2 (${paper2})`, href: '/50-days?paper=2', active: paperFilter === 2 }]
+      : []),
+  ];
 
   return (
-    <div className="container max-w-5xl space-y-8 py-10 sm:py-14">
-      <header className="text-center">
-        <Badge variant="info">Free · no payment needed</Badge>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-          KAS 50 Questions · 50 Days
-        </h1>
-        <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-          {challenge.description ??
-            'One 50-question paper every day for fifty days, right up to the exam.'}
+    <div className="container max-w-7xl py-8 sm:py-10">
+      <header className="flex flex-wrap items-start justify-between gap-6">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            KAS 50 Days Test Series
+          </p>
+          <h1 className="mt-2 text-3xl font-extrabold uppercase tracking-tight sm:text-4xl">
+            KAS 50 Days · 50 Questions
+          </h1>
+
+          <dl className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+            {firstDay && lastDay && (
+              <div className="flex items-center gap-1.5">
+                <CalendarDays className="size-4 text-primary" aria-hidden="true" />
+                {formatDate(firstDay)} → {formatDate(lastDay)}
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <FileText className="size-4 text-primary" aria-hidden="true" />
+              {challenge.days.length} Days • {totalQuestions.toLocaleString('en-IN')} Questions
+            </div>
+            {session && (
+              <div className="flex items-center gap-1.5">
+                <Target className="size-4 text-primary" aria-hidden="true" />
+                {challenge.completedCount} finished • streak {challenge.currentStreak}
+              </div>
+            )}
+          </dl>
+        </div>
+
+        <p className="rounded-xl bg-primary-muted/60 px-4 py-3 text-sm font-semibold leading-snug">
+          <Trophy className="mb-1 size-5 text-primary" aria-hidden="true" />
+          <br />
+          Stay consistent.
+          <br />
+          Practice daily.
+          <br />
+          Crack KAS.
         </p>
-
-        <dl className="mt-6 flex flex-wrap justify-center gap-x-10 gap-y-3">
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Papers ready</dt>
-            <dd className="text-xl font-semibold tabular-nums">
-              {challenge.readyCount} / {challenge.plannedCount}
-            </dd>
-          </div>
-          {session && (
-            <>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                  You have finished
-                </dt>
-                <dd className="text-xl font-semibold tabular-nums">{challenge.completedCount}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">Streak</dt>
-                <dd className="flex items-center justify-center gap-1.5 text-xl font-semibold tabular-nums">
-                  {challenge.currentStreak > 0 && (
-                    <Flame className="size-4 text-warning" aria-hidden="true" />
-                  )}
-                  {challenge.currentStreak}
-                </dd>
-              </div>
-            </>
-          )}
-        </dl>
-
-        {next && (
-          <Button asChild size="lg" className="mt-6">
-            <Link href={`/start/${next.testId}`}>
-              {next.isToday ? "Start today's paper" : `Start Day ${next.dayNumber}`}
-            </Link>
-          </Button>
-        )}
       </header>
 
-      {challenge.readyCount === 0 ? (
-        <EmptyState
-          icon={CalendarDays}
-          title="The first paper is being prepared"
-          description="Days appear here as they are published. Nothing to attempt just yet."
-        />
+      {challenge.days.length === 0 ? (
+        <div className="mt-8">
+          <EmptyState
+            icon={CalendarDays}
+            title="The first paper is being prepared"
+            description="Days appear here as they are published. Nothing to attempt just yet."
+          />
+        </div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {challenge.days.map((day) => {
-            const done = Boolean(day.attempt);
+        <>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            {TABS.map((tab) => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={cn(
+                  'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+                  tab.active
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/70',
+                )}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </div>
 
-            return (
-              <li key={day.testId}>
-                <div
-                  className={cn(
-                    'flex h-full flex-col rounded-xl border p-4',
-                    day.isToday && day.isAvailable
-                      ? 'border-primary bg-primary-muted/40'
-                      : 'border-border',
-                    !day.isAvailable && 'opacity-60',
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold">Day {day.dayNumber}</span>
-                    {done ? (
-                      <Badge variant="success" size="sm">
-                        <CheckCircle2 className="size-3" aria-hidden="true" />
-                        Done
-                      </Badge>
-                    ) : day.isToday && day.isAvailable ? (
-                      <Badge variant="info" size="sm">
-                        Today
-                      </Badge>
-                    ) : !day.isAvailable ? (
-                      <Lock className="size-3.5 text-muted-foreground" aria-hidden="true" />
-                    ) : null}
-                  </div>
+          {/* Wide table, so it scrolls inside its own box rather than pushing
+              the page sideways on a phone. */}
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
+            <table className="w-full min-w-[56rem] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-left">
+                  <th scope="col" className="px-4 py-3 font-semibold">Day</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Date</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Paper</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Subject</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Key Focus</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Relevant Topics</th>
+                  <th scope="col" className="px-4 py-3 text-center font-semibold">Actions</th>
+                </tr>
+              </thead>
 
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {day.questionCount} questions · {day.durationMinutes} min
-                  </p>
+              <tbody>
+                {bands.map((band, bandIndex) => (
+                  // Fragment needs the key, not the first row inside it —
+                  // otherwise React reconciles the band rows by position and
+                  // warns about a missing key on the list.
+                  <React.Fragment key={band.key}>
+                    <tr className={BAND_TINTS[bandIndex % BAND_TINTS.length]}>
+                      <th scope="colgroup" colSpan={6} className="px-4 py-2.5 text-left font-bold">
+                        {band.heading}
+                      </th>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="rounded-full bg-background/70 px-2.5 py-0.5 text-xs font-semibold">
+                          {band.days.length} {band.days.length === 1 ? 'Test' : 'Tests'}
+                        </span>
+                      </td>
+                    </tr>
 
-                  {day.attempt ? (
-                    <p className="mt-2 text-sm font-medium tabular-nums">
-                      {day.attempt.score} / {day.attempt.maxScore}
-                    </p>
-                  ) : day.opensAt && !day.isAvailable ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Opens {formatDate(day.opensAt)}
-                    </p>
-                  ) : null}
+                    {band.days.map((day) => (
+                      <tr key={day.testId} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3 font-semibold tabular-nums">{day.dayNumber}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {day.opensAt ? formatDate(day.opensAt) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {day.paperNumber ? `Paper ${day.paperNumber}` : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{day.subject ?? '—'}</td>
+                        <td className="px-4 py-3 font-medium">{day.title}</td>
+                        <td className="max-w-sm px-4 py-3 text-muted-foreground">
+                          {day.topics ?? '—'}
+                        </td>
 
-                  {day.isAvailable && (
-                    <Button asChild size="sm" variant={done ? 'ghost' : 'default'} className="mt-3">
-                      <Link href={done ? `/test/${day.testId}/result` : `/start/${day.testId}`}>
-                        {done ? 'See your result' : 'Start'}
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-2">
+                            {day.isAvailable ? (
+                              <Link
+                                href={
+                                  day.attempt
+                                    ? `/test/${day.testId}/result`
+                                    : `/start/${day.testId}`
+                                }
+                                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                              >
+                                {day.attempt ? (
+                                  <>
+                                    <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                                    Result
+                                  </>
+                                ) : (
+                                  'Take Test'
+                                )}
+                              </Link>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-medium text-muted-foreground">
+                                <Lock className="size-3.5" aria-hidden="true" />
+                                {day.opensAt && day.opensAt > new Date() ? 'Locked' : 'Soon'}
+                              </span>
+                            )}
+
+                            {/* The synopsis is gated on finishing the paper, so
+                                it is offered only where one exists. */}
+                            {day.hasSynopsis ? (
+                              <Link
+                                href={`/synopsis/test/${day.testId}`}
+                                className="inline-flex items-center rounded-lg border border-primary/40 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary-muted/50"
+                              >
+                                Synopsis
+                              </Link>
+                            ) : (
+                              <span className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
+                                —
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+            <Clock className="size-4" aria-hidden="true" />
+            Showing {shown.length} of {challenge.days.length} tests.
+          </p>
+        </>
       )}
     </div>
   );
