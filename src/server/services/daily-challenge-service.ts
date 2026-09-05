@@ -160,10 +160,10 @@ export async function getChallenge(userId?: string | null): Promise<ChallengeOve
           : null,
       };
     })
-    // Only days that actually hold questions. Fifty placeholder cards for
-    // papers nobody has written yet is noise on the page and a promise the
-    // site cannot keep — a day appears the moment the admin fills it.
-    .filter((day) => day.questionCount > 0)
+    // Every scheduled day, whether or not its paper is written yet. The page
+    // is a published timetable — a student is meant to see what falls on which
+    // date well before those papers exist, and each row says for itself whether
+    // it can be attempted.
     .sort((a, b) => a.dayNumber - b.dayNumber);
 
   // Counted backwards from the most recent open day: the streak a student cares
@@ -181,7 +181,8 @@ export async function getChallenge(userId?: string | null): Promise<ChallengeOve
     description: series.description,
     isPublished: series.status === 'PUBLISHED',
     days,
-    readyCount: days.length,
+    // Days with a paper behind them, which is not the same as days listed.
+    readyCount: days.filter((day) => day.questionCount > 0).length,
     plannedCount: series.tests.length,
     completedCount: days.filter((d) => d.attempt).length,
     currentStreak,
