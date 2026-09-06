@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TEST_CATEGORY_LABELS, type TestCategory } from '@/lib/enums';
 import { formatDuration, formatPaise } from '@/lib/utils';
+import { FreeSeriesSchedule } from '@/features/marketing/free-series-schedule';
 import { getAllTestSeries, getTestSeriesBySlug } from '@/server/services/marketing-service';
+
+/** The free series renders as a schedule; every other series keeps the pitch. */
+const FREE_SERIES_SLUG = 'kas-prelims-free-test-series';
 
 export async function generateStaticParams() {
   const series = await getAllTestSeries();
@@ -41,6 +45,27 @@ export default async function TestSeriesDetailPage({
   const series = await getTestSeriesBySlug(slug);
 
   if (!series) notFound();
+
+  // The free series is a published timetable, not a pitch: nothing is being
+  // sold, so the page shows every test and what can be attempted today rather
+  // than the pricing and feature blocks the paid series need.
+  if (slug === FREE_SERIES_SLUG) {
+    return (
+      <FreeSeriesSchedule
+        name={series.name}
+        tagline={series.tagline}
+        tests={series.tests.map((test) => ({
+          id: test.id,
+          slug: test.slug,
+          title: test.title,
+          durationMinutes: test.durationMinutes,
+          totalQuestions: test.totalQuestions,
+          startDate: test.startDate,
+          synopsisFileName: test.synopsisFileName,
+        }))}
+      />
+    );
+  }
 
   const freeTests = series.tests.filter((test) => test.accessType === 'FREE');
 

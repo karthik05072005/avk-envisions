@@ -323,7 +323,9 @@ export const getTestSeriesBySlug = cache(async (slug: string) => {
       },
       tests: {
         where: { status: 'PUBLISHED', deletedAt: null },
-        orderBy: [{ category: 'asc' }, { createdAt: 'asc' }],
+        // By slug, so "Free Test 2" follows "Free Test 1" rather than sorting
+        // as text where 10 lands between 1 and 2.
+        orderBy: [{ category: 'asc' }, { slug: 'asc' }],
         select: {
           id: true,
           title: true,
@@ -333,6 +335,11 @@ export const getTestSeriesBySlug = cache(async (slug: string) => {
           totalQuestions: true,
           totalMarks: true,
           accessType: true,
+          // A schedule needs to say whether a paper is open yet, and whether
+          // its analysis exists, without a second query per row.
+          startDate: true,
+          synopsisFileName: true,
+          paperNumber: true,
         },
       },
       _count: { select: { tests: { where: { status: 'PUBLISHED', deletedAt: null } } } },

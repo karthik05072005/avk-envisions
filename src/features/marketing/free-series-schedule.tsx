@@ -1,0 +1,235 @@
+import Link from 'next/link';
+import { BookOpen, Clock, FileText, Info, Lock, Play } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+
+/**
+ * The free series as a timetable rather than a sales page.
+ *
+ * Every test is listed, open or not. The series is a published plan — a
+ * student is meant to see the whole run before the later papers exist — so a
+ * row that is not ready says so rather than being hidden, and each row carries
+ * its own state instead of the page hiding what it cannot yet offer.
+ */
+
+export interface ScheduleTest {
+  id: string;
+  slug: string;
+  title: string;
+  durationMinutes: number;
+  totalQuestions: number;
+  startDate: Date | null;
+  synopsisFileName: string | null;
+}
+
+interface Props {
+  name: string;
+  tagline: string | null;
+  tests: ScheduleTest[];
+}
+
+/** Open when it has questions and either no date or a date already past. */
+function isOpen(test: ScheduleTest): boolean {
+  if (test.totalQuestions === 0) return false;
+  return test.startDate === null || test.startDate <= new Date();
+}
+
+export function FreeSeriesSchedule({ name, tagline, tests }: Props) {
+  // Quoted from the tests themselves, so the header cannot drift from what the
+  // table shows. Where the written papers disagree the most common count is
+  // used rather than "varies": every paper here is planned at the same length,
+  // and one still being filled should not make the series look inconsistent.
+  const written = tests.map((t) => t.totalQuestions).filter((n) => n > 0);
+  const commonest = written.length
+    ? [...written].sort(
+        (a, b) =>
+          written.filter((n) => n === b).length - written.filter((n) => n === a).length || b - a,
+      )[0]
+    : null;
+  const durations = [...new Set(tests.map((t) => t.durationMinutes))];
+
+  return (
+    <div className="container max-w-5xl py-8 sm:py-10">
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          Free Test Series
+        </p>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{name}</h1>
+            {tagline && (
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                {tagline}
+              </p>
+            )}
+          </div>
+
+          <p className="hidden shrink-0 rounded-2xl bg-primary-muted/60 px-5 py-4 text-center text-sm font-semibold italic leading-snug sm:block">
+            Practice Today
+            <br />
+            Perform Tomorrow
+          </p>
+        </div>
+
+        <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+          <Stat icon={FileText} label="Total tests" value={String(tests.length)} />
+          <Stat
+            icon={BookOpen}
+            label="Questions per test"
+            value={commonest === null ? '—' : String(commonest)}
+          />
+          <Stat
+            icon={Clock}
+            label="Duration per test"
+            value={durations.length === 1 ? `${durations[0]} minutes` : 'varies'}
+          />
+        </dl>
+      </header>
+
+      <section className="mt-7 overflow-hidden rounded-2xl border border-border">
+        <h2 className="bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-wide text-primary-foreground">
+          Test schedule
+        </h2>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[38rem] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                <th scope="col" className="w-14 px-4 py-2.5 font-medium">No.</th>
+                <th scope="col" className="px-3 py-2.5 font-medium">Test</th>
+                <th scope="col" className="w-28 px-3 py-2.5 font-medium">Duration</th>
+                <th scope="col" className="w-44 px-3 py-2.5 font-medium">Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {tests.map((test, index) => {
+                const open = isOpen(test);
+
+                return (
+                  <tr
+                    key={test.id}
+                    className={cn(
+                      'border-b border-border last:border-0',
+                      !open && 'bg-muted/40 text-muted-foreground',
+                    )}
+                  >
+                    <td className="px-4 py-3.5">
+                      <span
+                        className={cn(
+                          'flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums',
+                          open ? 'bg-primary-muted text-primary' : 'bg-muted',
+                        )}
+                      >
+                        {index + 1}
+                      </span>
+                    </td>
+
+                    <td className="px-3 py-3.5">
+                      <p className={cn('font-semibold leading-tight', open && 'text-foreground')}>
+                        {test.title}
+                      </p>
+                      <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <BookOpen className="size-3.5" aria-hidden="true" />
+                        {test.totalQuestions > 0
+                          ? `${test.totalQuestions} questions`
+                          : 'Questions being added'}
+                      </p>
+                    </td>
+
+                    <td className="px-3 py-3.5 text-sm tabular-nums">
+                      {test.durationMinutes} min
+                    </td>
+
+                    <td className="px-3 py-3.5">
+                      {open ? (
+                        <div className="flex flex-col gap-1.5">
+                          <Link
+                            href={`/start/${test.id}`}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <Play className="size-3.5" aria-hidden="true" />
+                            Start
+                          </Link>
+
+                          {test.synopsisFileName && (
+                            <Link
+                              href={`/synopsis/test/${test.id}`}
+                              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <FileText className="size-3.5" aria-hidden="true" />
+                              Synopsis
+                            </Link>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-sm">
+                          <Lock className="size-3.5" aria-hidden="true" />
+                          Unlocks soon
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p className="mt-5 flex items-start gap-3 rounded-2xl border border-border bg-primary-muted/30 p-4 text-sm sm:p-5">
+        <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+        <span className="min-w-0 flex-1 leading-relaxed">
+          <span className="font-semibold">Important instructions</span>
+          <br />
+          <span className="text-muted-foreground">
+            Free tests can be attempted on any day, in any order. Once started, a test must be
+            completed in one sitting — the timer runs on our servers and does not pause. You may
+            attempt each test at most 2 times.
+          </span>
+        </span>
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border px-4 py-3 text-xs text-muted-foreground sm:px-5">
+        <span className="font-semibold uppercase tracking-wide">Legend</span>
+        <span className="flex items-center gap-1.5">
+          <Play className="size-3.5 text-primary" aria-hidden="true" />
+          Active test
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Lock className="size-3.5" aria-hidden="true" />
+          Locked (will be available as per schedule)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <FileText className="size-3.5" aria-hidden="true" />
+          Synopsis available
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Clock;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
+      <span
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-muted text-primary"
+        aria-hidden="true"
+      >
+        <Icon className="size-4" />
+      </span>
+      <div className="min-w-0">
+        <dt className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">{label}</dt>
+        <dd className="text-lg font-bold leading-tight tabular-nums">{value}</dd>
+      </div>
+    </div>
+  );
+}
