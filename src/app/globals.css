@@ -278,3 +278,39 @@
     color: #000;
   }
 }
+
+/* The navigation panel slides in from the right rather than appearing, so the
+   eye follows it and the page underneath reads as still being there. Skipped
+   entirely for anyone who has asked for reduced motion. */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.22s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right,
+  .animate-fade-in {
+    animation: none;
+  }
+}

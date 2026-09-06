@@ -3,25 +3,52 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
+import {
+  BarChart3,
+  BookOpen,
+  Crown,
+  FileText,
+  Gift,
+  HelpCircle,
+  Home,
+  LayoutDashboard,
+  Layers,
+  LogOut,
+  Menu,
+  PenSquare,
+  Search,
+  Tag,
+  Target,
+  CalendarDays,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Logo } from '@/components/site/logo';
+import { NavPanel } from '@/components/site/nav-panel';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
+/**
+ * The sections, in the order the panel lists them.
+ *
+ * Labels are the client's own wording — "PyQ's", "KAS-50", "Paid Tests" — so
+ * the site reads the way their students hear it described, even where that
+ * differs from the page titles.
+ */
 const NAV_LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/courses', label: 'Courses' },
-  { href: '/pyq', label: 'PYQ Tests' },
-  { href: '/50-days', label: '50 Days' },
-  { href: '/chapterwise', label: 'Chapterwise' },
-  { href: '/test-series', label: 'Test Series' },
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/success-stories', label: 'Results' },
-  { href: '/blog', label: 'Blog' },
+  { href: '/', label: 'Home', icon: Home },
+  { href: '/courses', label: 'Courses', icon: BookOpen },
+  { href: '/pyq', label: "PyQ's", icon: FileText },
+  { href: '/50-days', label: 'KAS-50', icon: Target },
+  { href: '/test-series/kas-prelims-free-test-series', label: 'Free Tests', icon: Gift },
+  { href: '/test-series/kas-prelims-paid-test-series', label: 'Paid Tests', icon: Crown },
+  { href: '/chapterwise', label: 'Chapter-wise', icon: Layers },
+  { href: '/practice', label: 'Quiz', icon: HelpCircle },
+  { href: '/pricing', label: 'Pricing', icon: Tag },
+  { href: '/success-stories', label: 'Results', icon: BarChart3 },
+  { href: '/blog', label: 'Blog', icon: PenSquare },
 ] as const;
 
 export interface SiteHeaderProps {
@@ -82,124 +109,65 @@ export function SiteHeader({ session }: SiteHeaderProps) {
           : 'border-transparent bg-background',
       )}
     >
-      <div className="container flex h-16 items-center justify-between gap-4">
+      <div className="container flex h-16 items-center justify-between gap-3">
         <Logo />
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
-          {NAV_LINKS.map((link) => {
-            // Home matches only itself. `startsWith('/')` is true of every
-            // path, so the prefix rule below would light up Home on every page
-            // of the site.
-            const active =
-              link.href === '/'
-                ? pathname === '/'
-                : pathname === link.href || pathname.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* The sections live in the panel, not along the top. Nine of them
+            could only fit a bar by shrinking the labels until they read as
+            abbreviations, and the client's students know these by their full
+            names. */}
+        <div className="flex items-center gap-1.5">
+          {/* Points at the catalogue rather than a search page: there is no
+              public search yet, and a magnifier that 404s is worse than one
+              that lands somewhere a visitor can browse. */}
+          <Link
+            href="/courses"
+            aria-label="Browse courses"
+            className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Search className="size-4" aria-hidden="true" />
+          </Link>
 
-        <div className="flex items-center gap-2">
           <ThemeToggle className="hidden sm:inline-flex" />
 
-          {session ? (
-            <>
-              <Button asChild size="sm">
-                <Link href={session.dashboardHref}>
-                  <LayoutDashboard aria-hidden="true" />
-                  Dashboard
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={signOut}
-                disabled={signingOut}
-                className="hidden text-muted-foreground sm:inline-flex"
-              >
-                <LogOut aria-hidden="true" />
-                {signingOut ? 'Signing out…' : 'Sign out'}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-                <Link href="/login">Sign in</Link>
-              </Button>
-              <Button asChild variant="brand" size="sm">
-                <Link href="/register">Get started</Link>
-              </Button>
-            </>
+          {session && (
+            <Button asChild size="sm" className="hidden sm:inline-flex">
+              <Link href={session.dashboardHref}>
+                <LayoutDashboard aria-hidden="true" />
+                Dashboard
+              </Link>
+            </Button>
           )}
 
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="md:hidden"
-            onClick={() => setMobileOpen((open) => !open)}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
             aria-expanded={mobileOpen}
-            aria-controls="mobile-nav"
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-controls="site-nav-panel"
+            aria-label="Open menu"
+            className="flex size-10 items-center justify-center rounded-full border border-border transition-colors hover:bg-muted"
           >
-            {mobileOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-          </Button>
+            <Menu className="size-4" aria-hidden="true" />
+          </button>
         </div>
       </div>
 
-      {mobileOpen && (
-        <div
-          id="mobile-nav"
-          className="border-t border-border bg-background md:hidden animate-fade-in"
-        >
-          <nav className="container flex flex-col py-3" aria-label="Mobile">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-lg px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                {link.label}
-              </Link>
-            ))}
+      <div id="site-nav-panel">
+        <NavPanel
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          items={NAV_LINKS.map((link) => ({
+            href: link.href,
+            label: link.label,
+            icon: <link.icon className="size-[1.15rem]" />,
+          }))}
+          session={session}
+          onSignOut={signOut}
+          signingOut={signingOut}
+          pathname={pathname}
+        />
+      </div>
 
-            {session ? (
-              // The desktop control is hidden below `sm`, so without this a
-              // phone has no way out of the session at all.
-              <button
-                type="button"
-                onClick={signOut}
-                disabled={signingOut}
-                className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                {signingOut ? 'Signing out…' : 'Sign out'}
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                className="rounded-lg px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                Sign in
-              </Link>
-            )}
-
-            <div className="flex items-center justify-between px-3 pt-3">
-              <span className="text-sm text-muted-foreground">Appearance</span>
-              <ThemeToggle />
-            </div>
-          </nav>
-        </div>
-      )}
     </header>
   );
 }

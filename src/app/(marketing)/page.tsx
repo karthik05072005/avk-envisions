@@ -138,47 +138,47 @@ function Hero() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:56px_56px] opacity-40" />
       </div>
 
-      <div className="container relative py-20 sm:py-28 lg:py-32">
-        <div className="mx-auto max-w-3xl text-center">
-          <Badge variant="brand" className="mb-6 px-3 py-1">
-            <Sparkles aria-hidden="true" />
-            Built for serious exam preparation
-          </Badge>
-
-          <h1 className="text-balance text-display-md sm:text-display-lg lg:text-display-xl">
-            Prepare smarter.
-            <br />
-            <span className="bg-brand-gradient bg-clip-text text-transparent">
-              Perform better.
-            </span>{' '}
-            Achieve more.
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            AVK Envisions combines full-length mocks, sectional tests and a deep question bank with
-            analytics that tell you precisely which topics are costing you marks — and what to do
-            about them.
+      <div className="container relative py-14 sm:py-16 lg:py-20">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            KPSC KAS Exam Preparation Platform
           </p>
 
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <h1 className="mt-4 text-balance text-display-md sm:text-display-lg">
+            Prepare Smarter.
+            <br />
+            <span className="text-primary">Perform Better.</span>
+            <br />
+            Achieve More.
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground">
+            AVK Envisions provides high-quality study resources, chapterwise practice, full-length
+            tests and previous year papers — with detailed analytics to help you focus on what
+            matters.
+          </p>
+
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="xl" variant="brand" className="w-full sm:w-auto">
               <Link href="/test-series">
-                Explore test series
+                Explore Test Series
                 <ArrowRight aria-hidden="true" />
               </Link>
             </Button>
             <Button asChild size="xl" variant="outline" className="w-full sm:w-auto">
-              <Link href="/register">Start practising free</Link>
+              <Link href="/register">Start Practising Free</Link>
             </Button>
           </div>
 
-          <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            {['No credit card to start', 'Free mock tests included', 'Cancel anytime'].map((item) => (
-              <li key={item} className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-4 text-success" aria-hidden="true" />
-                {item}
-              </li>
-            ))}
+          <ul className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            {['No credit card required', 'Free mock tests included', 'Cancel anytime'].map(
+              (item) => (
+                <li key={item} className="flex items-center gap-1.5">
+                  <CheckCircle2 className="size-4 text-success" aria-hidden="true" />
+                  {item}
+                </li>
+              ),
+            )}
           </ul>
         </div>
       </div>
