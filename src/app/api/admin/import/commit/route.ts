@@ -24,16 +24,19 @@ export const POST = route(async ({ request, ip }) => {
   if (!exam) throw errors.notFound('Exam');
   if (!subject) throw errors.notFound('Subject');
 
-  // Resolve the destination test before writing anything.
-  let targetTestId: string | null = null;
+  // Resolve every existing destination before writing anything, so a bad id
+  // fails the whole import rather than leaving questions attached to some
+  // tests and not others.
+  const existingIds = input.destinations
+    .filter((d) => d.kind === 'EXISTING_TEST')
+    .map((d) => d.testId!);
 
-  if (input.target === 'EXISTING_TEST') {
-    const test = await db.test.findFirst({
-      where: { id: input.testId!, deletedAt: null },
+  if (existingIds.length > 0) {
+    const found = await db.test.findMany({
+      where: { id: { in: existingIds }, deletedAt: null },
       select: { id: true },
     });
-    if (!test) throw errors.notFound('Test');
-    targetTestId = test.id;
+    if (found.length !== new Set(existingIds).size) throw errors.notFound('Test');
   }
 
   // Question codes must be unique. Reserve a contiguous range up front rather
@@ -106,67 +109,102 @@ export const POST = route(async ({ request, ip }) => {
         createdIds.push(created.id);
       }
 
-      // --- Test ------------------------------------------------------------
-      if (input.target === 'NEW_TEST') {
-        const base = input.title!
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '')
-          .replace(/[\s_-]+/g, '-')
-          .replace(/^-+|-+$/g, '');
+      // --- Destinations ------------------------------------------------------
+      // The questions above were created once. Each destination gets its own
+      // link rows pointing at those same questions, which is what lets one
+      // import fill a subject drill and a mock without duplicating anything.
+      const attached: { testId: string; title: string; added: number; skipped: number }[] = [];
 
-        let slug = base;
-        let suffix = 1;
-        while (await tx.test.findUnique({ where: { slug }, select: { id: true } })) {
-          suffix += 1;
-          slug = `${base}-${suffix}`;
+      for (const destination of input.destinations) {
+        let testId: string;
+        let title: string;
+
+        if (destination.kind === 'NEW_TEST') {
+          const base = destination.title!
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/[\s_-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+          let slug = base;
+          let suffix = 1;
+          while (await tx.test.findUnique({ where: { slug }, select: { id: true } })) {
+            suffix += 1;
+            slug = `${base}-${suffix}`;
+          }
+
+          const test = await tx.test.create({
+            data: {
+              examId: exam.id,
+              testSeriesId: destination.testSeriesId ?? null,
+              title: destination.title!,
+              slug,
+              category: destination.category,
+              mode: 'EXAM',
+              // A newly imported test is never published automatically, even
+              // when the questions are: an admin should look at it first.
+              status: 'DRAFT',
+              accessType: destination.accessType,
+              durationMinutes: destination.durationMinutes,
+              maxAttempts: destination.maxAttempts,
+              negativeMarkingEnabled: input.negativeMarks > 0,
+              randomizeOptions: false,
+              showResultImmediately: true,
+              createdById: admin.id,
+            },
+            select: { id: true, title: true },
+          });
+          testId = test.id;
+          title = test.title;
+        } else {
+          const test = await tx.test.findUniqueOrThrow({
+            where: { id: destination.testId! },
+            select: { id: true, title: true },
+          });
+          testId = test.id;
+          title = test.title;
         }
 
-        const test = await tx.test.create({
-          data: {
-            examId: exam.id,
-            testSeriesId: input.testSeriesId ?? null,
-            title: input.title!,
-            slug,
-            category: input.category,
-            mode: 'EXAM',
-            // A newly imported test is never published automatically, even when
-            // the questions are: an admin should look at it first.
-            status: 'DRAFT',
-            accessType: input.accessType,
-            durationMinutes: input.durationMinutes,
-            maxAttempts: input.maxAttempts,
-            negativeMarkingEnabled: input.negativeMarks > 0,
-            randomizeOptions: false,
-            showResultImmediately: true,
-            createdById: admin.id,
-          },
-          select: { id: true },
-        });
+        // A question already on this test is left where it is. Re-importing a
+        // corrected paper onto the same test should not print every question
+        // twice, and the same destination picked twice is a slip, not a
+        // request for duplicates.
+        const already = new Set(
+          (
+            await tx.testQuestion.findMany({
+              where: { testId, questionId: { in: createdIds } },
+              select: { questionId: true },
+            })
+          ).map((row) => row.questionId),
+        );
 
-        targetTestId = test.id;
+        const toAttach = createdIds.filter((id) => !already.has(id));
+        const offset = await tx.testQuestion.count({ where: { testId } });
+
+        if (toAttach.length > 0) {
+          await tx.testQuestion.createMany({
+            data: toAttach.map((questionId, index) => ({
+              testId,
+              questionId,
+              sortOrder: offset + index + 1,
+              marks: input.marks,
+              negativeMarks: input.negativeMarks,
+            })),
+          });
+        }
+
+        attached.push({ testId, title, added: toAttach.length, skipped: already.size });
       }
 
-      if (targetTestId) {
-        const offset = await tx.testQuestion.count({ where: { testId: targetTestId } });
-
-        await tx.testQuestion.createMany({
-          data: createdIds.map((questionId, index) => ({
-            testId: targetTestId!,
-            questionId,
-            sortOrder: offset + index + 1,
-            marks: input.marks,
-            negativeMarks: input.negativeMarks,
-          })),
-        });
-      }
-
-      return { createdIds, testId: targetTestId };
+      return { createdIds, attached };
     },
     // A 300-question import does a lot of inserts; the default 5s is not enough.
     { timeout: 120_000, maxWait: 20_000 },
   );
 
-  if (result.testId) await refreshTestTotals(result.testId);
+  // Totals are recomputed per destination, outside the transaction: each is an
+  // independent aggregate and a slow recount should not hold the write lock.
+  for (const row of result.attached) await refreshTestTotals(row.testId);
 
   await audit({
     actor: { id: admin.id, email: admin.email, role: admin.role },
@@ -174,24 +212,34 @@ export const POST = route(async ({ request, ip }) => {
     entityType: 'Question',
     meta: {
       count: result.createdIds.length,
-      target: input.target,
-      testId: result.testId,
+      destinations: result.attached.map((row) => ({
+        testId: row.testId,
+        title: row.title,
+        added: row.added,
+        skipped: row.skipped,
+      })),
       source: input.source,
       published: input.publish,
     },
     ipAddress: ip,
   });
 
+  const totalSkipped = result.attached.reduce((sum, row) => sum + row.skipped, 0);
+  const places = result.attached.length;
+
   return {
     data: {
       created: result.createdIds.length,
-      testId: result.testId,
+      destinations: result.attached,
+      // The first destination, so a caller that expects one still works.
+      testId: result.attached[0]?.testId ?? null,
       status,
     },
     message:
-      result.testId !== null
-        ? `Imported ${result.createdIds.length} questions and attached them to the test.`
-        : `Imported ${result.createdIds.length} questions into the bank.`,
+      places === 0
+        ? `Imported ${result.createdIds.length} questions into the bank.`
+        : `Imported ${result.createdIds.length} questions into ${places} ${places === 1 ? 'test' : 'tests'}` +
+          (totalSkipped > 0 ? `, skipping ${totalSkipped} already present.` : '.'),
     status: 201,
   };
 });

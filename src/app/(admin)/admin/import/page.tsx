@@ -35,16 +35,51 @@ export default async function ImportPage() {
       orderBy: [{ track: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true, track: true },
     }),
-    // Only drafts and unpublished tests are offered as an append target —
-    // adding questions to a live test would change a paper mid-flight for
-    // anyone attempting it.
+    // Every live test, so an import can be sent to several at once. Archived
+    // ones are left out: they are retired, and offering them invites filling a
+    // paper nobody can reach.
     db.test.findMany({
       where: { deletedAt: null, status: { not: 'ARCHIVED' } },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-      select: { id: true, title: true },
+      orderBy: [{ testSeriesId: 'asc' }, { title: 'asc' }],
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        accessType: true,
+        totalQuestions: true,
+        testSeriesId: true,
+        testSeries: { select: { id: true, name: true } },
+      },
     }),
   ]);
+
+  // Grouped by series, which is how the catalogue is organised and how an
+  // admin looks for a paper. Tests belonging to no series are gathered under
+  // one heading rather than dropped.
+  const groups = (() => {
+    const bySeries = new Map<string, { id: string | null; name: string; tests: typeof tests }>();
+    for (const test of tests) {
+      const key = test.testSeries?.id ?? '__standalone';
+      const name = test.testSeries?.name ?? 'Standalone tests';
+      if (!bySeries.has(key)) bySeries.set(key, { id: test.testSeries?.id ?? null, name, tests: [] });
+      bySeries.get(key)!.tests.push(test);
+    }
+
+    return [...bySeries.values()]
+      .map((group) => ({
+        id: group.id,
+        name: group.name,
+        tests: group.tests.map((test) => ({
+          id: test.id,
+          title: test.title,
+          questionCount: test.totalQuestions,
+          status: test.status,
+          accessType: test.accessType,
+        })),
+      }))
+      // Standalone last: it is a catch-all, not a series someone looks for.
+      .sort((a, b) => (a.id === null ? 1 : b.id === null ? -1 : a.name.localeCompare(b.name)));
+  })();
 
   const usable = exams.filter((exam) => exam.subjects.length > 0);
 
@@ -69,7 +104,7 @@ export default async function ImportPage() {
         </p>
       </header>
 
-      <PdfImport exams={usable} series={series} tests={tests} />
+      <PdfImport exams={usable} series={series} tests={tests} groups={groups} />
     </div>
   );
 }

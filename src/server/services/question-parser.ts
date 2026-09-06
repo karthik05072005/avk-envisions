@@ -116,9 +116,18 @@ export function stripRepeatedLines(text: string, minRepeats = 3): string {
       .map(([line]) => line),
   );
 
-  // Page numbers on their own line.
+  // Page numbers on their own line, and the caption some rebuilt editions
+  // print above each question — a bare "Question 38", with the real numbered
+  // stem on the next line. Without this the caption is neither a heading (it
+  // carries no punctuation after the number) nor furniture, so it sits in the
+  // text and a paper in that layout reads as having no questions at all.
   return lines
-    .filter((line) => !furniture.has(line.trim()) && !/^Page \d+( of \d+)?$/i.test(line.trim()))
+    .filter(
+      (line) =>
+        !furniture.has(line.trim()) &&
+        !/^Page \d+( of \d+)?$/i.test(line.trim()) &&
+        !/^Question\s+\d{1,3}$/i.test(line.trim()),
+    )
     .join('\n');
 }
 

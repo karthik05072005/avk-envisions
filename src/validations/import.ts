@@ -53,17 +53,59 @@ export const reviewedQuestionSchema = z
     }
   });
 
+/**
+ * One place the imported questions should land.
+ *
+ * A commit may name several. The questions themselves are created once and
+ * linked to each destination, so the same paper can fill a subject-wise drill
+ * and a free mock without duplicating a single question — edit it later and
+ * every test showing it changes together.
+ */
+export const importDestinationSchema = z
+  .object({
+    kind: z.enum(['EXISTING_TEST', 'NEW_TEST']),
+
+    /** EXISTING_TEST: which test to append to. */
+    testId: cuidSchema.optional(),
+
+    /** NEW_TEST: how to build it. */
+    title: z.string().trim().min(3).max(200).optional(),
+    testSeriesId: cuidSchema.optional(),
+    category: z
+      .enum(['FULL_MOCK', 'SECTIONAL', 'CHAPTER', 'TOPIC', 'PRACTICE', 'PREVIOUS_YEAR', 'CUSTOM'])
+      .default('PREVIOUS_YEAR'),
+    accessType: z.enum(['FREE', 'PAID', 'SUBSCRIPTION']).default('FREE'),
+    durationMinutes: z.coerce.number().int().min(1).max(600).default(120),
+    maxAttempts: z.coerce.number().int().min(0).max(50).default(0),
+  })
+  .superRefine((input, ctx) => {
+    if (input.kind === 'EXISTING_TEST' && !input.testId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Choose the test to add these questions to', path: ['testId'] });
+    }
+    if (input.kind === 'NEW_TEST' && !input.title) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Give the new test a title', path: ['title'] });
+    }
+  });
+
+export type ImportDestination = z.infer<typeof importDestinationSchema>;
+
 /** Where the imported questions should end up. */
 export const importCommitSchema = z
   .object({
     examId: cuidSchema,
     subjectId: cuidSchema,
 
-    /** Attach to an existing test, or create a new one. */
-    target: z.enum(['NEW_TEST', 'EXISTING_TEST', 'BANK_ONLY']).default('NEW_TEST'),
-    testId: cuidSchema.optional(),
+    /**
+     * Every place these questions should appear. An empty list means the
+     * question bank only, to be attached to a test later.
+     */
+    destinations: z.array(importDestinationSchema).max(20).default([]),
 
-    // --- New-test fields -------------------------------------------------
+    // --- Superseded by `destinations`, still accepted ---------------------
+    // Kept so a client that has not been reloaded mid-release keeps working;
+    // normalised into `destinations` below.
+    target: z.enum(['NEW_TEST', 'EXISTING_TEST', 'BANK_ONLY']).optional(),
+    testId: cuidSchema.optional(),
     title: z.string().trim().min(3).max(200).optional(),
     testSeriesId: cuidSchema.optional(),
     category: z
@@ -88,6 +130,10 @@ export const importCommitSchema = z
     questions: z.array(reviewedQuestionSchema).min(1, 'Nothing to import').max(300),
   })
   .superRefine((input, ctx) => {
+    // Only the legacy single-target fields are checked here; a destination
+    // list validates itself, entry by entry.
+    if (input.destinations.length > 0 || input.target === undefined) return;
+
     if (input.target === 'NEW_TEST' && !input.title) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -102,6 +148,30 @@ export const importCommitSchema = z
         path: ['testId'],
       });
     }
+  })
+  .transform((input) => {
+    // One shape reaches the route: a list. A request written against the old
+    // single-target fields is folded into it here rather than being handled
+    // again further in.
+    if (input.destinations.length > 0 || input.target === undefined) return input;
+
+    const destinations: ImportDestination[] =
+      input.target === 'BANK_ONLY'
+        ? []
+        : [
+            {
+              kind: input.target,
+              testId: input.testId,
+              title: input.title,
+              testSeriesId: input.testSeriesId,
+              category: input.category,
+              accessType: input.accessType,
+              durationMinutes: input.durationMinutes,
+              maxAttempts: input.maxAttempts,
+            },
+          ];
+
+    return { ...input, destinations };
   });
 
 export type ImportCommitInput = z.infer<typeof importCommitSchema>;

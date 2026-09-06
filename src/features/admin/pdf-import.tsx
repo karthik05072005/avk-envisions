@@ -24,6 +24,7 @@ import { InlineError } from '@/components/ui/states';
 import { ApiClientError, api } from '@/lib/api-client';
 import { MARKS_PER_QUESTION, NEGATIVE_MARKS_PER_QUESTION } from '@/lib/marking';
 import { cn } from '@/lib/utils';
+import { DestinationPicker, type PickerGroup } from '@/features/admin/destination-picker';
 
 /**
  * PDF import.
@@ -92,11 +93,19 @@ export interface ImportTarget {
   }[];
   series: { id: string; name: string; track: string }[];
   tests: { id: string; title: string }[];
+  /** Existing tests grouped by series, for the destination picker. */
+  groups: PickerGroup[];
+}
+
+interface CommitResponse {
+  created: number;
+  testId: string | null;
+  destinations: { testId: string; title: string; added: number; skipped: number }[];
 }
 
 type Step = 'upload' | 'review' | 'done';
 
-export function PdfImport({ exams, series, tests }: ImportTarget) {
+export function PdfImport({ exams, series, tests, groups }: ImportTarget) {
   const router = useRouter();
 
   const [step, setStep] = React.useState<Step>('upload');
@@ -106,12 +115,20 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
   const [parsed, setParsed] = React.useState<ParseResponse | null>(null);
   const [questions, setQuestions] = React.useState<ParsedQuestion[]>([]);
   const [showText, setShowText] = React.useState(false);
-  const [result, setResult] = React.useState<{ created: number; testId: string | null } | null>(null);
+  const [result, setResult] = React.useState<CommitResponse | null>(null);
 
   // --- Destination -------------------------------------------------------
   const [examId, setExamId] = React.useState(exams[0]?.id ?? '');
   const [subjectId, setSubjectId] = React.useState(exams[0]?.subjects[0]?.id ?? '');
   const [target, setTarget] = React.useState<'NEW_TEST' | 'EXISTING_TEST' | 'BANK_ONLY'>('NEW_TEST');
+  /**
+   * Existing tests this import should also fill.
+   *
+   * Independent of `target`: a paper can create a new test *and* land in three
+   * existing ones in the same commit, because the questions are created once
+   * and linked to each.
+   */
+  const [pickedTestIds, setPickedTestIds] = React.useState<string[]>([]);
   const [testId, setTestId] = React.useState(tests[0]?.id ?? '');
   const [title, setTitle] = React.useState('');
   const [testSeriesId, setTestSeriesId] = React.useState('');
@@ -125,6 +142,16 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
   const [publish, setPublish] = React.useState(false);
 
   const exam = exams.find((e) => e.id === examId);
+
+  // Sending one paper to a free and a paid test publishes the paid content for
+  // nothing. Worth saying out loud rather than refusing: an admin may well
+  // intend a sample paper to overlap with the free tier.
+  const mixedAccess = React.useMemo(() => {
+    const chosen = groups.flatMap((g) => g.tests).filter((t) => pickedTestIds.includes(t.id));
+    const kinds = new Set(chosen.map((t) => t.accessType));
+    if (target === 'NEW_TEST') kinds.add(accessType);
+    return kinds.has('FREE') && (kinds.has('PAID') || kinds.has('SUBSCRIPTION'));
+  }, [groups, pickedTestIds, target, accessType]);
 
   // A figure leaves this list as soon as some question is showing it, so
   // assigning one from the tray makes it disappear from the tray.
@@ -223,23 +250,31 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
     setCommitting(true);
     setError(null);
 
+    // One list, whatever the admin picked: a new test if they asked for one,
+    // plus every existing test they ticked. Empty means the bank only.
+    const destinations = [
+      ...(target === 'NEW_TEST'
+        ? [
+            {
+              kind: 'NEW_TEST' as const,
+              title,
+              ...(testSeriesId ? { testSeriesId } : {}),
+              category,
+              accessType,
+              durationMinutes,
+            },
+          ]
+        : []),
+      ...pickedTestIds.map((id) => ({ kind: 'EXISTING_TEST' as const, testId: id })),
+    ];
+
     try {
-      const data = await api.post<{ created: number; testId: string | null }>(
+      const data = await api.post<CommitResponse>(
         '/api/admin/import/commit',
         {
           examId,
           subjectId,
-          target,
-          ...(target === 'EXISTING_TEST' ? { testId } : {}),
-          ...(target === 'NEW_TEST'
-            ? {
-                title,
-                ...(testSeriesId ? { testSeriesId } : {}),
-                category,
-                accessType,
-                durationMinutes,
-              }
-            : {}),
+          destinations,
           marks,
           negativeMarks,
           ...(source ? { source } : {}),
@@ -284,9 +319,28 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
             {publish
               ? 'The questions are published.'
               : 'The questions were created as drafts — publish them when you are happy.'}
-            {result.testId &&
-              ' The test was created as a draft; open it to review and publish when ready.'}
+            {result.destinations.length === 0 && ' They are in the question bank, not yet on a test.'}
           </p>
+
+          {/* Every place they landed, and anything skipped because it was
+              already there — silence would look like the import missed them. */}
+          {result.destinations.length > 0 && (
+            <ul className="mx-auto mt-4 max-w-md space-y-1.5 text-left">
+              {result.destinations.map((row) => (
+                <li
+                  key={row.testId}
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+                >
+                  <CheckCircle2 className="size-4 shrink-0 text-success" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate">{row.title}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    +{row.added}
+                    {row.skipped > 0 && ` · ${row.skipped} already there`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             {result.testId && (
@@ -535,7 +589,7 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
             {(
               [
                 ['NEW_TEST', 'Create a new test', 'Best for a PYQ paper'],
-                ['EXISTING_TEST', 'Add to an existing test', 'Appends to the end'],
+                ['EXISTING_TEST', 'Existing tests only', 'Pick them below'],
                 ['BANK_ONLY', 'Question bank only', 'Attach to a test later'],
               ] as const
             ).map(([value, label, hint]) => (
@@ -654,22 +708,36 @@ export function PdfImport({ exams, series, tests }: ImportTarget) {
             </>
           )}
 
-          {target === 'EXISTING_TEST' && (
-            <FormField label="Test" htmlFor="i-test" required>
-              <select
-                id="i-test"
-                value={testId}
-                onChange={(event) => setTestId(event.target.value)}
-                className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
-              >
-                {tests.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.title}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-          )}
+          {/* Existing tests, any number of them. The questions are created
+              once and linked to each, so filling a subject drill and a mock
+              from one paper costs nothing extra and keeps them in step. */}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-medium">
+                {target === 'NEW_TEST' ? 'Also add to existing tests' : 'Add to existing tests'}
+                <span className="ml-1.5 font-normal text-muted-foreground">optional</span>
+              </p>
+              {pickedTestIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPickedTestIds([])}
+                  className="text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  Clear {pickedTestIds.length} selected
+                </button>
+              )}
+            </div>
+
+            <DestinationPicker groups={groups} selected={pickedTestIds} onChange={setPickedTestIds} />
+
+            {mixedAccess && (
+              <p className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2.5 text-xs">
+                <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                These questions are going to both free and paid tests. Anyone can read them in the
+                free one, so the paid papers gain nothing they could not already see.
+              </p>
+            )}
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-4">
             <FormField label="Marks" htmlFor="i-marks">
