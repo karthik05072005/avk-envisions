@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowLeft,
+  Clock,
   Gift,
   Info,
   Landmark,
@@ -139,20 +140,20 @@ export default async function ChapterwisePage() {
 
         <div className="min-w-0 flex-1">
           <p className="font-semibold leading-tight">
-            These tests are part of the Paid Chapterwise Series.
+            The chapterwise tests are being written.
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Unlock full access to practice all chapters and track your performance.
+            Each subject below is planned. They open for practice as their chapters are finished.
           </p>
         </div>
 
-        <Link
-          href="/pricing"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <span
+          aria-disabled="true"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-4 py-2.5 text-sm font-semibold text-muted-foreground"
         >
-          <Lock className="size-4" aria-hidden="true" />
-          Unlock All Subjects
-        </Link>
+          <Clock className="size-4" aria-hidden="true" />
+          Coming Soon
+        </span>
       </div>
 
       {/* Subjects */}
@@ -202,26 +203,26 @@ export default async function ChapterwisePage() {
                   {shortDescription(subject.description)}
                 </p>
 
+                {/* Neither button goes anywhere while these subjects are still
+                    being written. The chapter list would open an empty series
+                    and the buy button would take money for nothing, so both
+                    are shown as plain text rather than links. */}
                 <div className="mt-4 flex gap-2">
-                  <Link
-                    href={`/test-series/${subject.slug}`}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  <span
+                    aria-disabled="true"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2.5 text-sm font-medium text-muted-foreground"
                   >
                     <List className="size-4" aria-hidden="true" />
                     View Chapters
-                  </Link>
+                  </span>
 
-                  <Link
-                    href="/pricing"
-                    className={cn(
-                      'inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      skin.button,
-                    )}
+                  <span
+                    aria-disabled="true"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-muted px-3 py-2.5 text-sm font-semibold text-muted-foreground"
                   >
-                    <Lock className="size-4" aria-hidden="true" />
-                    Unlock Now
-                  </Link>
+                    <Clock className="size-4" aria-hidden="true" />
+                    Coming Soon
+                  </span>
                 </div>
               </div>
             </li>
@@ -232,8 +233,8 @@ export default async function ChapterwisePage() {
       <p className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground sm:p-5">
         <Info className="size-4 shrink-0 text-primary" aria-hidden="true" />
         <span className="min-w-0 flex-1">
-          Unlock any subject or all subjects to access chapterwise tests, performance analytics
-          and detailed solutions.
+          Chapterwise practice will bring performance analytics and detailed solutions for every
+          chapter. Until then, the previous year papers and the test series are ready to sit.
         </span>
         <Link
           href="/pricing"

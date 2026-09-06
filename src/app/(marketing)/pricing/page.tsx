@@ -41,6 +41,15 @@ interface PlanCard {
   badge?: string;
   /** Qualifies the price where one payment does not cover the whole track. */
   priceNote?: string;
+  /**
+   * Announced but not yet for sale.
+   *
+   * The other plans are sold on a published timetable, so a buyer knows what
+   * arrives and when even before the papers exist. Chapterwise has no
+   * schedule and no dates — there is nothing to enrol into yet — so it is
+   * shown rather than sold.
+   */
+  comingSoon?: boolean;
 }
 
 const PLANS: PlanCard[] = [
@@ -110,6 +119,7 @@ const PLANS: PlanCard[] = [
     blurb: 'Strengthen every chapter, step by step. Priced per subject.',
     benefits: ['Topic-wise tests', 'Concept clarity'],
     priceNote: 'per subject',
+    comingSoon: true,
     cta: 'Explore Subjects',
     href: '/chapterwise',
     tint: 'border-violet-200 bg-violet-50/60 dark:border-violet-900/40 dark:bg-violet-950/20',
@@ -194,7 +204,7 @@ export default async function PricingPage() {
             // are written yet — these series are sold on their published
             // schedule, and the buyer is enrolling for a course that runs to a
             // timetable rather than buying a finished library.
-            const available = Boolean(row && row.status === 'PUBLISHED');
+            const available = Boolean(row && row.status === 'PUBLISHED') && !plan.comingSoon;
             const isFree = pricing !== null && pricing.priceInPaise === 0;
 
             // The early-bird rung is only announced while it is genuinely open.
