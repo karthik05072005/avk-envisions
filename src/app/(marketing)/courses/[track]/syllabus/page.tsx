@@ -27,6 +27,14 @@ const TRACKS: Record<string, { key: TrackKey; title: string; schedulePdf?: strin
     // say what is attemptable now, the document says what each test covers.
     schedulePdf: '/api/schedule/paid',
   },
+  'kas-50': {
+    key: 'DAILY_CHALLENGE',
+    title: 'AVK Envisions KAS-50',
+    // The fifty-day plan, which is the whole proposition of this series: a
+    // student wants to see what falls on which date before joining, and most
+    // of those papers are not written yet.
+    schedulePdf: '/api/schedule/50-days',
+  },
 };
 
 export const dynamic = 'force-dynamic';

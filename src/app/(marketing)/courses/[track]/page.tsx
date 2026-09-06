@@ -138,7 +138,9 @@ function ScheduleAction({ row }: { row: ScheduleRow }) {
 }
 
 /** Tracks with a schedule document behind the button. */
-const HAS_TIMETABLE = new Set(['paid-test-series']);
+// Tracks with a published timetable document to open. The free series has
+// none — its tests can be attempted on any day, in any order.
+const HAS_TIMETABLE = new Set(['paid-test-series', 'kas-50']);
 
 export default async function TrackPage({ params }: { params: Promise<{ track: string }> }) {
   const { track } = await params;
