@@ -56,6 +56,12 @@ const FURNITURE = [
   /^KAS\s+PRELIMS.*$/i,
   /^FOR ENHANCED LEARNING$/i,
   /^Learn\s*[•·]\s*Practice\s*[•·]\s*Excel.*$/i,
+  // The rebuilt editions print a divider — "Question 38" — on the line above
+  // the numbered stem. It is a caption, not the heading: the real heading is
+  // the "38." that follows. Left in place it opens a block one line early, the
+  // stem line is then swallowed as body text and every later number is off by
+  // one, which silently drops the rest of the paper.
+  /^Question\s+\d{1,3}$/i,
 ];
 
 /** A bare page number, which is furniture — unless it is the answer. */
