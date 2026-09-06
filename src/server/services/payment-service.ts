@@ -5,6 +5,7 @@ import Razorpay from 'razorpay';
 import { AppError, errors } from '@/lib/api';
 import { serverEnv } from '@/lib/env';
 import { db } from '@/server/db';
+import { hasEntitlement } from '@/server/services/entitlement-service';
 import { getSeriesPricing } from '@/server/services/pricing-service';
 
 /**
@@ -119,18 +120,10 @@ export async function createSeriesCheckout(params: {
   });
   if (!user) throw errors.notFound('Account');
 
-  // Already bought? Send them back rather than taking money twice.
-  const now = new Date();
-  const existing = await db.entitlement.findFirst({
-    where: {
-      userId: params.userId,
-      testSeriesId: series.id,
-      revokedAt: null,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-    },
-    select: { id: true },
-  });
-  if (existing) {
+  // Already bought? Send them back rather than taking money twice. Uses the
+  // shared check, so someone holding the previous-year bundle cannot be
+  // charged again for a single year the bundle already covers.
+  if (await hasEntitlement(params.userId, series.id)) {
     throw new AppError('CONFLICT', 'You already have access to this series.');
   }
 

@@ -4,7 +4,14 @@ import { ArrowRight, CalendarDays, FileText, Layers, Lock } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/states';
 import { cn } from '@/lib/utils';
+import { PYQ_BUNDLE_SLUG } from '@/lib/enums';
+import { formatPaise } from '@/lib/utils';
+import { db } from '@/server/db';
+import { BuyButton } from '@/features/checkout/buy-button';
 import { getPyqYears } from '@/server/services/catalogue-service';
+import { countEnrolledMany, resolvePricing } from '@/server/services/pricing-service';
+import { getSession } from '@/server/auth/session';
+import { hasEntitlement } from '@/server/services/entitlement-service';
 
 export const metadata: Metadata = {
   title: 'Previous Year Question Papers',
@@ -32,6 +39,30 @@ const ACCENTS = [
 export default async function PyqPage() {
   const years = await getPyqYears();
   const free = years.find((year) => year.isFree);
+
+  // The years are sold together, so the page leads with the one purchase that
+  // opens all of them. Showing a price on every card made students believe
+  // each year had to be bought separately, which is what this page used to do.
+  const bundle = await db.testSeries.findFirst({
+    where: { slug: PYQ_BUNDLE_SLUG, status: 'PUBLISHED', deletedAt: null },
+    select: {
+      id: true, name: true, priceInPaise: true,
+      tier1PriceInPaise: true, tier1Limit: true,
+      tier2PriceInPaise: true, tier2Limit: true,
+    },
+  });
+
+  const enrolled = bundle ? await countEnrolledMany([bundle.id]) : null;
+  const bundlePricing = bundle ? resolvePricing(bundle, enrolled?.get(bundle.id) ?? 0) : null;
+
+  const session = await getSession();
+  const owned = Boolean(
+    session?.user && bundle && (await hasEntitlement(session.user.id, bundle.id)),
+  );
+
+  const paidYears = years.filter((year) => !year.isFree).length;
+  const earlyBird = bundlePricing?.ladder.find((rung) => rung.active && rung.limit !== null) ?? null;
+  const standard = bundlePricing?.ladder.find((rung) => rung.limit === null) ?? null;
 
   return (
     <div className="container max-w-5xl py-10 sm:py-12">
@@ -79,6 +110,54 @@ export default async function PyqPage() {
         </div>
       ) : (
         <>
+          {/* One purchase, every year. Stated once, prominently, so nobody
+              has to infer it from the year cards below. */}
+          {bundle && bundlePricing && !owned && (
+            <div className="mt-8 overflow-hidden rounded-2xl border border-primary/30 bg-primary-muted/40">
+              <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-6">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+                    One payment · every year
+                  </p>
+                  <h2 className="mt-1.5 text-xl font-bold leading-tight tracking-tight">
+                    Unlock all previous year papers
+                  </h2>
+                  <p className="mt-1.5 text-sm text-muted-foreground">
+                    {paidYears} exam {paidYears === 1 ? 'year' : 'years'}, full-length and
+                    subject-wise, with the complete analysis for each. Pay once — there is no
+                    separate charge per year.
+                  </p>
+                </div>
+
+                <div className="shrink-0 text-center sm:w-52">
+                  <p className="text-3xl font-bold tabular-nums">
+                    {formatPaise(bundlePricing.priceInPaise)}
+                  </p>
+                  {earlyBird && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      for the first {earlyBird.limit} members, then{' '}
+                      <span className="font-semibold text-foreground">
+                        {formatPaise(standard?.priceInPaise ?? bundle.priceInPaise)}
+                      </span>
+                    </p>
+                  )}
+                  <BuyButton
+                    seriesSlug={PYQ_BUNDLE_SLUG}
+                    label="Unlock all years"
+                    size="default"
+                    className="mt-2.5 w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {owned && (
+            <p className="mt-8 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium">
+              You have access to every previous year paper. Open any year below.
+            </p>
+          )}
+
           <h2 className="mt-10 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Select question paper
           </h2>
@@ -187,18 +266,25 @@ export default async function PyqPage() {
                       </li>
                     </ul>
 
+                    {/* No per-year price. Every paid year comes with the one
+                        purchase above, and printing a price on each card is
+                        what made students think they owed it five times. */}
                     <div className="mt-4 flex items-center justify-between gap-2 pt-1">
                       {year.isFree ? (
-                        <span className="text-sm font-semibold">Free</span>
+                        <span className="text-sm font-semibold text-success">Free</span>
+                      ) : owned ? (
+                        <span className="text-sm font-semibold text-success">Unlocked</span>
                       ) : (
-                        <Lock className="size-4 text-muted-foreground" aria-hidden="true" />
+                        <span className="text-xs text-muted-foreground">
+                          Included in all-years access
+                        </span>
                       )}
 
                       <Link
                         href={`/pyq/${year.slug}`}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        {year.isFree ? 'Start free' : 'Proceed to buy'}
+                        {year.isFree || owned ? 'Open' : 'View papers'}
                         <ArrowRight className="size-4" aria-hidden="true" />
                       </Link>
                     </div>

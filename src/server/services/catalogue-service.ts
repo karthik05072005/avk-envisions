@@ -1,3 +1,4 @@
+import { PYQ_BUNDLE_SLUG } from '@/lib/enums';
 import 'server-only';
 
 import { cache } from 'react';
@@ -224,7 +225,9 @@ export interface PyqYearSummary {
 /** The year grid on /pyq, oldest paper first so the free year leads. */
 export const getPyqYears = cache(async (): Promise<PyqYearSummary[]> => {
   const series = await db.testSeries.findMany({
-    where: { track: 'PYQ', status: 'PUBLISHED', deletedAt: null },
+    // The bundle shares this track but is not an exam year — it is what the
+    // years are sold as, so it must not appear among them as a card.
+    where: { track: 'PYQ', status: 'PUBLISHED', deletedAt: null, slug: { not: PYQ_BUNDLE_SLUG } },
     // Oldest first, so the free 2011 paper is the first thing a visitor meets
     // and the years read as a progression rather than a reverse-chronological
     // list with the free sample buried at the bottom.

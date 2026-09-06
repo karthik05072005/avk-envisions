@@ -5,6 +5,7 @@ import path from 'node:path';
 import { AppError, errors } from '@/lib/api';
 import { TERMINAL_ATTEMPT_STATUSES } from '@/lib/enums';
 import { db } from '@/server/db';
+import { hasEntitlement } from '@/server/services/entitlement-service';
 
 /**
  * Question-wise analysis PDFs ("synopsis") for previous-year papers.
@@ -60,17 +61,9 @@ async function gate(
   if (user.role === 'ADMIN') return null;
 
   if (series.priceInPaise > 0) {
-    const now = new Date();
-    const entitled = await db.entitlement.findFirst({
-      where: {
-        userId: user.id,
-        testSeriesId: series.id,
-        revokedAt: null,
-        startsAt: { lte: now },
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      },
-      select: { id: true },
-    });
+    // Shared check: a previous-year bundle opens every year's analysis, not
+    // only the year whose card was clicked.
+    const entitled = await hasEntitlement(user.id, series.id);
 
     if (!entitled) {
       return {

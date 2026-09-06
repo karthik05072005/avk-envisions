@@ -12,6 +12,7 @@ import {
 } from '@/lib/json';
 import { seededShuffle } from '@/lib/utils';
 import { db } from '@/server/db';
+import { hasEntitlement } from '@/server/services/entitlement-service';
 import { logger } from '@/server/logger';
 
 import {
@@ -171,18 +172,11 @@ export async function startAttempt(params: {
 
     // Admins can open any paper — they need to be able to review content.
     if (actor?.role !== 'ADMIN') {
+      // Through the shared check, so a previous-year bundle opens every year
+      // here exactly as it does on the catalogue and at checkout.
       const entitled = test.testSeriesId
-        ? await db.entitlement.findFirst({
-            where: {
-              userId,
-              testSeriesId: test.testSeriesId,
-              revokedAt: null,
-              startsAt: { lte: now },
-              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-            },
-            select: { id: true },
-          })
-        : null;
+        ? await hasEntitlement(userId, test.testSeriesId)
+        : false;
 
       if (!entitled) {
         throw errors.entitlementRequired(

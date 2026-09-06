@@ -45,7 +45,8 @@
     "db:50days:schedule": "tsx prisma/import-50-days-schedule.ts",
     "db:paid:schedule": "tsx prisma/import-paid-schedule.ts",
     "db:2024aug": "tsx prisma/merge-2024-august-p1.ts",
-    "db:2024aug:paste": "tsx prisma/add-2024-august-p1-pasted.ts"
+    "db:2024aug:paste": "tsx prisma/add-2024-august-p1-pasted.ts",
+    "db:pyq-bundle": "tsx prisma/create-pyq-bundle.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

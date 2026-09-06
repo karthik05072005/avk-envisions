@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, Clock, Flame, Target, TrendingUp, Trophy } fr
 import { Card, CardContent } from '@/components/ui/card';
 import { BuyButton } from '@/features/checkout/buy-button';
 import { cn, formatPaise } from '@/lib/utils';
+import { PYQ_BUNDLE_SLUG } from '@/lib/enums';
 import { db } from '@/server/db';
 import { countEnrolledMany, resolvePricing } from '@/server/services/pricing-service';
 
@@ -38,6 +39,8 @@ interface PlanCard {
   button: string;
   ribbon: string;
   badge?: string;
+  /** Qualifies the price where one payment does not cover the whole track. */
+  priceNote?: string;
 }
 
 const PLANS: PlanCard[] = [
@@ -55,11 +58,14 @@ const PLANS: PlanCard[] = [
     ribbon: 'bg-emerald-600',
   },
   {
-    slug: 'kas-pyq-2015',
+    // The bundle, not one year. This card is titled for the whole set, so
+    // wiring it to a single year charged the advertised price and delivered a
+    // fraction of what it named.
+    slug: PYQ_BUNDLE_SLUG,
     number: 2,
     title: 'KAS Previous Year Question Papers',
-    blurb: 'Full-length and subject-wise papers to understand the exam pattern.',
-    benefits: ['Subject-wise papers', 'Detailed solutions'],
+    blurb: 'Every exam year — full-length and subject-wise — unlocked by one payment.',
+    benefits: ['All years included', 'Detailed solutions'],
     cta: 'Get Now',
     href: '/pyq',
     tint: 'border-blue-200 bg-blue-50/60 dark:border-blue-900/40 dark:bg-blue-950/20',
@@ -95,13 +101,15 @@ const PLANS: PlanCard[] = [
     ribbon: 'bg-orange-500',
   },
   {
-    // Priced per subject; Polity is the first, and the chapterwise page offers
-    // the rest. The card quotes what that first subject costs.
+    // Priced per subject, unlike the previous-year papers. The card must say
+    // so: quoting one subject's price under a title that names the whole
+    // track is what made students think ₹49 covered all of them.
     slug: 'chapterwise-polity',
     number: 5,
     title: 'Chapter-wise Practice',
-    blurb: 'Strengthen every chapter, step by step.',
+    blurb: 'Strengthen every chapter, step by step. Priced per subject.',
     benefits: ['Topic-wise tests', 'Concept clarity'],
+    priceNote: 'per subject',
     cta: 'Explore Subjects',
     href: '/chapterwise',
     tint: 'border-violet-200 bg-violet-50/60 dark:border-violet-900/40 dark:bg-violet-950/20',
@@ -265,6 +273,11 @@ export default async function PricingPage() {
                           <div className="flex items-stretch">
                             <p className="flex-1 px-3 py-2.5 text-center text-2xl font-bold tabular-nums">
                               {isFree ? '₹0' : formatPaise(pricing!.priceInPaise)}
+                              {plan.priceNote && (
+                                <span className="block text-[0.7rem] font-medium leading-tight text-muted-foreground">
+                                  {plan.priceNote}
+                                </span>
+                              )}
                             </p>
 
                             {earlyBird && standard && (

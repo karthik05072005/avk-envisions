@@ -560,5 +560,15 @@ export type JobStatus = (typeof JobStatus.values)[number];
 /** Series slug for the "50 Questions · 50 Days" challenge. */
 export const DAILY_CHALLENGE_SLUG = 'kas-50-questions-50-days';
 
+/**
+ * The previous-year papers are sold as one bundle, not year by year.
+ *
+ * Each exam year is still its own series so it can be scheduled, priced and
+ * administered separately, but a single purchase of this bundle entitles all
+ * of them. `PYQ_SERIES_PREFIX` is what marks a series as one of those years.
+ */
+export const PYQ_BUNDLE_SLUG = 'kas-pyq-all-years';
+export const PYQ_SERIES_PREFIX = 'kas-pyq-';
+
 /** Slug prefix for its per-day papers. */
 export const DAILY_CHALLENGE_TEST_PREFIX = 'kas-50-days-';
