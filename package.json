@@ -48,7 +48,8 @@
     "db:2024aug:paste": "tsx prisma/add-2024-august-p1-pasted.ts",
     "db:pyq-bundle": "tsx prisma/create-pyq-bundle.ts",
     "db:2024aug:promote": "tsx prisma/promote-2024-august-p1-import.ts",
-    "db:paid:prune": "tsx prisma/prune-paid-series.ts"
+    "db:paid:prune": "tsx prisma/prune-paid-series.ts",
+    "db:swap-years": "tsx prisma/swap-2015-2017.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
