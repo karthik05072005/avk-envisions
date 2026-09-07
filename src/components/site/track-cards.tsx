@@ -127,46 +127,26 @@ function TrackCard({
           ))}
         </ul>
 
-        <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border text-center">
-          <div className="bg-card px-2 py-3">
-            <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
-              Price
-            </p>
-            <p className="mt-0.5 text-sm font-semibold tabular-nums">
-              {/* An unreleased track shows no price: quoting one for
-                        something nobody can buy invites a question that has
-                        not been answered yet. */}
-              {track.comingSoon
-                ? "—"
-                : track.isFree || track.fromPriceInPaise === 0
-                  ? "Free"
-                  : formatPaise(track.fromPriceInPaise)}
-            </p>
-          </div>
-          <div className="bg-card px-2 py-3">
-            <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
-              Tests
-            </p>
-            <p className="mt-0.5 text-sm font-semibold tabular-nums">
-              {track.testCount > 0 ? track.testCount : "—"}
-            </p>
-          </div>
-        </div>
+        {/* No price-and-test-count strip. Half of it was usually a dash —
+            a track with no papers yet, or one whose price is per subject —
+            and a card promising "50 Questions × 50 Days" then reporting "—"
+            tests reads as a fault rather than as content still being written.
+            The pricing page carries the numbers, in full and in context. */}
 
         {/* Shown only while an early-bird tier is genuinely running. */}
         {track.earlyBirdLimit != null && (
-          <p className="mt-2 text-center text-xs font-semibold leading-tight text-primary">
+          <p className="mt-6 text-center text-xs font-semibold leading-tight text-primary">
             Early bird offer — only for the first {track.earlyBirdLimit} members
           </p>
         )}
 
         {track.comingSoon ? (
-          <Button disabled fullWidth className="mt-4">
+          <Button disabled fullWidth className={track.earlyBirdLimit != null ? 'mt-2' : 'mt-6'}>
             <Clock aria-hidden="true" />
             Coming soon
           </Button>
         ) : (
-          <Button asChild fullWidth className="mt-4">
+          <Button asChild fullWidth className={track.earlyBirdLimit != null ? 'mt-2' : 'mt-6'}>
             <Link href={track.href}>
               {track.ctaLabel}
               <ArrowRight aria-hidden="true" />
