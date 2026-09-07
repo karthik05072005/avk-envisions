@@ -29,6 +29,13 @@ interface CheckoutDraft {
   seriesName: string;
 }
 
+interface VerifyResult {
+  granted: boolean;
+  /** Where the buyer studies what they just bought. */
+  redirectTo: string;
+  courseName: string;
+}
+
 interface RazorpayResponse {
   razorpay_order_id: string;
   razorpay_payment_id: string;
@@ -105,11 +112,14 @@ export function BuyButton({
 
         handler: async (response: RazorpayResponse) => {
           try {
-            await api.post('/api/checkout/verify', response);
-            toast.success('Payment confirmed. Your access is active.');
-            // Land on the page that carries the community invite and the
-            // record of what was bought, rather than refreshing in place.
-            router.push('/subscriptions');
+            const result = await api.post<VerifyResult>('/api/checkout/verify', response);
+            toast.success(
+              `Payment confirmed. You can start taking ${result.courseName} tests now.`,
+              { duration: 8_000 },
+            );
+            // Straight to the thing they bought. Landing on a receipt page
+            // leaves someone who has just paid to go looking for it.
+            router.push(result.redirectTo ?? '/dashboard');
             router.refresh();
           } catch (error) {
             // The money may well have been taken — the webhook will still

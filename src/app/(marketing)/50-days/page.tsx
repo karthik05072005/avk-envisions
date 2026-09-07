@@ -12,9 +12,14 @@ import {
 } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/states';
-import { cn, formatDate } from '@/lib/utils';
+import { BuyButton } from '@/features/checkout/buy-button';
+import { DAILY_CHALLENGE_SLUG } from '@/lib/enums';
+import { cn, formatDate, formatPaise } from '@/lib/utils';
 import { getSession } from '@/server/auth/session';
+import { db } from '@/server/db';
 import { getChallenge, type ChallengeDay } from '@/server/services/daily-challenge-service';
+import { hasEntitlement } from '@/server/services/entitlement-service';
+import { countEnrolledMany, resolvePricing } from '@/server/services/pricing-service';
 
 export const metadata: Metadata = {
   title: 'KAS 50 Days · 50 Questions',
@@ -90,6 +95,26 @@ export default async function FiftyDaysPage({
   const paper1 = challenge.days.filter((d) => d.paperNumber === 1).length;
   const paper2 = challenge.days.filter((d) => d.paperNumber === 2).length;
 
+  // The series is paid, and until now the only way to buy it was from the
+  // pricing page — someone reading the timetable had no way to join from it.
+  const series = await db.testSeries.findFirst({
+    where: { slug: DAILY_CHALLENGE_SLUG, deletedAt: null },
+    select: {
+      id: true,
+      priceInPaise: true,
+      tier1PriceInPaise: true,
+      tier1Limit: true,
+      tier2PriceInPaise: true,
+      tier2Limit: true,
+    },
+  });
+
+  const enrolled = series ? await countEnrolledMany([series.id]) : null;
+  const pricing = series ? resolvePricing(series, enrolled?.get(series.id) ?? 0) : null;
+  const owned = Boolean(
+    session?.user && series && (await hasEntitlement(session.user.id, series.id)),
+  );
+
   const dated = challenge.days.filter((d) => d.opensAt !== null);
   const firstDay = dated[0]?.opensAt ?? null;
   const lastDay = dated[dated.length - 1]?.opensAt ?? null;
@@ -154,6 +179,36 @@ export default async function FiftyDaysPage({
             <FileText className="size-4" aria-hidden="true" />
             View Complete Timetable
           </Link>
+
+          {/* Joining from the timetable itself. Someone reading the plan is
+              exactly the person deciding whether to buy, and until now the
+              only way in was the pricing page. */}
+          {pricing && !owned && pricing.priceInPaise > 0 && (
+            <div className="w-full rounded-xl border border-primary/30 bg-primary-muted/40 p-4">
+              <p className="text-2xl font-bold tabular-nums">
+                {formatPaise(pricing.priceInPaise)}
+              </p>
+              {pricing.ladder.find((rung) => rung.active && rung.limit !== null) && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  for the first{' '}
+                  {pricing.ladder.find((rung) => rung.active && rung.limit !== null)!.limit}{' '}
+                  members
+                </p>
+              )}
+              <BuyButton
+                seriesSlug={DAILY_CHALLENGE_SLUG}
+                label="Proceed to pay"
+                size="default"
+                className="mt-2.5 w-full"
+              />
+            </div>
+          )}
+
+          {owned && (
+            <p className="w-full rounded-xl border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-medium">
+              You have joined KAS-50.
+            </p>
+          )}
 
           <p className="rounded-xl bg-primary-muted/60 px-4 py-3 text-sm font-semibold leading-snug">
           <Trophy className="mb-1 size-5 text-primary" aria-hidden="true" />

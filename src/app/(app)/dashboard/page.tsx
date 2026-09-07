@@ -32,6 +32,7 @@ import {
   getUpcomingTests,
 } from '@/server/services/dashboard-service';
 import { db } from '@/server/db';
+import { getPurchasedCourses } from '@/server/services/purchased-service';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -49,7 +50,7 @@ function greeting() {
 export default async function DashboardPage() {
   const user = await enforceStudent();
 
-  const [summary, resumable, insights, subjects, recommended, upcoming, incorrectCount] =
+  const [summary, resumable, insights, subjects, recommended, upcoming, incorrectCount, purchased] =
     await Promise.all([
       getDashboardSummary(user.id),
       getResumableAttempt(user.id),
@@ -58,6 +59,7 @@ export default async function DashboardPage() {
       getRecommendedTests(user.id),
       getUpcomingTests(),
       db.testAnswer.count({ where: { attempt: { userId: user.id }, isCorrect: false } }),
+      getPurchasedCourses(user.id),
     ]);
 
   const isNewStudent = summary.testsAttempted === 0;
@@ -86,6 +88,52 @@ export default async function DashboardPage() {
               : 'Ready for your next challenge?'}
         </p>
       </header>
+
+      {/* What they have bought ------------------------------------------- */}
+      {purchased.length > 0 && (
+        <section aria-labelledby="purchased-heading">
+          <Card>
+            <CardContent className="p-5 sm:p-6">
+              <h2 id="purchased-heading" className="font-semibold tracking-tight">
+                Courses purchased by you
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {purchased.length === 1
+                  ? 'Open it and start taking tests.'
+                  : 'Open any of these and start taking tests.'}
+              </p>
+
+              <ol className="mt-4 space-y-2">
+                {purchased.map((course, index) => (
+                  <li key={course.id}>
+                    <Link
+                      href={course.href}
+                      className="flex items-center gap-3 rounded-xl border border-border px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span
+                        className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-muted text-sm font-semibold tabular-nums text-primary"
+                        aria-hidden="true"
+                      >
+                        {index + 1}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold leading-tight">{course.name}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          {course.blurb}
+                        </span>
+                      </span>
+                      <ArrowRight
+                        className="size-4 shrink-0 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Resume banner --------------------------------------------------- */}
       {resumable && (

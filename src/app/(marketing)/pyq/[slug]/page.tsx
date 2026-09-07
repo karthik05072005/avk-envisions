@@ -341,7 +341,7 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
               ) : user ? (
                 <BuyButton
                   seriesSlug={PYQ_BUNDLE_SLUG}
-                  label="Unlock all years"
+                  label="Proceed to pay"
                   prefill={{ name: user.name, email: user.email }}
                 />
               ) : (

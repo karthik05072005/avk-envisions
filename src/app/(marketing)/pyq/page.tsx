@@ -143,7 +143,7 @@ export default async function PyqPage() {
                   )}
                   <BuyButton
                     seriesSlug={PYQ_BUNDLE_SLUG}
-                    label="Unlock all years"
+                    label="Proceed to pay"
                     size="default"
                     className="mt-2.5 w-full"
                   />

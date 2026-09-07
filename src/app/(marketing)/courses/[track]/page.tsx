@@ -266,7 +266,7 @@ export default async function TrackPage({ params }: { params: Promise<{ track: s
               ) : !first ? null : user ? (
                 <BuyButton
                   seriesSlug={first.slug}
-                  label={`Enrol now — ${formatPaise(price)}`}
+                  label={`Proceed to pay — ${formatPaise(price)}`}
                   prefill={{ name: user.name, email: user.email }}
                 />
               ) : (
