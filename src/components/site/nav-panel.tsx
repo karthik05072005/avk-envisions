@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { ChevronRight, LayoutDashboard, LogOut, User, X } from 'lucide-react';
 
@@ -62,9 +63,21 @@ export function NavPanel({
     if (open) panelRef.current?.focus();
   }, [open]);
 
-  if (!open) return null;
+  // Mounted state, because a portal needs a DOM to target and the server has
+  // none. Without this the first client render disagrees with the server's.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
-  return (
+  if (!open || !mounted) return null;
+
+  // Rendered at the end of <body>, not inside the header.
+  //
+  // The header applies `backdrop-filter` once the page scrolls, and that
+  // establishes a containing block for fixed-position descendants — so the
+  // panel sized itself against a sixteen-pixel-tall header instead of the
+  // viewport, and everything below its title bar was clipped away. The menu
+  // looked empty on any page far enough down to have scrolled.
+  return createPortal(
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu">
       <button
         type="button"
@@ -170,6 +183,7 @@ export function NavPanel({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
