@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Logo } from '@/components/site/logo';
+import { SocialLinks } from '@/components/site/socials';
 import { publicEnv } from '@/lib/env';
 
 /**
@@ -89,8 +90,11 @@ export function SiteFooter() {
           <p className="text-sm text-muted-foreground">
             &copy; {year} {publicEnv.appName}. All rights reserved.
           </p>
+
+          <SocialLinks />
+
           <p className="text-sm text-muted-foreground">
-            Built for serious preparation.
+            A Stronger You for a Better Karnataka
           </p>
         </div>
       </div>
