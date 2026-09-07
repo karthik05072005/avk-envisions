@@ -6,17 +6,20 @@
  * both, the blocks trade places — names, slugs, exam years and synopsis files —
  * so each set of questions sits under the year it actually belongs to.
  *
- * The block becoming 2017 has its questions emptied, because those questions
- * are the 2015 paper and will be replaced by hand. Emptying means detaching:
- * the papers, their subject tests and every synopsis stay exactly as they are,
- * so what is left is the structure ready to be filled.
+ * One block keeps its questions and the other is emptied, ready to be filled
+ * by hand. Emptying means detaching: the papers, their subject tests and every
+ * synopsis stay exactly as they are, so what is left is the structure.
  *
- * The block becoming 2015 keeps everything.
+ * Which block keeps them is `--keep`. It defaults to 2017, which is what the
+ * documents' own headers claimed; pass `--keep 2015` when the papers have been
+ * checked against the source and those headers are wrong — a document naming
+ * the wrong year is what caused all of this in the first place.
  *
  * Slugs move through a temporary name because they are unique — assigning
  * "kas-pyq-2017" while another row still holds it would collide.
  *
  *   npm run db:swap-years -- --dry-run
+ *   npm run db:swap-years -- --keep 2015 --dry-run
  */
 import { rename, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -28,10 +31,24 @@ import { synopsisDir } from '../src/server/services/synopsis-service';
 const db = new PrismaClient();
 const DRY_RUN = process.argv.includes('--dry-run');
 
-/** The block whose questions are discarded and which becomes 2017. */
-const EMPTIED = { from: 2015, to: 2017 };
-/** The block that keeps its questions and becomes 2015. */
-const KEPT = { from: 2017, to: 2015 };
+/**
+ * Which block keeps its questions.
+ *
+ * By default the 2017 block keeps them and the 2015 one is emptied, which is
+ * what the documents' own headers said. `--keep 2015` reverses that, for when
+ * the papers have been checked against the source and the headers are wrong —
+ * a document naming the wrong year is what caused this in the first place.
+ */
+const KEEP_YEAR = (() => {
+  const flag = process.argv.indexOf('--keep');
+  const value = flag === -1 ? null : Number(process.argv[flag + 1]);
+  return value === 2015 || value === 2017 ? value : 2017;
+})();
+
+/** The block whose questions are detached, which takes the other year. */
+const EMPTIED = KEEP_YEAR === 2017 ? { from: 2015, to: 2017 } : { from: 2017, to: 2015 };
+/** The block that keeps its questions. */
+const KEPT = KEEP_YEAR === 2017 ? { from: 2017, to: 2015 } : { from: 2015, to: 2017 };
 
 const TEMP = 'kas-pyq-swap-tmp';
 
