@@ -280,11 +280,21 @@ export default async function PyqPage() {
                         </span>
                       )}
 
+                      {/* A locked year gets the quieter button. "View papers"
+                          in solid primary read as access a visitor does not
+                          have — the page behind it lists what is inside and
+                          asks them to unlock, so the label says that. */}
                       <Link
                         href={`/pyq/${year.slug}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          year.isFree || owned
+                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                            : 'border border-border text-foreground hover:bg-muted/60',
+                        )}
                       >
-                        {year.isFree || owned ? 'Open' : 'View papers'}
+                        {year.isFree || owned ? 'Open' : 'See what is included'}
                         <ArrowRight className="size-4" aria-hidden="true" />
                       </Link>
                     </div>

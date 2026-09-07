@@ -14,7 +14,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { PYQ_BUNDLE_SLUG } from '@/lib/enums';
 import { formatDuration, formatPaise } from '@/lib/utils';
+import { db } from '@/server/db';
+import { hasEntitlement } from '@/server/services/entitlement-service';
+import { countEnrolledMany, resolvePricing } from '@/server/services/pricing-service';
 import { BuyButton } from '@/features/checkout/buy-button';
 import { currentUser } from '@/server/auth/guards';
 import { paymentsEnabled } from '@/server/services/payment-service';
@@ -48,7 +52,26 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
 
   if (!paper) notFound();
 
-  const canBuy = paper.priceInPaise > 0 && paymentsEnabled();
+  // The previous-year papers are sold as one bundle, so this page quotes the
+  // bundle's price and buys the bundle. Quoting the year's own price offered a
+  // second payment for access the bundle already grants.
+  const bundle = await db.testSeries.findFirst({
+    where: { slug: PYQ_BUNDLE_SLUG, status: 'PUBLISHED', deletedAt: null },
+    select: {
+      id: true,
+      priceInPaise: true,
+      tier1PriceInPaise: true,
+      tier1Limit: true,
+      tier2PriceInPaise: true,
+      tier2Limit: true,
+    },
+  });
+
+  const enrolled = bundle ? await countEnrolledMany([bundle.id]) : null;
+  const bundlePricing = bundle ? resolvePricing(bundle, enrolled?.get(bundle.id) ?? 0) : null;
+  const owned = Boolean(user && bundle && (await hasEntitlement(user.id, bundle.id)));
+
+  const canBuy = paper.priceInPaise > 0 && Boolean(bundle) && paymentsEnabled();
 
   const label = paper.sessionLabel
     ? `${paper.sessionLabel} ${paper.examYear}`
@@ -266,29 +289,48 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
               <h2 className="font-semibold tracking-tight">
-                {paper.priceInPaise === 0 ? `Start ${label}` : `Unlock ${label}`}
+                {paper.priceInPaise === 0
+                  ? `Start ${label}`
+                  : owned
+                    ? 'You have access to every year'
+                    : 'Unlock every previous year paper'}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {paper.priceInPaise === 0
                   ? 'Full-length paper plus every subject-wise test, with detailed solutions and the complete analysis. Free for everyone.'
-                  : 'Full-length paper plus every subject-wise test, with detailed solutions.'}
+                  : owned
+                    ? `${label} is included in your access, along with every other year.`
+                    : 'One payment opens every exam year — full-length papers and subject-wise tests, with detailed solutions. There is no separate charge for this year.'}
               </p>
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-2xl font-semibold tracking-tight">
-                  {paper.priceInPaise === 0 ? 'Free' : formatPaise(paper.priceInPaise)}
-                </p>
-                {paper.comparePriceInPaise > paper.priceInPaise && (
-                  <p className="text-sm text-muted-foreground line-through">
-                    {formatPaise(paper.comparePriceInPaise)}
+              {!owned && (
+                <div className="text-right">
+                  <p className="text-2xl font-semibold tracking-tight">
+                    {paper.priceInPaise === 0
+                      ? 'Free'
+                      : formatPaise(bundlePricing?.priceInPaise ?? paper.priceInPaise)}
                   </p>
-                )}
-              </div>
+                  {/* The later price, where an early-bird rung is still open. */}
+                  {bundlePricing?.ladder.find((rung) => rung.limit === null) &&
+                    bundlePricing.ladder.some((rung) => rung.active && rung.limit !== null) && (
+                      <p className="text-sm text-muted-foreground line-through">
+                        {formatPaise(
+                          bundlePricing.ladder.find((rung) => rung.limit === null)!.priceInPaise,
+                        )}
+                      </p>
+                    )}
+                </div>
+              )}
+
               {paper.priceInPaise === 0 ? (
                 <Button asChild size="lg" variant="brand">
                   <Link href={`/register?next=/pyq/${paper.slug}`}>Start free</Link>
+                </Button>
+              ) : owned ? (
+                <Button asChild size="lg" variant="brand">
+                  <Link href="/pyq">Browse all years</Link>
                 </Button>
               ) : !canBuy ? (
                 // Payments off: say so rather than opening a checkout that
@@ -298,8 +340,8 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
                 </Button>
               ) : user ? (
                 <BuyButton
-                  seriesSlug={paper.slug}
-                  label="Get access"
+                  seriesSlug={PYQ_BUNDLE_SLUG}
+                  label="Unlock all years"
                   prefill={{ name: user.name, email: user.email }}
                 />
               ) : (
