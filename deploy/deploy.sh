@@ -96,7 +96,13 @@ do
   fi
 done
 
+# Dev dependencies go, but `tsx` stays: the content scripts in prisma/ are
+# TypeScript and are run by hand after a deploy — importing a paper, fixing a
+# catalogue. Pruning it away meant every one of those sessions began with a
+# two-minute `npm ci` to put back what this line had just removed.
 sudo -u "$APP_USER" npm prune --omit=dev
+sudo -u "$APP_USER" npm install --no-save --no-audit --no-fund tsx >/dev/null 2>&1 ||
+  echo "    WARNING: tsx could not be reinstalled; prisma/ scripts will need 'npm ci' first." >&2
 
 echo "==> Starting"
 systemctl start avkvisions
