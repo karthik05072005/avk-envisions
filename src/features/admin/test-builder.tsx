@@ -23,6 +23,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { FormField } from '@/components/ui/label';
 import { InlineError } from '@/components/ui/states';
 import { ApiClientError, api } from '@/lib/api-client';
+import { DeleteQuestion } from '@/features/admin/delete-question';
 import { cn } from '@/lib/utils';
 
 /**
@@ -568,11 +569,15 @@ export function TestBuilder({ exams, series, initial, attached = [] }: BuilderPr
                       >
                         <ArrowDown aria-hidden="true" />
                       </Button>
+                      {/* Two different removals, and the difference matters:
+                          this one takes the question off this paper and leaves
+                          it in the bank for reuse. */}
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        className="text-muted-foreground hover:text-destructive"
-                        aria-label="Remove from test"
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label="Remove from this paper"
+                        title="Remove from this paper (stays in the bank)"
                         onClick={() =>
                           mutateQuestions(
                             { action: 'detach', questionIds: [row.questionId] },
@@ -580,8 +585,18 @@ export function TestBuilder({ exams, series, initial, attached = [] }: BuilderPr
                           )
                         }
                       >
-                        <Trash2 aria-hidden="true" />
+                        <X aria-hidden="true" />
                       </Button>
+
+                      {/* And this one deletes it outright, everywhere. */}
+                      <DeleteQuestion
+                        questionId={row.questionId}
+                        code={row.code ?? null}
+                        attachedTo={0}
+                        onDeleted={() =>
+                          setRows((previous) => previous.filter((r) => r.rowId !== row.rowId))
+                        }
+                      />
                     </div>
                   </li>
                 ))}

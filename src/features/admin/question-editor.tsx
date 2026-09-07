@@ -13,6 +13,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { FormField } from '@/components/ui/label';
 import { InlineError } from '@/components/ui/states';
 import { ApiClientError, api } from '@/lib/api-client';
+import { DeleteQuestion } from '@/features/admin/delete-question';
 import { MARKS_PER_QUESTION, NEGATIVE_MARKS_PER_QUESTION } from '@/lib/marking';
 
 import { FigurePicker } from './figure-picker';
@@ -288,10 +289,25 @@ export function QuestionEditor({
           </h1>
         </div>
 
-        <Button onClick={save} loading={saving} disabled={Boolean(blocker)}>
-          <Save aria-hidden="true" />
-          {isEdit ? 'Save changes' : 'Create question'}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Only when editing: there is nothing to delete until the question
+              exists. Sits beside Save because this is where someone is when
+              they decide a question should not be there at all. */}
+          {isEdit && draft.id && (
+            <DeleteQuestion
+              questionId={draft.id}
+              code={draft.code ?? null}
+              attachedTo={0}
+              variant="button"
+              onDeleted={() => router.push(back)}
+            />
+          )}
+
+          <Button onClick={save} loading={saving} disabled={Boolean(blocker)}>
+            <Save aria-hidden="true" />
+            {isEdit ? 'Save changes' : 'Create question'}
+          </Button>
+        </div>
       </div>
 
       {error && <InlineError message={error} />}

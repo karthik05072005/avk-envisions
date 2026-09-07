@@ -6,6 +6,7 @@ import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/states';
+import { DeleteQuestion } from '@/features/admin/delete-question';
 import { formatDate } from '@/lib/utils';
 import { enforceAdminArea } from '@/server/auth/guards';
 import { getTaxonomyTree, listPaperGroups, listQuestions } from '@/server/services/admin-service';
@@ -276,7 +277,7 @@ export default async function AdminQuestionsPage({
           <CardContent className="p-0">
             <ul className="divide-y divide-border">
               {result.rows.map((question) => (
-                <li key={question.id}>
+                <li key={question.id} className="flex items-start gap-1 pr-3">
                   <Link
                     // Carries the paper through, so saving comes back here
                     // rather than to the unfiltered bank.
@@ -333,6 +334,17 @@ export default async function AdminQuestionsPage({
                       </p>
                     </div>
                   </Link>
+
+                  {/* Beside the row, not inside it: the row is a link to the
+                      editor, and a button nested in a link is not reliably
+                      clickable. */}
+                  <div className="pt-4">
+                    <DeleteQuestion
+                      questionId={question.id}
+                      code={question.code}
+                      attachedTo={question._count.testQuestions}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>
