@@ -41,6 +41,11 @@ const PLANS: Plan[] = [
   // made after sitting one rather than before.
   { slug: 'kas-pyq-2011', price: 0, earlyBird: null, earlyBirdLimit: null, free: true },
 
+  // The previous-year bundle — ₹49 for the first 50, then ₹199. This is what
+  // is actually sold; the per-year rows below only matter if a year is ever
+  // offered on its own again, and they are kept in step so it could be.
+  { slug: 'kas-pyq-all-years', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
+
   // PYQ — ₹49 for the first 50, then ₹199. Priced per year.
   { slug: 'kas-pyq-2015', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
   { slug: 'kas-pyq-2017', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
@@ -48,11 +53,11 @@ const PLANS: Plan[] = [
   { slug: 'kas-pyq-2024-august', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
   { slug: 'kas-pyq-2024-december', price: 199, earlyBird: 49, earlyBirdLimit: 50 },
 
-  // KAS50 — ₹49 for the first 50, then ₹299.
-  { slug: 'kas-50-questions-50-days', price: 299, earlyBird: 49, earlyBirdLimit: 50 },
+  // KAS50 — ₹99 for the first 50, then ₹299.
+  { slug: 'kas-50-questions-50-days', price: 299, earlyBird: 99, earlyBirdLimit: 50 },
 
-  // Full-length mocks — ₹99 for the first 50, then ₹199.
-  { slug: 'kas-prelims-paid-test-series', price: 199, earlyBird: 99, earlyBirdLimit: 50 },
+  // Full-length mocks — ₹99 for the first 50, then ₹299.
+  { slug: 'kas-prelims-paid-test-series', price: 299, earlyBird: 99, earlyBirdLimit: 50 },
 
   // Chapterwise, priced per subject. Each is bought on its own, which is why
   // the page offers both "Unlock Now" per subject and "Unlock All Subjects".
