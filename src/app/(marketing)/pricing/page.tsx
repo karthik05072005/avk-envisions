@@ -54,24 +54,11 @@ interface PlanCard {
 
 const PLANS: PlanCard[] = [
   {
-    slug: 'kas-prelims-free-test-series',
-    number: 1,
-    title: 'Free Test Series',
-    blurb: 'Try our free tests and evaluate your preparation level.',
-    benefits: ['Exam-style practice', 'Detailed solutions'],
-    cta: 'Start Free Tests',
-    href: '/test-series/kas-prelims-free-test-series',
-    tint: 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20',
-    accent: 'bg-emerald-600 text-white',
-    button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-    ribbon: 'bg-emerald-600',
-  },
-  {
     // The bundle, not one year. This card is titled for the whole set, so
     // wiring it to a single year charged the advertised price and delivered a
     // fraction of what it named.
     slug: PYQ_BUNDLE_SLUG,
-    number: 2,
+    number: 1,
     title: 'KAS Previous Year Question Papers',
     blurb: 'Every exam year — full-length and subject-wise — unlocked by one payment.',
     benefits: ['All years included', 'Detailed solutions'],
@@ -81,6 +68,19 @@ const PLANS: PlanCard[] = [
     accent: 'bg-blue-600 text-white',
     button: 'bg-blue-600 hover:bg-blue-700 text-white',
     ribbon: 'bg-rose-500',
+  },
+  {
+    slug: 'kas-prelims-free-test-series',
+    number: 2,
+    title: 'Free Test Series',
+    blurb: 'Try our free tests and evaluate your preparation level.',
+    benefits: ['Exam-style practice', 'Detailed solutions'],
+    cta: 'Start Free Tests',
+    href: '/test-series/kas-prelims-free-test-series',
+    tint: 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20',
+    accent: 'bg-emerald-600 text-white',
+    button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+    ribbon: 'bg-emerald-600',
   },
   {
     slug: 'kas-50-questions-50-days',

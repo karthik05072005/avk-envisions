@@ -40,9 +40,10 @@ import { cn } from '@/lib/utils';
 const NAV_LINKS = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/courses', label: 'Courses', icon: BookOpen },
+  // Same order as the cards everywhere else.
   { href: '/pyq', label: "PyQ's", icon: FileText },
-  { href: '/50-days', label: 'KAS-50', icon: Target },
   { href: '/test-series/kas-prelims-free-test-series', label: 'Free Tests', icon: Gift },
+  { href: '/50-days', label: 'KAS-50', icon: Target },
   { href: '/test-series/kas-prelims-paid-test-series', label: 'Paid Tests', icon: Crown },
   { href: '/chapterwise', label: 'Chapter-wise', icon: Layers },
   { href: '/practice', label: 'Quiz', icon: HelpCircle },

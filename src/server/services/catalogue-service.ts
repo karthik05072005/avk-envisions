@@ -142,18 +142,18 @@ const TRACK_META: Record<TrackKey, Omit<TrackSummary, 'seriesCount' | 'testCount
 };
 
 /**
- * Display order, and the first two are the featured pair.
+ * Display order, used everywhere the tracks are listed.
  *
- * The daily challenge leads because it is the current offer, and the free
- * series sits beside it so the first thing a visitor sees costs nothing. The
- * paid, chapterwise and PYQ tracks follow in a second row.
+ * The previous year papers lead because they are what most students arrive
+ * looking for, then the free series, then KAS-50 and the paid series, with
+ * chapterwise last since it is still being written.
  */
 const TRACK_ORDER: TrackKey[] = [
-  'DAILY_CHALLENGE',
+  'PYQ',
   'FREE_SERIES',
+  'DAILY_CHALLENGE',
   'PAID_SERIES',
   'CHAPTERWISE',
-  'PYQ',
 ];
 
 /** The four widgets on the landing page and /courses. */

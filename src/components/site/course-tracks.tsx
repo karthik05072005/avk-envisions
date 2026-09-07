@@ -30,7 +30,6 @@ const ICONS: Record<string, LucideIcon> = {
  * something the site does not have.
  */
 interface Skin {
-  order: number;
   /** `/courses/<slug>` — the details page for this track. */
   detailsSlug: string;
   wash: string;
@@ -40,35 +39,30 @@ interface Skin {
 
 const SKINS: Record<TrackKey, Skin> = {
   FREE_SERIES: {
-    order: 1,
     detailsSlug: 'free-test-series',
     wash: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300',
     button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
     chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   },
   PYQ: {
-    order: 2,
     detailsSlug: 'previous-year-papers',
     wash: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300',
     button: 'bg-indigo-600 hover:bg-indigo-700 text-white',
     chip: 'bg-muted text-muted-foreground',
   },
   DAILY_CHALLENGE: {
-    order: 3,
     detailsSlug: 'kas-50',
     wash: 'bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300',
     button: 'bg-violet-600 hover:bg-violet-700 text-white',
     chip: 'bg-muted text-muted-foreground',
   },
   PAID_SERIES: {
-    order: 4,
     detailsSlug: 'paid-test-series',
     wash: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300',
     button: 'bg-amber-500 hover:bg-amber-600 text-white',
     chip: 'bg-muted text-muted-foreground',
   },
   CHAPTERWISE: {
-    order: 5,
     detailsSlug: 'chapterwise',
     wash: 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-300',
     button: 'bg-sky-600 hover:bg-sky-700 text-white',
@@ -84,13 +78,13 @@ const SKINS: Record<TrackKey, Skin> = {
  * ended up advertising different prices in different places.
  */
 export function CourseTracks({ tracks }: { tracks: TrackSummary[] }) {
-  const ordered = [...tracks].sort(
-    (a, b) => (SKINS[a.key]?.order ?? 99) - (SKINS[b.key]?.order ?? 99),
-  );
-
+  // Rendered in the order the catalogue gives them. This used to re-sort by a
+  // second list kept here, so changing the order in one place silently left
+  // the other disagreeing — the home page and /courses showed the same cards
+  // in different sequences.
   return (
     <ul className="grid gap-5 lg:grid-cols-2">
-      {ordered.map((track) => {
+      {tracks.map((track, index) => {
         const skin = SKINS[track.key];
         const Icon = ICONS[track.iconName] ?? Layers;
         if (!skin) return null;
@@ -117,7 +111,9 @@ export function CourseTracks({ tracks }: { tracks: TrackSummary[] }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-base font-bold leading-snug tracking-tight">
-                      {skin.order}. {track.title}
+                      {/* Numbered by position, so the label can never
+                          disagree with the order the cards are actually in. */}
+                      {index + 1}. {track.title}
                     </h2>
 
                     <span
