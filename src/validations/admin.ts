@@ -159,10 +159,28 @@ export type TestInput = z.infer<typeof testSchema>;
 
 /** Attach, detach or reorder the questions on a test. */
 export const testQuestionsSchema = z.object({
-  action: z.enum(['attach', 'detach', 'reorder', 'publish']),
+  /**
+   * `clear` empties the whole paper, which is what a re-import wants: the old
+   * questions have to go before the new ones arrive, and removing a hundred
+   * one at a time is not a workflow.
+   */
+  action: z.enum(['attach', 'detach', 'reorder', 'publish', 'clear']),
   questionIds: z.array(cuidSchema).max(500).default([]),
   /** For reorder: the full ordered list of testQuestion ids. */
   order: z.array(cuidSchema).max(500).default([]),
+});
+
+/**
+ * Clearing every paper in a series at once.
+ *
+ * Typing the series name is required. This removes hundreds of questions
+ * across a dozen papers and there is no undo beyond a database restore, so the
+ * confirmation is a deliberate obstacle rather than a formality.
+ */
+export const clearSeriesQuestionsSchema = z.object({
+  seriesId: cuidSchema,
+  /** Must equal the series name exactly. */
+  confirm: z.string().trim().min(1),
 });
 
 export const userActionSchema = z.object({

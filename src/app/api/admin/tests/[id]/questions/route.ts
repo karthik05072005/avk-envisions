@@ -131,6 +131,40 @@ export const POST = route(async ({ request, params, ip }) => {
     };
   }
 
+  if (input.action === 'clear') {
+    // Emptying a paper somebody has sat would leave their result page reading
+    // back questions that are no longer attached, so an attempted paper is
+    // refused rather than quietly broken.
+    const attempts = await db.testAttempt.count({ where: { testId } });
+    if (attempts > 0) {
+      throw errors.badRequest(
+        `${attempts} student attempt${attempts === 1 ? ' exists' : 's exist'} on this paper. ` +
+          'Clearing it would break those result pages. Remove the attempts first if you are sure.',
+      );
+    }
+
+    const removed = await db.testQuestion.deleteMany({ where: { testId } });
+    const totals = await refreshTestTotals(testId);
+
+    await audit({
+      actor: { id: admin.id, email: admin.email, role: admin.role },
+      action: AUDIT_ACTIONS.TEST_UPDATED,
+      entityType: 'Test',
+      entityId: testId,
+      meta: { cleared: removed.count, title: test.title },
+      ipAddress: ip,
+    });
+
+    return {
+      data: { detached: removed.count, ...totals },
+      message:
+        removed.count === 0
+          ? 'That paper was already empty.'
+          : `Cleared ${removed.count} question${removed.count === 1 ? '' : 's'} from this paper. ` +
+            'They remain in the question bank.',
+    };
+  }
+
   if (input.action === 'detach') {
     const removed = await db.testQuestion.deleteMany({
       where: { testId, questionId: { in: input.questionIds } },

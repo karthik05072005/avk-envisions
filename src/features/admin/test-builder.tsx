@@ -130,8 +130,42 @@ export function TestBuilder({ exams, series, initial, attached = [] }: BuilderPr
   const totalMarks = rows.reduce((sum, r) => sum + r.marks, 0);
   const unpublished = rows.filter((r) => r.status !== 'PUBLISHED').length;
   const [publishing, setPublishing] = React.useState(false);
+  const [clearing, setClearing] = React.useState(false);
 
   /** Publishes every attached question that is still a draft. */
+  /**
+   * Empties the paper.
+   *
+   * Confirmed in the browser rather than silently: this removes every question
+   * at once and the only way back is to attach them again. The questions
+   * survive in the bank, which the message says so nobody thinks their work is
+   * destroyed.
+   */
+  async function clearAll() {
+    const ok = window.confirm(
+      `Remove all ${rows.length} question${rows.length === 1 ? '' : 's'} from this paper?
+
+` +
+        'The paper and its settings stay. The questions stay in the question bank and can be ' +
+        'attached again.',
+    );
+    if (!ok) return;
+
+    setClearing(true);
+    try {
+      await api.post(`/api/admin/tests/${initial?.id}/questions`, { action: 'clear' });
+      setRows([]);
+      toast.success('The paper is empty. Its questions are still in the bank.');
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof ApiClientError ? error.message : 'The paper could not be cleared.',
+      );
+    } finally {
+      setClearing(false);
+    }
+  }
+
   async function publishAttached() {
     setPublishing(true);
     try {
@@ -452,10 +486,21 @@ export function TestBuilder({ exams, series, initial, attached = [] }: BuilderPr
                   {unpublished > 0 && ` · ${unpublished} not published`}
                 </p>
               </div>
-              <Button size="sm" onClick={() => setPickerOpen(true)}>
-                <Plus aria-hidden="true" />
-                Add questions
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Emptying the whole paper, for when it is being rebuilt from
+                    a corrected document. Removing a hundred questions one at a
+                    time is not a workflow. */}
+                {rows.length > 0 && (
+                  <Button size="sm" variant="outline" onClick={clearAll} disabled={clearing}>
+                    <Trash2 aria-hidden="true" />
+                    {clearing ? 'Clearing…' : 'Clear all'}
+                  </Button>
+                )}
+                <Button size="sm" onClick={() => setPickerOpen(true)}>
+                  <Plus aria-hidden="true" />
+                  Add questions
+                </Button>
+              </div>
             </div>
 
             {unpublished > 0 && (

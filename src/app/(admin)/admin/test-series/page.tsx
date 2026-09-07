@@ -6,6 +6,7 @@ import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/states';
+import { ClearSeriesQuestions } from '@/features/admin/clear-series-questions';
 import { formatPaise } from '@/lib/utils';
 import { enforceAdminArea } from '@/server/auth/guards';
 import { db } from '@/server/db';
@@ -82,8 +83,10 @@ export default async function AdminTestSeriesPage() {
                     const ready = published.filter((t) => t.totalQuestions > 0).length;
                     const empty = published.length - ready;
 
+                    const questionCount = item.tests.reduce((n, t) => n + t.totalQuestions, 0);
+
                     return (
-                      <li key={item.id} className="flex items-center gap-4 p-4">
+                      <li key={item.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4">
                         <div className="min-w-0 flex-1">
                           <p className="flex flex-wrap items-center gap-2">
                             <span className="truncate font-medium leading-tight">{item.name}</span>
@@ -97,15 +100,23 @@ export default async function AdminTestSeriesPage() {
                           </p>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {item.exam.shortName} · {ready} of {item.tests.length} tests ready ·{' '}
+                            {questionCount} question{questionCount === 1 ? '' : 's'} ·{' '}
                             {item.priceInPaise === 0 ? 'Free' : formatPaise(item.priceInPaise)}
                           </p>
                         </div>
 
-                        <Button asChild variant="outline" size="sm" className="shrink-0">
-                          <Link href={`/admin/tests?q=${encodeURIComponent(item.name)}`}>
-                            Tests
-                          </Link>
-                        </Button>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <ClearSeriesQuestions
+                            seriesId={item.id}
+                            seriesName={item.name}
+                            questionCount={questionCount}
+                          />
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/admin/tests?q=${encodeURIComponent(item.name)}`}>
+                              Tests
+                            </Link>
+                          </Button>
+                        </div>
                       </li>
                     );
                   })}
