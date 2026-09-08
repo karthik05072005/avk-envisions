@@ -9,6 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { TEST_CATEGORY_LABELS, type TestCategory } from '@/lib/enums';
 import { formatDuration, formatPaise } from '@/lib/utils';
 import { BuyButton } from '@/features/checkout/buy-button';
+import { db } from '@/server/db';
+import { countEnrolledMany, resolvePricing } from '@/server/services/pricing-service';
 import { FreeSeriesSchedule } from '@/features/marketing/free-series-schedule';
 import { getAllTestSeries, getTestSeriesBySlug } from '@/server/services/marketing-service';
 
@@ -59,6 +61,27 @@ export default async function TestSeriesDetailPage({
   if (!series) notFound();
 
   if (SCHEDULE_SERIES.has(slug)) {
+    // The live price, resolved from the early-bird ladder against real
+    // enrolments — the same figure the pricing page and the buy button use.
+    // Reading `priceInPaise` alone showed the standard price to everyone,
+    // so the page quoted 299 while checkout charged 99.
+    const row = await db.testSeries.findFirst({
+      where: { slug, deletedAt: null },
+      select: {
+        id: true,
+        priceInPaise: true,
+        tier1PriceInPaise: true,
+        tier1Limit: true,
+        tier2PriceInPaise: true,
+        tier2Limit: true,
+      },
+    });
+
+    const enrolled = row ? await countEnrolledMany([row.id]) : null;
+    const pricing = row ? resolvePricing(row, enrolled?.get(row.id) ?? 0) : null;
+    const earlyBird = pricing?.ladder.find((rung) => rung.active && rung.limit !== null) ?? null;
+    const standard = pricing?.ladder.find((rung) => rung.limit === null) ?? null;
+
     return (
       <FreeSeriesSchedule
         name={series.name}
@@ -68,11 +91,24 @@ export default async function TestSeriesDetailPage({
           series.priceInPaise > 0 ? (
             <div className="w-full shrink-0 rounded-2xl border border-primary/30 bg-primary-muted/40 p-4 sm:w-56">
               <p className="text-3xl font-bold tabular-nums">
-                {formatPaise(series.priceInPaise)}
+                {formatPaise(pricing?.priceInPaise ?? series.priceInPaise)}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                One-time payment · lifetime access
-              </p>
+
+              {/* The later price, while an early-bird rung is genuinely open.
+                  Saying what it becomes is the point of an early-bird offer;
+                  quoting only today's figure hides the reason to act. */}
+              {earlyBird && standard ? (
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                  for the first {earlyBird.limit} members, then{' '}
+                  <span className="font-semibold text-foreground">
+                    {formatPaise(standard.priceInPaise)}
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  One-time payment · lifetime access
+                </p>
+              )}
               <BuyButton
                 seriesSlug={series.slug}
                 label="Proceed to pay"
