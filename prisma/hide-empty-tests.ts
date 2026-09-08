@@ -42,6 +42,45 @@ async function main() {
     });
   }
 
+  // --- And publish the ones that have since been filled --------------------
+  // Hiding was one-directional: a paper drafted while empty stayed drafted
+  // after its questions arrived, so work an admin had finished never reached a
+  // student. This runs on every deploy, so the rule has to hold both ways.
+  //
+  // A question that is itself unpublished is skipped when a paper is served,
+  // so a paper holding only drafts would be published and still show nothing.
+  // Those are counted, not published: whether an unreviewed question should go
+  // live is the admin's call, not this job's.
+  const filled = await db.test.findMany({
+    where: {
+      deletedAt: null,
+      status: 'DRAFT',
+      questions: { some: { question: { status: 'PUBLISHED', deletedAt: null } } },
+    },
+    select: {
+      id: true,
+      slug: true,
+      _count: { select: { questions: true } },
+    },
+    orderBy: { slug: 'asc' },
+  });
+
+  console.log(`
+${filled.length} draft test(s) now have questions.
+`);
+  for (const test of filled) {
+    console.log(
+      `  ${DRY_RUN ? 'would publish' : 'published'}  ${String(test._count.questions).padStart(4)}q  ${test.slug}`,
+    );
+  }
+
+  if (!DRY_RUN && filled.length > 0) {
+    await db.test.updateMany({
+      where: { id: { in: filled.map((t) => t.id) } },
+      data: { status: 'PUBLISHED', publishedAt: new Date() },
+    });
+  }
+
   // A series whose every test is now hidden should not advertise itself either.
   const series = await db.testSeries.findMany({
     where: { deletedAt: null },
@@ -73,6 +112,21 @@ async function main() {
     console.log(`  ${DRY_RUN ? 'would hide series' : 'series hidden'}  ${s.slug}`);
     if (!DRY_RUN) {
       await db.testSeries.update({ where: { id: s.id }, data: { status: 'DRAFT' } });
+    }
+  }
+
+  // The same rule the other way: a series drafted while hollow, whose tests
+  // now hold questions, should be back on the shelf.
+  const refilled = series.filter(
+    (s) =>
+      s.status === 'DRAFT' &&
+      s.tests.some((t) => t.totalQuestions > 0),
+  );
+
+  for (const s of refilled) {
+    console.log(`  ${DRY_RUN ? 'would publish series' : 'series published'}  ${s.slug}`);
+    if (!DRY_RUN) {
+      await db.testSeries.update({ where: { id: s.id }, data: { status: 'PUBLISHED' } });
     }
   }
 
