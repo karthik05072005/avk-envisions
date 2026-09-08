@@ -322,10 +322,17 @@ export const getTestSeriesBySlug = cache(async (slug: string) => {
         select: { id: true, question: true, answer: true },
       },
       tests: {
-        where: { status: 'PUBLISHED', deletedAt: null },
-        // By slug, so "Free Test 2" follows "Free Test 1" rather than sorting
-        // as text where 10 lands between 1 and 2.
-        orderBy: [{ category: 'asc' }, { slug: 'asc' }],
+        // Every test, published or not. These series are sold on a published
+        // timetable — a student is meant to see what falls on which date well
+        // before those papers are written — and filtering to published ones
+        // left a twelve-test series advertising nothing at all. Each row says
+        // for itself whether it can be attempted.
+        where: { deletedAt: null },
+        // A scheduled date is the order a student reads the series in, so it
+        // leads. Slug is the fallback for a series with no dates — and it
+        // sorts as text, where "kas-paid-10" lands between 1 and 2, so the
+        // page numbers the rows by position rather than trusting either.
+        orderBy: [{ startDate: 'asc' }, { category: 'asc' }, { slug: 'asc' }],
         select: {
           id: true,
           title: true,

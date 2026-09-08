@@ -8,11 +8,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TEST_CATEGORY_LABELS, type TestCategory } from '@/lib/enums';
 import { formatDuration, formatPaise } from '@/lib/utils';
+import { BuyButton } from '@/features/checkout/buy-button';
 import { FreeSeriesSchedule } from '@/features/marketing/free-series-schedule';
 import { getAllTestSeries, getTestSeriesBySlug } from '@/server/services/marketing-service';
 
 /** The free series renders as a schedule; every other series keeps the pitch. */
-const FREE_SERIES_SLUG = 'kas-prelims-free-test-series';
+/**
+ * Series that render as a timetable rather than a pitch.
+ *
+ * Both are sold on a published schedule, so what a student wants from the page
+ * is which paper falls on which date and what can be sat today — not a feature
+ * list. The paid series showed the pitch and, because its papers are still
+ * being written, an empty "What is included" beneath a "TESTS 0" summary.
+ */
+const SCHEDULE_SERIES = new Set([
+  'kas-prelims-free-test-series',
+  'kas-prelims-paid-test-series',
+]);
 
 export async function generateStaticParams() {
   const series = await getAllTestSeries();
@@ -46,14 +58,30 @@ export default async function TestSeriesDetailPage({
 
   if (!series) notFound();
 
-  // The free series is a published timetable, not a pitch: nothing is being
-  // sold, so the page shows every test and what can be attempted today rather
-  // than the pricing and feature blocks the paid series need.
-  if (slug === FREE_SERIES_SLUG) {
+  if (SCHEDULE_SERIES.has(slug)) {
     return (
       <FreeSeriesSchedule
         name={series.name}
         tagline={series.tagline}
+        eyebrow={series.priceInPaise > 0 ? 'Paid Test Series' : 'Free Test Series'}
+        purchase={
+          series.priceInPaise > 0 ? (
+            <div className="w-full shrink-0 rounded-2xl border border-primary/30 bg-primary-muted/40 p-4 sm:w-56">
+              <p className="text-3xl font-bold tabular-nums">
+                {formatPaise(series.priceInPaise)}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                One-time payment · lifetime access
+              </p>
+              <BuyButton
+                seriesSlug={series.slug}
+                label="Proceed to pay"
+                size="default"
+                className="mt-2.5 w-full"
+              />
+            </div>
+          ) : undefined
+        }
         tests={series.tests.map((test) => ({
           id: test.id,
           slug: test.slug,

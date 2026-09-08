@@ -1,3 +1,4 @@
+import * as React from 'react';
 import Link from 'next/link';
 import { BookOpen, Clock, FileText, Info, Lock, Play } from 'lucide-react';
 
@@ -26,6 +27,15 @@ interface Props {
   name: string;
   tagline: string | null;
   tests: ScheduleTest[];
+  /** The line above the title — the series' own kind, not always "Free". */
+  eyebrow?: string;
+  /**
+   * The purchase panel, for a series that is sold.
+   *
+   * Passed in rather than resolved here: this component knows about a
+   * timetable, and the free series has nothing to buy.
+   */
+  purchase?: React.ReactNode;
 }
 
 /** Open when it has questions and either no date or a date already past. */
@@ -34,7 +44,7 @@ function isOpen(test: ScheduleTest): boolean {
   return test.startDate === null || test.startDate <= new Date();
 }
 
-export function FreeSeriesSchedule({ name, tagline, tests }: Props) {
+export function FreeSeriesSchedule({ name, tagline, tests, eyebrow, purchase }: Props) {
   // Quoted from the tests themselves, so the header cannot drift from what the
   // table shows. Where the written papers disagree the most common count is
   // used rather than "varies": every paper here is planned at the same length,
@@ -52,7 +62,7 @@ export function FreeSeriesSchedule({ name, tagline, tests }: Props) {
     <div className="container max-w-5xl py-8 sm:py-10">
       <header>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-          Free Test Series
+          {eyebrow ?? 'Free Test Series'}
         </p>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
@@ -64,11 +74,13 @@ export function FreeSeriesSchedule({ name, tagline, tests }: Props) {
             )}
           </div>
 
-          <p className="hidden shrink-0 rounded-2xl bg-primary-muted/60 px-5 py-4 text-center text-sm font-semibold italic leading-snug sm:block">
-            Practice Today
-            <br />
-            Perform Tomorrow
-          </p>
+          {purchase ?? (
+            <p className="hidden shrink-0 rounded-2xl bg-primary-muted/60 px-5 py-4 text-center text-sm font-semibold italic leading-snug sm:block">
+              Practice Today
+              <br />
+              Perform Tomorrow
+            </p>
+          )}
         </div>
 
         <dl className="mt-5 grid gap-3 sm:grid-cols-3">
