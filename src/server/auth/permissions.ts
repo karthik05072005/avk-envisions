@@ -272,11 +272,15 @@ export function isStaff(role: UserRole): boolean {
  * Landing route for a role immediately after sign-in.
  * Admins never land on the student dashboard, and vice versa.
  *
- * Students go to the test catalogue rather than the dashboard. Someone who has
- * just signed in wants to sit a test; the dashboard shows progress statistics,
- * which are empty and discouraging for a new account and a detour for everyone
- * else. The dashboard stays available in the navigation.
+ * Students went to the catalogue for a while, on the reasoning that a new
+ * account's dashboard is empty statistics and a detour. That stopped being
+ * true once the dashboard began listing the courses a student has bought:
+ * for anyone returning it is now the shortest route to what they paid for.
+ *
+ * It doubles as where the Dashboard button points, so a student clicking
+ * "Dashboard" was being taken to the catalogue — the same value serving both,
+ * which made one decision quietly govern two different things.
  */
 export function defaultRouteForRole(role: UserRole): string {
-  return role === 'ADMIN' ? '/admin' : '/test-series';
+  return role === 'ADMIN' ? '/admin' : '/dashboard';
 }
