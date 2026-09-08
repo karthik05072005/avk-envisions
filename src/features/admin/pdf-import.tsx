@@ -60,6 +60,8 @@ interface ParsedQuestion {
   options: ParsedOption[];
   correctIndex: number | null;
   rawAnswer: string | null;
+  /** The worked explanation, where the paper printed one. */
+  explanation?: string | null;
   warnings: string[];
   /** The diagram this question needs, if the parser found one. */
   imageUrl?: string;
@@ -285,6 +287,7 @@ export function PdfImport({ exams, series, tests, groups }: ImportTarget) {
             body: q.body,
             options: q.options.map((o) => ({ body: o.body })),
             correctIndex: q.correctIndex!,
+            ...(q.explanation?.trim() ? { explanation: q.explanation.trim() } : {}),
             ...(q.imageUrl ? { imageUrl: q.imageUrl } : {}),
           })),
         },
@@ -922,6 +925,33 @@ export function PdfImport({ exams, series, tests, groups }: ImportTarget) {
                     </li>
                   ))}
                 </ul>
+
+                {/* Shown so a reviewer can see what will be stored and correct
+                    it. A paper that prints no explanation leaves this empty,
+                    and nothing is invented to fill it. */}
+                <div className="mt-3">
+                  <label
+                    htmlFor={`explanation-${qIndex}`}
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Explanation{' '}
+                    {question.explanation ? (
+                      <span className="text-success">· read from the paper</span>
+                    ) : (
+                      <span>· none printed; optional</span>
+                    )}
+                  </label>
+                  <Textarea
+                    id={`explanation-${qIndex}`}
+                    value={question.explanation ?? ''}
+                    onChange={(event) =>
+                      updateQuestion(qIndex, { explanation: event.target.value })
+                    }
+                    rows={2}
+                    className="mt-1 text-sm"
+                    placeholder="Why this answer is right — shown to a student after they finish."
+                  />
+                </div>
               </li>
             );
           })}

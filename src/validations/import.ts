@@ -24,6 +24,12 @@ export const reviewedQuestionSchema = z
     options: z.array(reviewedOptionSchema).min(2, 'At least two options').max(8),
     /** Zero-based. Must be resolved by the human before commit. */
     correctIndex: z.number().int().min(0),
+    /**
+     * The worked explanation, where the paper printed one and the reviewer
+     * kept it. Optional: many papers carry no explanation at all, and an
+     * empty string is stored as absent rather than as a blank one.
+     */
+    explanation: z.string().trim().max(10_000).optional(),
     difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).default('MEDIUM'),
     /**
      * The figure this question depends on.

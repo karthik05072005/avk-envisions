@@ -320,3 +320,51 @@ Answer: 1
     expect(result.questions[41]!.correctIndex).toBe(41 % 4);
   });
 });
+
+describe('explanations', () => {
+  // These papers print the key under a bare ANSWER heading and the reasoning
+  // beneath that. Both were being discarded: the key because only single-line
+  // answer forms were matched, and the explanation with everything else after
+  // it. A hundred questions arrived unkeyed and unexplained, one paper at a
+  // time.
+  const PAPER = [
+    '1. Which river flows through Vietnam?',
+    '(A) Mekong',
+    '(B) Ganges',
+    '(C) Nile',
+    '(D) Amazon',
+    'ANSWER',
+    '(A) Mekong',
+    'The Mekong rises in the Tibetan Plateau and reaches the sea through Vietnam.',
+    'Learn it as river - source - mouth rather than by country alone.',
+    'FUTURE ANGLE — RELATED QUESTIONS',
+    '• Which delta does it form? → Revise the Mekong Delta.',
+  ].join('\n');
+
+  it('reads the key printed beneath a bare ANSWER heading', () => {
+    const { questions } = parseQuestionPaper(PAPER);
+    expect(questions[0]!.correctIndex).toBe(0);
+  });
+
+  it('keeps the reasoning that follows the answer', () => {
+    const q = parseQuestionPaper(PAPER).questions[0]!;
+    expect(q.explanation).toContain('Tibetan Plateau');
+    expect(q.explanation).toContain('river - source - mouth');
+  });
+
+  it('leaves out the cross-references, which explain other questions', () => {
+    const q = parseQuestionPaper(PAPER).questions[0]!;
+    expect(q.explanation).not.toContain('FUTURE ANGLE');
+    expect(q.explanation).not.toContain('Mekong Delta');
+  });
+
+  it('does not repeat the answer back as its own explanation', () => {
+    const q = parseQuestionPaper(PAPER).questions[0]!;
+    expect(q.explanation?.startsWith('(A)')).toBe(false);
+  });
+
+  it('reports no explanation rather than an empty one', () => {
+    const bare = ['1. What is 2 + 2?', '(A) 3', '(B) 4', 'Answer: B'].join('\n');
+    expect(parseQuestionPaper(bare).questions[0]!.explanation).toBeNull();
+  });
+});

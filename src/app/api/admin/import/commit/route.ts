@@ -90,8 +90,10 @@ export const POST = route(async ({ request, ip }) => {
             reviewedById: admin.id,
             reviewedAt: now,
             publishedAt: input.publish ? now : null,
-            // No explanation is invented. The paper supplied none, and a
-            // fabricated one would be worse than an empty field.
+            // Kept where the paper printed one and the reviewer left it in
+            // place. Never invented: a fabricated explanation is worse than an
+            // empty field, because a student would believe it.
+            explanation: question.explanation?.trim() || null,
             options: {
               create: question.options.map((option, index) => ({
                 label: String.fromCharCode(65 + index),

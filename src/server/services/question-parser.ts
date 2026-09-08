@@ -28,6 +28,16 @@ export interface ParsedQuestion {
   correctIndex: number | null;
   /** Answer text as printed, kept so a human can check the parse. */
   rawAnswer: string | null;
+  /**
+   * The worked explanation, where the paper prints one.
+   *
+   * These documents are revision material: after the key they carry sections
+   * headed ABOUT THE QUESTION, HOW TO SOLVE and CORE, which is the reasoning a
+   * student reads once they have finished. It was being discarded with the
+   * rest of the text after the answer line, so every imported question arrived
+   * with a blank explanation and someone had to retype it.
+   */
+  explanation: string | null;
   /** Anything a human should look at before this is imported. */
   warnings: string[];
   /** The block this came from, for the review UI. */
@@ -144,9 +154,16 @@ const OPTION_LINE = /^\(?([1-9]|[a-hA-H])\)?\s*[.):\]]?\s+(.+)$/;
 /** Explicit "Options:" heading, a strong signal when the paper uses one. */
 const OPTIONS_HEADING = /^(?:options?|choices?)\s*[:.]?\s*$/i;
 
-/** Answer line, in the several shapes real papers use. */
+/**
+ * Answer line, in the several shapes real papers use.
+ *
+ * "Correct option" is included because these documents print the key that way,
+ * under a bare "ANSWER" heading on the line above. Without it every question
+ * in those papers imported with no key at all — a hundred at a time, each
+ * needing one set by hand before it could be committed.
+ */
 const ANSWER_LINE =
-  /^(?:correct\s*answer|answer|ans|key)\s*(?:key)?\s*[:.\-–]\s*\(?([1-9]|[a-hA-H])\)?\s*[.)]?\s*(.*)$/i;
+  /^(?:correct\s*(?:answer|option)|answer|ans|key)\s*(?:key|option)?\s*[:.\-–]\s*\(?([1-9]|[a-hA-H])\)?\s*[.)]?\s*(.*)$/i;
 
 /** Marker → zero-based index. Handles both numeric and alphabetic papers. */
 function markerToIndex(marker: string): number | null {
@@ -162,6 +179,72 @@ function isSequential(markers: string[]): boolean {
   const indices = markers.map(markerToIndex);
   if (indices.some((i) => i === null)) return false;
   return (indices as number[]).every((value, i) => value === (indices[0] as number) + i);
+}
+
+/**
+ * Section headings these documents print after the answer.
+ *
+ * The first three explain the question and are worth keeping. FUTURE ANGLE is
+ * a list of other questions to revise — useful in the PDF, but it is not an
+ * explanation of this question, and storing it would show a student a set of
+ * cross-references where they expected to be told why they were wrong.
+ */
+const EXPLANATION_SECTIONS = /^(ABOUT THE QUESTION|HOW TO SOLVE|CORE|EXPLANATION|SOLUTION|REASONING)\b/i;
+const EXPLANATION_ENDS = /^(FUTURE ANGLE|RELATED QUESTIONS|REVISION FORMAT|KPSC RELEVANCE)\b/i;
+
+/** A leftover header, footer or page marker rather than prose. */
+const EXPLANATION_NOISE =
+  /^(AVK\s+ENVISIONS|Page \d|Learn\s*[•·]\s*Practice|FOR ENHANCED LEARNING|KAS\s+PRELIMS)/i;
+
+/**
+ * Reads the worked explanation from the lines following the answer.
+ *
+ * The headings that introduce it — ABOUT THE QUESTION, HOW TO SOLVE, CORE —
+ * repeat on every question, so `stripRepeatedLines` has already removed them
+ * as furniture by the time a block is parsed. That is right for question text
+ * but leaves the explanation with nothing to anchor on, so this takes what
+ * follows the answer and drops what does not belong.
+ *
+ * Returns null when there is nothing worth storing — an empty string would
+ * read as an explanation someone had written and left blank.
+ */
+function readExplanation(after: string[]): string | null {
+  const kept: string[] = [];
+
+  for (const line of after) {
+    if (line === '' || EXPLANATION_NOISE.test(line)) continue;
+    // The next question's number ends this one, whatever came before it.
+    if (QUESTION_START.test(line)) break;
+    // Revision prompts rather than an explanation of this question: bulleted
+    // cross-references, useful in the PDF and confusing in a result page.
+    if (EXPLANATION_ENDS.test(line) || line.startsWith('•')) break;
+
+    // A heading that survived stripping introduces the next part; keep it as
+    // a heading so the stored text reads the way the document does.
+    if (EXPLANATION_SECTIONS.test(line)) {
+      kept.push(kept.length > 0 ? `\n${line}` : line);
+      continue;
+    }
+
+    // The key restated, which the question already carries in its options.
+    // Three forms appear: a labelled line, the option text itself repeated
+    // under the heading, and the bare answer of a matching question — "IV III
+    // II I" — which is meaningless without the list it refers to.
+    if (/^(correct\s*option|correct\s*answer|answer)\b/i.test(line)) continue;
+    if (kept.length === 0 && /^\(?[1-9A-Ha-h]\)[.)]?\s/.test(line)) continue;
+    if (kept.length === 0 && /^[IVX]+(\s+[IVX]+)+$/.test(line)) continue;
+
+    kept.push(line);
+  }
+
+  const text = kept
+    .join(' ')
+    .replace(/\n /g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+
+  // Anything shorter than a sentence is a stray fragment, not an explanation.
+  return text.length > 20 ? text : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -193,9 +276,32 @@ function parseBlock(number: number, raw: string): ParsedQuestion {
       answerLineIndex = i;
       break;
     }
+
+    // A bare "ANSWER" heading with the key on the line beneath it. These
+    // papers write it that way throughout — "(A) 1 and 2 only" under a lone
+    // ANSWER — and matching only single-line forms read every one of their
+    // hundred questions as having no key, leaving a human to set all of them.
+    if (/^(?:correct\s*answer|answer|ans|key)\s*:?\s*$/i.test(lines[i]!)) {
+      const below = lines[i + 1];
+      const marker = below ? /^\(?([1-9]|[a-hA-H])\)[.)]?\s+\S/.exec(below) : null;
+      if (marker) {
+        correctIndex = markerToIndex(marker[1]!);
+        rawAnswer = `${lines[i]!} ${below}`;
+        // The heading itself, so the key line is not read as an explanation.
+        answerLineIndex = i;
+        break;
+      }
+    }
   }
 
   const beforeAnswer = answerLineIndex === -1 ? lines : lines.slice(0, answerLineIndex);
+
+  // --- Explanation --------------------------------------------------------
+  // Everything after the answer, minus the running furniture and the
+  // cross-reference section, which is a revision prompt rather than an
+  // explanation of this question.
+  const explanation =
+    answerLineIndex === -1 ? null : readExplanation(lines.slice(answerLineIndex + 1));
 
   // --- Options ------------------------------------------------------------
   const headingIndex = beforeAnswer.findIndex((line) => OPTIONS_HEADING.test(line));
@@ -282,6 +388,7 @@ function parseBlock(number: number, raw: string): ParsedQuestion {
     options: optionLines.map((o) => ({ marker: o.marker, body: o.body })),
     correctIndex,
     rawAnswer,
+    explanation,
     warnings,
     raw,
   };
