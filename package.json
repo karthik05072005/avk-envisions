@@ -50,7 +50,8 @@
     "db:2024aug:promote": "tsx prisma/promote-2024-august-p1-import.ts",
     "db:paid:prune": "tsx prisma/prune-paid-series.ts",
     "db:swap-years": "tsx prisma/swap-2015-2017.ts",
-    "db:clear-2015": "tsx prisma/clear-2015-attempts.ts"
+    "db:clear-2015": "tsx prisma/clear-2015-attempts.ts",
+    "db:replace-free": "tsx prisma/replace-free-test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
