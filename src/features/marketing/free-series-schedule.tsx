@@ -30,6 +30,14 @@ interface Props {
   /** The line above the title — the series' own kind, not always "Free". */
   eyebrow?: string;
   /**
+   * What each paper is planned to hold, where the series has a fixed length.
+   *
+   * The header used to infer this from the written papers, which drifts: with
+   * two of ten written and one of them edited to 26, the series advertised
+   * "26 questions per test". A series with a stated length should say it.
+   */
+  plannedQuestions?: number;
+  /**
    * The purchase panel, for a series that is sold.
    *
    * Passed in rather than resolved here: this component knows about a
@@ -44,19 +52,33 @@ function isOpen(test: ScheduleTest): boolean {
   return test.startDate === null || test.startDate <= new Date();
 }
 
-export function FreeSeriesSchedule({ name, tagline, tests, eyebrow, purchase }: Props) {
-  // Quoted from the tests themselves, so the header cannot drift from what the
-  // table shows. Where the written papers disagree the most common count is
-  // used rather than "varies": every paper here is planned at the same length,
-  // and one still being filled should not make the series look inconsistent.
+export function FreeSeriesSchedule({
+  name,
+  tagline,
+  tests,
+  eyebrow,
+  plannedQuestions,
+  purchase,
+}: Props) {
+  // The planned length where the series states one, and otherwise the most
+  // common written length. Inferring it alone drifted: with two papers of ten
+  // written, one edited to 26 questions, the header announced 26 per test.
   const written = tests.map((t) => t.totalQuestions).filter((n) => n > 0);
-  const commonest = written.length
-    ? [...written].sort(
-        (a, b) =>
-          written.filter((n) => n === b).length - written.filter((n) => n === a).length || b - a,
-      )[0]
-    : null;
-  const durations = [...new Set(tests.map((t) => t.durationMinutes))];
+  const commonest =
+    plannedQuestions ??
+    (written.length
+      ? [...written].sort(
+          (a, b) =>
+            written.filter((n) => n === b).length - written.filter((n) => n === a).length || b - a,
+        )[0]
+      : null);
+
+  // Likewise the duration: a single edited paper should not make ten tests
+  // read as "varies".
+  const durationCounts = tests.map((t) => t.durationMinutes);
+  const durations = [...new Set(durationCounts)].sort(
+    (a, b) => durationCounts.filter((n) => n === b).length - durationCounts.filter((n) => n === a).length,
+  );
 
   return (
     <div className="container max-w-5xl py-8 sm:py-10">
@@ -93,7 +115,7 @@ export function FreeSeriesSchedule({ name, tagline, tests, eyebrow, purchase }: 
           <Stat
             icon={Clock}
             label="Duration per test"
-            value={durations.length === 1 ? `${durations[0]} minutes` : 'varies'}
+            value={durations[0] !== undefined ? `${durations[0]} minutes` : '—'}
           />
         </dl>
       </header>

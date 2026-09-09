@@ -93,19 +93,19 @@ ${filled.length} draft test(s) now have questions.
     },
   });
 
-  // A series with no tests at all is just as empty as one whose tests are all
-  // empty — and slipped through when this only checked the latter. Five
-  // chapterwise series were advertised on the catalogue with nothing behind
-  // them, so a student clicking "Chapterwise Polity" got an empty page.
-  // A priced series is a deliberate offer whose content is still being
-  // written, and its page says so — locked cards, an unlock button, no claim
-  // that anything is attemptable. Hiding those would take the shelf down
-  // rather than the empty promise, which is the opposite of the intent here.
+  // Only a series with nothing behind it at all. A series that has laid out
+  // its papers is a published timetable — a student is meant to read what
+  // falls on which date before those papers are written, and that is what a
+  // buyer is paying for — so having no questions yet is not a reason to take
+  // it off the shelf. Hiding those turned KAS-50 and the paid series into
+  // "Coming Soon" on the pricing page and an empty state on their own.
+  // A priced series is never hidden. The previous-year bundle holds no tests
+  // of its own — it is the parent that entitles every year — so counting its
+  // tests takes the one previous-year product actually on sale off the
+  // pricing page. Anything someone can pay for stays where they can pay for
+  // it, and what it contains is the admin's business, not this job's.
   const hollow = series.filter(
-    (s) =>
-      s.status === 'PUBLISHED' &&
-      s.priceInPaise === 0 &&
-      (s.tests.length === 0 || s.tests.every((t) => t.totalQuestions === 0)),
+    (s) => s.status === 'PUBLISHED' && s.priceInPaise === 0 && s.tests.length === 0,
   );
 
   for (const s of hollow) {
@@ -115,12 +115,11 @@ ${filled.length} draft test(s) now have questions.
     }
   }
 
-  // The same rule the other way: a series drafted while hollow, whose tests
-  // now hold questions, should be back on the shelf.
+  // The same rule the other way: a series drafted before this ran, which has
+  // a schedule to show, belongs back on the shelf. Nothing stays hidden for
+  // want of questions.
   const refilled = series.filter(
-    (s) =>
-      s.status === 'DRAFT' &&
-      s.tests.some((t) => t.totalQuestions > 0),
+    (s) => s.status === 'DRAFT' && (s.tests.length > 0 || s.priceInPaise > 0),
   );
 
   for (const s of refilled) {

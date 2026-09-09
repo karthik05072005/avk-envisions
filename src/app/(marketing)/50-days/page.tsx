@@ -29,6 +29,9 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
+/** What each day's paper is planned to hold — the "50 Questions" in the name. */
+const QUESTIONS_PER_DAY = 50;
+
 /** Colour per subject block, cycled so a new subject still reads as a group. */
 const BAND_TINTS = [
   'bg-blue-50 text-blue-900 dark:bg-blue-950/30 dark:text-blue-200',
@@ -120,6 +123,13 @@ export default async function FiftyDaysPage({
   const lastDay = dated[dated.length - 1]?.opensAt ?? null;
   const totalQuestions = challenge.days.reduce((sum, d) => sum + d.questionCount, 0);
 
+  // What the series is: fifty papers of fifty questions. Summing the questions
+  // actually attached reported 0 while those papers are still being written,
+  // so the page advertising "50 Questions × 50 Days" said it had none. The
+  // written count is used once it exceeds the plan, so this can never
+  // understate a series that has grown.
+  const plannedQuestions = Math.max(totalQuestions, challenge.days.length * QUESTIONS_PER_DAY);
+
   const bands = groupBySubject(shown);
 
   const TABS: { label: string; href: string; active: boolean }[] = [
@@ -156,9 +166,13 @@ export default async function FiftyDaysPage({
             )}
             <div className="flex items-center gap-1.5">
               <FileText className="size-4 text-primary" aria-hidden="true" />
-              {challenge.days.length} Days • {totalQuestions.toLocaleString('en-IN')} Questions
+              {challenge.days.length} Days • {plannedQuestions.toLocaleString('en-IN')} Questions
             </div>
-            {session && (
+
+            {/* Progress is shown once there is any: a line reading "0 finished
+                • streak 0" tells a student nothing they did not know and reads
+                as a scoreboard of their failure to start. */}
+            {session && challenge.completedCount > 0 && (
               <div className="flex items-center gap-1.5">
                 <Target className="size-4 text-primary" aria-hidden="true" />
                 {challenge.completedCount} finished • streak {challenge.currentStreak}

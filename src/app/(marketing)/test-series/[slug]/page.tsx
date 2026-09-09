@@ -23,6 +23,19 @@ import { getAllTestSeries, getTestSeriesBySlug } from '@/server/services/marketi
  * list. The paid series showed the pitch and, because its papers are still
  * being written, an empty "What is included" beneath a "TESTS 0" summary.
  */
+/**
+ * What each paper in a series is planned to hold.
+ *
+ * Stated rather than inferred: the header used to take the most common length
+ * among the written papers, so two of ten written — one of them edited to 26
+ * questions — made the series advertise "26 questions per test". A series sold
+ * on a fixed length should quote that length.
+ */
+const PLANNED_QUESTIONS: Record<string, number> = {
+  'kas-prelims-free-test-series': 25,
+  'kas-prelims-paid-test-series': 100,
+};
+
 const SCHEDULE_SERIES = new Set([
   'kas-prelims-free-test-series',
   'kas-prelims-paid-test-series',
@@ -87,6 +100,7 @@ export default async function TestSeriesDetailPage({
         name={series.name}
         tagline={series.tagline}
         eyebrow={series.priceInPaise > 0 ? 'Paid Test Series' : 'Free Test Series'}
+        plannedQuestions={PLANNED_QUESTIONS[slug]}
         purchase={
           series.priceInPaise > 0 ? (
             <div className="w-full shrink-0 rounded-2xl border border-primary/30 bg-primary-muted/40 p-4 sm:w-56">
