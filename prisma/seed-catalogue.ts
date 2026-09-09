@@ -77,7 +77,27 @@ const FREE_TEST_MINUTES = 25;
  * catalogue advertised empty papers. Two that are actually full is a better
  * offer than ten that are not.
  */
-const FREE_SERIES_SCHEDULE = KAS_2026_SCHEDULE.slice(0, 2);
+/**
+ * The ten free sampler tests.
+ *
+ * Their own list rather than a slice of the paid timetable: that timetable is
+ * named by subject — Polity, History, CSAT — and taking ten of it named the
+ * free tests after paid papers they do not contain. These are numbered
+ * samplers, alternating Paper 1 and Paper 2 as the real exam does, and the
+ * `.slice(0, 2)` that used to stand here is why only two of the ten were ever
+ * created.
+ */
+const FREE_SERIES_SCHEDULE = Array.from({ length: 10 }, (_, index) => {
+  const no = index + 1;
+  const paperNumber = no % 2 === 1 ? 1 : 2;
+  return {
+    no,
+    name: `Free Test ${no} – Paper ${paperNumber}`,
+    paperNumber,
+    subject: undefined as string | undefined,
+    syllabus: '25 Most Probable Questions',
+  };
+});
 
 const RETIRED_SUBJECTS: { slug: string; mergeIntoSlug?: string }[] = [
   { slug: 'indian-history', mergeIntoSlug: 'history' },
@@ -428,13 +448,24 @@ async function main() {
     select: { id: true },
   });
 
-  // Ten sampler tests, not the full twenty-one: the free tier advertises
-  // "10 Free Mock Tests" and taking the first ten of the timetable keeps the
-  // sampler in the same order a student would sit the real series.
+  // Ten sampler tests. A paper already carrying questions keeps its own title
+  // — an imported paper names itself, and the seed should not rename work an
+  // admin has done.
   for (const entry of FREE_SERIES_SCHEDULE) {
+    const slug = `kas-free-${entry.no}`;
+
+    // A paper that already holds questions keeps the title it was given. An
+    // import names a paper after the document it came from, and re-running the
+    // seed should not rename work somebody has already done.
+    const existing = await db.test.findFirst({
+      where: { slug },
+      select: { title: true, totalQuestions: true },
+    });
+    const keepTitle = existing !== null && existing.totalQuestions > 0;
+
     await upsertTest({
-      slug: `kas-free-${entry.no}`,
-      title: entry.name,
+      slug,
+      title: keepTitle ? existing.title : entry.name,
       sortOrder: entry.no,
       seriesId: free.id,
       category: entry.paperNumber === null ? 'SECTIONAL' : 'FULL_MOCK',

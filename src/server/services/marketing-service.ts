@@ -328,11 +328,12 @@ export const getTestSeriesBySlug = cache(async (slug: string) => {
         // left a twelve-test series advertising nothing at all. Each row says
         // for itself whether it can be attempted.
         where: { deletedAt: null },
-        // A scheduled date is the order a student reads the series in, so it
-        // leads. Slug is the fallback for a series with no dates — and it
-        // sorts as text, where "kas-paid-10" lands between 1 and 2, so the
-        // page numbers the rows by position rather than trusting either.
-        orderBy: [{ startDate: 'asc' }, { category: 'asc' }, { slug: 'asc' }],
+        // `sortOrder` is the seed's own numbering and is what a series means
+        // by "test 3", so it leads. Date breaks a tie for series that carry
+        // one. Slug is a last resort and never decides on its own: it sorts as
+        // text, where "kas-free-10" lands before "kas-free-2" and the free
+        // series listed its tenth test first.
+        orderBy: [{ sortOrder: 'asc' }, { startDate: 'asc' }, { slug: 'asc' }],
         select: {
           id: true,
           title: true,
