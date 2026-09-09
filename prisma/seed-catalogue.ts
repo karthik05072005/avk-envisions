@@ -508,12 +508,11 @@ async function main() {
     update: {
       track: 'PAID_SERIES',
       status: 'PUBLISHED',
-      priceInPaise: 0,
-      comparePriceInPaise: 0,
-      tier1PriceInPaise: null,
-      tier1Limit: null,
-      tier2PriceInPaise: null,
-      tier2Limit: null,
+      // Price is left alone on a series that already exists. `set-pricing.ts`
+      // owns it, and re-seeding used to reset every series to free — after
+      // which `hide-empty-tests.ts` saw a free series whose papers were still
+      // being written and drafted it. So running the seed silently took the
+      // paid series off sale and put "Coming Soon" on the pricing page.
     },
     create: {
       examId,
@@ -678,12 +677,8 @@ async function main() {
       update: {
         track: 'CHAPTERWISE',
         status: 'PUBLISHED',
-        priceInPaise: 0,
-        comparePriceInPaise: 0,
-        tier1PriceInPaise: null,
-        tier1Limit: null,
-        tier2PriceInPaise: null,
-        tier2Limit: null,
+        // As above: `set-pricing.ts` owns the price, and re-seeding must not
+        // reset a series that is already on sale.
       },
       create: {
         examId,
