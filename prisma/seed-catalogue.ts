@@ -67,8 +67,17 @@ const KAS_SUBJECTS: { name: string; questions: number; icon: string; color: stri
  */
 const EVERYTHING_IS_FREE = true;
 
-/** Minutes for one free sampler test. */
-const FREE_TEST_MINUTES = 30;
+/**
+ * One free sampler test: how many questions, and how long for.
+ *
+ * The duration is derived rather than stated separately, at the same 1.2
+ * minutes a question the real paper allows — a hundred questions in two hours.
+ * Kept as two independent constants they drifted, and the page ended up
+ * offering 25 questions in 25 minutes.
+ */
+const FREE_TEST_QUESTIONS = 25;
+const MINUTES_PER_QUESTION = 1.2;
+const FREE_TEST_MINUTES = Math.round(FREE_TEST_QUESTIONS * MINUTES_PER_QUESTION);
 
 /**
  * The free tier samples the first two tests of the published timetable.
@@ -490,7 +499,7 @@ async function main() {
   });
 
   console.log(
-    `  ok  free series + ${FREE_SERIES_SCHEDULE.length} tests (25 questions, ${FREE_TEST_MINUTES} min)`,
+    `  ok  free series + ${FREE_SERIES_SCHEDULE.length} tests (${FREE_TEST_QUESTIONS} questions, ${FREE_TEST_MINUTES} min)`,
   );
 
   // --- 2. Paid test series ----------------------------------------------
