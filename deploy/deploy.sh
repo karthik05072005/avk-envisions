@@ -89,7 +89,27 @@ chmod -R 755 "$DATA_DIR/uploads"
 chmod 700 "$DATA_DIR/backups" 2>/dev/null || true
 
 echo "==> Refreshing content"
-for script in   prisma/backfill-figures.ts   prisma/build-free-tests.ts   prisma/hide-empty-tests.ts
+# Order is load-bearing, and getting it wrong is what put "Coming Soon" on the
+# pricing page twice:
+#
+#   seed-catalogue  creates the series and their tests. It no longer touches
+#                   the price of a series that already exists — it used to, and
+#                   that is what set up the failure below.
+#   set-pricing     owns every price. It runs AFTER the seed so nothing can
+#                   overwrite what it sets.
+#   hide-empty      publishes and hides based on what is actually there. It
+#                   runs LAST, so it judges the finished state: a priced series
+#                   is never hidden, and a paper that has since been filled is
+#                   published.
+#
+# These used to be manual steps run after the deploy, which meant every deploy
+# briefly reverted the site and someone had to notice and put it back.
+for script in \
+  prisma/backfill-figures.ts \
+  prisma/build-free-tests.ts \
+  prisma/seed-catalogue.ts \
+  prisma/set-pricing.ts \
+  prisma/hide-empty-tests.ts
 do
   if ! sudo -u "$APP_USER" npx tsx "$script"; then
     echo "    WARNING: $script failed; continuing." >&2
