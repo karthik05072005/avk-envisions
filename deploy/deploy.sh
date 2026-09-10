@@ -70,11 +70,7 @@ BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # 3072, not 2048: the build ran out of heap on the smaller setting and retried
 # itself into a half-written .next, which serves a 502 with no obvious cause.
-sudo -u "$APP_USER" env \
-  NODE_OPTIONS=--max-old-space-size=3072 \
-  NEXT_PUBLIC_BUILD_COMMIT="$BUILD_COMMIT" \
-  NEXT_PUBLIC_BUILD_TIME="$BUILD_TIME" \
-  npm run build
+sudo -u "$APP_USER" env NODE_OPTIONS=--max-old-space-size=3072 NEXT_PUBLIC_BUILD_COMMIT="$BUILD_COMMIT" NEXT_PUBLIC_BUILD_TIME="$BUILD_TIME" npm run build
 
 # --- Content maintenance ------------------------------------------------------
 # Runs here, before the prune, because these are TypeScript and need `tsx` —
@@ -119,6 +115,7 @@ for script in \
   prisma/build-free-tests.ts \
   prisma/seed-catalogue.ts \
   prisma/set-pricing.ts \
+  prisma/trim-free-test-2.ts \
   prisma/hide-empty-tests.ts
 do
   if ! sudo -u "$APP_USER" npx tsx "$script"; then
