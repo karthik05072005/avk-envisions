@@ -1,8 +1,8 @@
 /**
  * AVK Envisions KAS 50 Days — the published day-by-day timetable.
  *
- * 10 Sep 2026 → 29 Oct 2026, one 50-question paper a day, then a final
- * revision window of 30 Oct – 14 Nov and the Prelims on 15 Nov 2026.
+ * 14 Sep 2026 → 2 Nov 2026, one 50-question paper a day, then a final
+ * revision window of 3 Nov – 14 Nov and the Prelims on 15 Nov 2026.
  *
  * Transcribed from the published schedule. `subject` is matched against the
  * catalogue by name, so the strings here must stay exactly as the subjects are
@@ -21,6 +21,15 @@ export interface FiftyDay {
   paper: 1 | 2;
   /** Catalogue subject name, or null where the day spans several. */
   subject: string | null;
+  /**
+   * The section heading this day sits under.
+   *
+   * Days 37-50 have no single subject, and a paper still needs one to satisfy
+   * the schema — so they were given a placeholder, which the page then printed
+   * as "PAPER 2 – INDIAN POLITY" over the full-paper days. Naming the band
+   * here keeps the heading honest without inventing a subject.
+   */
+  band?: string;
   /** The day's key focus. Shown as the paper's title. */
   focus: string;
   /** Syllabus detail for the briefing screen. */
@@ -34,13 +43,13 @@ export {
   KAS_PRELIMS_DATE,
   KAS_REVISION_FROM,
   KAS_REVISION_TO,
-} from '../../src/lib/enums';
+} from '../enums';
 
 export const KAS_50_DAYS: FiftyDay[] = [
   // --- Paper 1 · Polity & Governance ---------------------------------------
   {
     day: 1,
-    date: '2026-09-10',
+    date: '2026-09-14',
     paper: 1,
     subject: 'Indian Polity',
     focus: 'Constitutional Foundations',
@@ -49,7 +58,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 2,
-    date: '2026-09-11',
+    date: '2026-09-15',
     paper: 1,
     subject: 'Indian Polity',
     focus: 'Fundamental Rights & Constitutional Principles',
@@ -58,7 +67,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 3,
-    date: '2026-09-12',
+    date: '2026-09-16',
     paper: 1,
     subject: 'Indian Polity',
     focus: 'Union Executive & Parliament',
@@ -67,7 +76,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 4,
-    date: '2026-09-13',
+    date: '2026-09-17',
     paper: 1,
     subject: 'Indian Polity',
     focus: 'Judiciary, Federalism & Governance',
@@ -76,7 +85,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 5,
-    date: '2026-09-14',
+    date: '2026-09-18',
     paper: 1,
     subject: 'Indian Polity',
     focus: 'COMPLETE POLITY & GOVERNANCE TEST',
@@ -87,7 +96,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   // --- Paper 1 · History & Culture -----------------------------------------
   {
     day: 6,
-    date: '2026-09-15',
+    date: '2026-09-19',
     paper: 1,
     subject: 'History',
     focus: 'Ancient India — Foundations',
@@ -96,7 +105,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 7,
-    date: '2026-09-16',
+    date: '2026-09-20',
     paper: 1,
     subject: 'History',
     focus: 'Ancient India — Culture & Empires',
@@ -105,7 +114,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 8,
-    date: '2026-09-17',
+    date: '2026-09-21',
     paper: 1,
     subject: 'History',
     focus: 'Medieval India',
@@ -113,7 +122,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 9,
-    date: '2026-09-18',
+    date: '2026-09-22',
     paper: 1,
     subject: 'History',
     focus: 'Modern India & Karnataka',
@@ -122,7 +131,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 10,
-    date: '2026-09-19',
+    date: '2026-09-23',
     paper: 1,
     subject: 'History',
     focus: 'COMPLETE HISTORY & CULTURE TEST',
@@ -133,7 +142,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   // --- Paper 1 · Geography --------------------------------------------------
   {
     day: 11,
-    date: '2026-09-20',
+    date: '2026-09-24',
     paper: 1,
     subject: 'Geography',
     focus: 'Physical Geography',
@@ -141,7 +150,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 12,
-    date: '2026-09-21',
+    date: '2026-09-25',
     paper: 1,
     subject: 'Geography',
     focus: 'Atmosphere, Climate & Oceans',
@@ -149,7 +158,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 13,
-    date: '2026-09-22',
+    date: '2026-09-26',
     paper: 1,
     subject: 'Geography',
     focus: 'Geography of India',
@@ -157,7 +166,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 14,
-    date: '2026-09-23',
+    date: '2026-09-27',
     paper: 1,
     subject: 'Geography',
     focus: 'Resources, Economy & Karnataka Geography',
@@ -166,7 +175,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 15,
-    date: '2026-09-24',
+    date: '2026-09-28',
     paper: 1,
     subject: 'Geography',
     focus: 'COMPLETE GEOGRAPHY TEST',
@@ -176,7 +185,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   // --- Paper 1 · Economy ----------------------------------------------------
   {
     day: 16,
-    date: '2026-09-25',
+    date: '2026-09-29',
     paper: 1,
     subject: 'Indian Economy',
     focus: 'Basic Economy',
@@ -185,7 +194,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 17,
-    date: '2026-09-26',
+    date: '2026-09-30',
     paper: 1,
     subject: 'Indian Economy',
     focus: 'Money & Banking',
@@ -194,7 +203,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 18,
-    date: '2026-09-27',
+    date: '2026-10-01',
     paper: 1,
     subject: 'Indian Economy',
     focus: 'Fiscal Policy',
@@ -202,7 +211,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 19,
-    date: '2026-09-28',
+    date: '2026-10-02',
     paper: 1,
     subject: 'Indian Economy',
     focus: 'Sectors, External Sector & Reforms',
@@ -210,7 +219,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 20,
-    date: '2026-09-29',
+    date: '2026-10-03',
     paper: 1,
     subject: 'Indian Economy',
     focus: 'UNION + KARNATAKA BUDGET & ECONOMIC SURVEY',
@@ -219,7 +228,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 21,
-    date: '2026-09-30',
+    date: '2026-10-04',
     paper: 1,
     subject: 'Indian Economy',
     focus: 'GOVERNMENT SCHEMES & POLICIES',
@@ -228,7 +237,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 22,
-    date: '2026-10-01',
+    date: '2026-10-05',
     paper: 1,
     subject: 'Indian Economy',
     focus: 'COMPLETE ECONOMY TEST',
@@ -238,7 +247,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   // --- Paper 2 · Environment & Ecology -------------------------------------
   {
     day: 23,
-    date: '2026-10-02',
+    date: '2026-10-06',
     paper: 2,
     subject: 'Environment',
     focus: 'Ecology & Ecosystems',
@@ -246,7 +255,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 24,
-    date: '2026-10-03',
+    date: '2026-10-07',
     paper: 2,
     subject: 'Environment',
     focus: 'Forests, Wildlife & Conservation',
@@ -255,7 +264,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 25,
-    date: '2026-10-04',
+    date: '2026-10-08',
     paper: 2,
     subject: 'Environment',
     focus: 'Pollution & Climate Change',
@@ -263,7 +272,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 26,
-    date: '2026-10-05',
+    date: '2026-10-09',
     paper: 2,
     subject: 'Environment',
     focus: 'Environmental Governance & Sustainability',
@@ -272,7 +281,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 27,
-    date: '2026-10-06',
+    date: '2026-10-10',
     paper: 2,
     subject: 'Environment',
     focus: 'COMPLETE ENVIRONMENT & ECOLOGY TEST',
@@ -282,7 +291,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   // --- Paper 2 · Science & Technology ---------------------------------------
   {
     day: 28,
-    date: '2026-10-07',
+    date: '2026-10-11',
     paper: 2,
     subject: 'Science & Technology',
     focus: 'Physics, Chemistry & Everyday Science',
@@ -290,7 +299,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 29,
-    date: '2026-10-08',
+    date: '2026-10-12',
     paper: 2,
     subject: 'Science & Technology',
     focus: 'Biology, Health & Biotechnology',
@@ -299,7 +308,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 30,
-    date: '2026-10-09',
+    date: '2026-10-13',
     paper: 2,
     subject: 'Science & Technology',
     focus: 'Space, Defence, Nuclear & Energy',
@@ -307,7 +316,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 31,
-    date: '2026-10-10',
+    date: '2026-10-14',
     paper: 2,
     subject: 'Science & Technology',
     focus: 'AI, IT & Emerging Technologies',
@@ -316,7 +325,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 32,
-    date: '2026-10-11',
+    date: '2026-10-15',
     paper: 2,
     subject: 'Science & Technology',
     focus: 'COMPLETE SCIENCE & TECHNOLOGY TEST',
@@ -326,7 +335,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   // --- Paper 2 · Mental Ability ---------------------------------------------
   {
     day: 33,
-    date: '2026-10-12',
+    date: '2026-10-16',
     paper: 2,
     subject: 'Mental Ability',
     focus: 'Numeracy Foundations',
@@ -334,7 +343,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 34,
-    date: '2026-10-13',
+    date: '2026-10-17',
     paper: 2,
     subject: 'Mental Ability',
     focus: 'Arithmetic Applications',
@@ -343,7 +352,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 35,
-    date: '2026-10-14',
+    date: '2026-10-18',
     paper: 2,
     subject: 'Mental Ability',
     focus: 'Reasoning & Data Interpretation',
@@ -352,7 +361,7 @@ export const KAS_50_DAYS: FiftyDay[] = [
   },
   {
     day: 36,
-    date: '2026-10-15',
+    date: '2026-10-19',
     paper: 2,
     subject: 'Mental Ability',
     focus: 'COMPLETE MENTAL ABILITY TEST',
@@ -363,36 +372,40 @@ export const KAS_50_DAYS: FiftyDay[] = [
   // --- Days 37–40 · Paper-wise revision -------------------------------------
   {
     day: 37,
-    date: '2026-10-16',
+    date: '2026-10-20',
     paper: 1,
     subject: null,
+    band: 'Paper-wise Revision',
     focus: 'PAPER 1 REVISION — HISTORY + GEOGRAPHY',
     topics:
       'Complete Paper 1 revision: History; Geography; Karnataka History & Culture; relevant national/international current affairs',
   },
   {
     day: 38,
-    date: '2026-10-17',
+    date: '2026-10-21',
     paper: 1,
     subject: null,
+    band: 'Paper-wise Revision',
     focus: 'PAPER 1 REVISION — POLITY + ECONOMY',
     topics:
       'Complete Paper 1 revision: Polity; Economy; Social Development; Union/Karnataka Budget & Economic Survey; relevant current affairs',
   },
   {
     day: 39,
-    date: '2026-10-18',
+    date: '2026-10-22',
     paper: 2,
     subject: null,
+    band: 'Paper-wise Revision',
     focus: 'PAPER 2 REVISION — KARNATAKA + ENVIRONMENT',
     topics:
       'Karnataka current affairs; Karnataka Government programmes/policies; Environment & Ecology',
   },
   {
     day: 40,
-    date: '2026-10-19',
+    date: '2026-10-23',
     paper: 2,
     subject: null,
+    band: 'Paper-wise Revision',
     focus: 'PAPER 2 REVISION — SCIENCE + MENTAL ABILITY',
     topics: 'Science & Technology; Mental Ability; Karnataka-specific developments',
   },
@@ -403,81 +416,91 @@ export const KAS_50_DAYS: FiftyDay[] = [
   // splitting them by subject.
   {
     day: 41,
-    date: '2026-10-20',
+    date: '2026-10-24',
     paper: 1,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 1',
     topics: 'Complete Paper 1 syllabus — 100 questions',
   },
   {
     day: 42,
-    date: '2026-10-21',
+    date: '2026-10-25',
     paper: 2,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 2',
     topics: 'Complete Paper 2 syllabus — 100 questions',
   },
   {
     day: 43,
-    date: '2026-10-22',
+    date: '2026-10-26',
     paper: 1,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 1',
     topics: 'Complete Paper 1 syllabus — 100 questions',
   },
   {
     day: 44,
-    date: '2026-10-23',
+    date: '2026-10-27',
     paper: 2,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 2',
     topics: 'Complete Paper 2 syllabus — 100 questions',
   },
   {
     day: 45,
-    date: '2026-10-24',
+    date: '2026-10-28',
     paper: 1,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 1',
     topics: 'Complete Paper 1 syllabus — 100 questions',
   },
   {
     day: 46,
-    date: '2026-10-25',
+    date: '2026-10-29',
     paper: 2,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 2',
     topics: 'Complete Paper 2 syllabus — 100 questions',
   },
   {
     day: 47,
-    date: '2026-10-26',
+    date: '2026-10-30',
     paper: 1,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 1',
     topics: 'Complete Paper 1 syllabus — 100 questions',
   },
   {
     day: 48,
-    date: '2026-10-27',
+    date: '2026-10-31',
     paper: 2,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 2',
     topics: 'Complete Paper 2 syllabus — 100 questions',
   },
   {
     day: 49,
-    date: '2026-10-28',
+    date: '2026-11-01',
     paper: 1,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 1',
     topics: 'Complete Paper 1 syllabus — 100 questions',
   },
   {
     day: 50,
-    date: '2026-10-29',
+    date: '2026-11-02',
     paper: 2,
     subject: null,
+    band: 'Full Paper Practice',
     focus: 'FULL PAPER 2',
     topics: 'Complete Paper 2 syllabus — 100 questions',
   },

@@ -16,7 +16,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 
-import { KAS_50_DAYS } from './data/kas-50-days-schedule';
+import { KAS_50_DAYS } from '../src/lib/data/kas-50-days-schedule';
 import { DAILY_CHALLENGE_SLUG, DAILY_CHALLENGE_TEST_PREFIX } from '../src/lib/enums';
 import { MARKS_PER_QUESTION, NEGATIVE_MARKS_PER_QUESTION } from '../src/lib/marking';
 

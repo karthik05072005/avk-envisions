@@ -583,5 +583,5 @@ export const DAILY_CHALLENGE_TEST_PREFIX = 'kas-50-days-';
  * the two cannot drift apart.
  */
 export const KAS_PRELIMS_DATE = '2026-11-15';
-export const KAS_REVISION_FROM = '2026-10-30';
+export const KAS_REVISION_FROM = '2026-11-03';
 export const KAS_REVISION_TO = '2026-11-14';

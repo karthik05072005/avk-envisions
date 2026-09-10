@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/states';
+import { KAS_50_DAYS } from '@/lib/data/kas-50-days-schedule';
 import { BuyButton } from '@/features/checkout/buy-button';
 import {
   DAILY_CHALLENGE_SLUG,
@@ -52,10 +53,18 @@ function groupBySubject(days: ChallengeDay[]) {
   const bands: { key: string; heading: string; days: ChallengeDay[] }[] = [];
 
   for (const day of days) {
-    const heading = [
-      day.paperNumber ? `Paper ${day.paperNumber}` : null,
-      day.subject,
-    ]
+    // Days 37-50 span several subjects. They still carry one in the database
+    // because the schema requires it, so reading it back printed headings like
+    // "PAPER 2 – INDIAN POLITY" over the full-paper days. The published
+    // schedule names these sections instead, and the day number is what
+    // decides which — the same rule the timetable is written to.
+    const band = KAS_50_DAYS.find((d) => d.day === day.dayNumber)?.band ?? null;
+
+    const heading = (
+      band
+        ? [day.paperNumber ? `Paper ${day.paperNumber}` : null, band]
+        : [day.paperNumber ? `Paper ${day.paperNumber}` : null, day.subject]
+    )
       .filter(Boolean)
       .join(' – ')
       .toUpperCase();
