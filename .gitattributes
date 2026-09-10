@@ -1,0 +1,5 @@
+# Shell scripts run on the Linux VM. Committed with CRLF, they fail at the
+# shebang with "bad interpreter: /usr/bin/env bash^M" — which reads like a
+# missing bash rather than a line-ending problem. Now that a timer runs them
+# unattended, that failure would be silent, so pin them.
+*.sh text eol=lf
