@@ -62,9 +62,19 @@ echo "==> Building"
 # Dev dependencies are needed to build, so install them, build, then prune.
 sudo -u "$APP_USER" npm ci --ignore-scripts
 sudo -u "$APP_USER" npx prisma generate
+# Stamp the build with the commit it came from, so /api/version can report what
+# is actually serving. Deploys are unattended now, and this is how you tell a
+# change has landed without opening a terminal here.
+BUILD_COMMIT="$(sudo -u "$APP_USER" git rev-parse --short HEAD)"
+BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
 # 3072, not 2048: the build ran out of heap on the smaller setting and retried
 # itself into a half-written .next, which serves a 502 with no obvious cause.
-sudo -u "$APP_USER" env NODE_OPTIONS=--max-old-space-size=3072 npm run build
+sudo -u "$APP_USER" env \
+  NODE_OPTIONS=--max-old-space-size=3072 \
+  NEXT_PUBLIC_BUILD_COMMIT="$BUILD_COMMIT" \
+  NEXT_PUBLIC_BUILD_TIME="$BUILD_TIME" \
+  npm run build
 
 # --- Content maintenance ------------------------------------------------------
 # Runs here, before the prune, because these are TypeScript and need `tsx` —
