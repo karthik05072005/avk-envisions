@@ -706,40 +706,16 @@ async function main() {
   }
   console.log(`  ok  ${CHAPTERWISE_TRACKS.length} chapterwise subjects`);
 
-  // --- Wire the real Polity PYQs into the 2024 December subject test -----
-  const polityTest = await db.test.findUnique({
-    where: { slug: 'kas-pyq-2024-december-subject-indian-polity' },
-    select: { id: true },
-  });
-  const realQuestions = await db.question.findMany({
-    where: { code: { startsWith: 'KAS-PYQ-2024' } },
-    orderBy: { code: 'asc' },
-    select: { id: true, marks: true, negativeMarks: true },
-  });
-
-  if (polityTest && realQuestions.length > 0) {
-    for (const [index, question] of realQuestions.entries()) {
-      await db.testQuestion.upsert({
-        where: { testId_questionId: { testId: polityTest.id, questionId: question.id } },
-        update: { sortOrder: index + 1 },
-        create: {
-          testId: polityTest.id,
-          questionId: question.id,
-          sortOrder: index + 1,
-          marks: question.marks,
-          negativeMarks: question.negativeMarks,
-        },
-      });
-    }
-    await db.test.update({
-      where: { id: polityTest.id },
-      data: {
-        totalQuestions: realQuestions.length,
-        totalMarks: realQuestions.reduce((sum, q) => sum + q.marks, 0),
-      },
-    });
-    console.log(`  ok  wired ${realQuestions.length} real questions into 2024 December Polity`);
-  }
+  // The 2024 December Polity paper used to be force-filled here, with every
+  // question whose code began "KAS-PYQ-2024". That matched both full-length
+  // papers of both sittings — 191 August plus 195 December — so a subject
+  // paper meant to hold the Polity questions of one sitting advertised 372,
+  // and the questions in it were mostly not Polity at all.
+  //
+  // Because this runs on every deploy it also put them back each time, so
+  // clearing the paper in the admin never held. The subject papers are filled
+  // by importing their own PDFs, which is the only thing that knows which
+  // questions actually belong to which subject.
 
   // Hide what has nothing behind it.
   //
