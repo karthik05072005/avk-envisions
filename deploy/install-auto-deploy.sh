@@ -17,7 +17,7 @@ DATA_DIR="/var/lib/avkvisions"
 # commit that is already serving.
 cd "$APP_DIR"
 sudo -u "$APP_USER" git fetch --quiet origin main
-git rev-parse origin/main > "$DATA_DIR/.last-deployed"
+sudo -u "$APP_USER" git rev-parse origin/main > "$DATA_DIR/.last-deployed"
 chown "$APP_USER:$APP_USER" "$DATA_DIR/.last-deployed"
 
 cat > /etc/systemd/system/avk-auto-deploy.service <<'UNIT'

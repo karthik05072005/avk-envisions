@@ -32,7 +32,9 @@ fi
 
 sudo -u "$APP_USER" git fetch --quiet origin "$BRANCH"
 
-REMOTE="$(git rev-parse "origin/$BRANCH")"
+# As $APP_USER, not root: git refuses a repository owned by someone else
+# with "detected dubious ownership", and this runs from a timer as root.
+REMOTE="$(sudo -u "$APP_USER" git rev-parse "origin/$BRANCH")"
 CURRENT="$(cat "$STATE" 2>/dev/null || echo none)"
 
 if [[ "$REMOTE" == "$CURRENT" ]]; then
