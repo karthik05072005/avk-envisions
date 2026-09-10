@@ -572,3 +572,16 @@ export const PYQ_SERIES_PREFIX = 'kas-pyq-';
 
 /** Slug prefix for its per-day papers. */
 export const DAILY_CHALLENGE_TEST_PREFIX = 'kas-50-days-';
+
+/**
+ * What follows the fiftieth paper.
+ *
+ * The run of papers ends on 29 Oct, but the schedule a student plans around
+ * does not: there is a revision window and then the exam. These are fixed
+ * published dates rather than anything derivable from the papers, so the page
+ * cannot compute them — and the timetable seed reads them from here too, so
+ * the two cannot drift apart.
+ */
+export const KAS_PRELIMS_DATE = '2026-11-15';
+export const KAS_REVISION_FROM = '2026-10-30';
+export const KAS_REVISION_TO = '2026-11-14';

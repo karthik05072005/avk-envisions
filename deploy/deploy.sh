@@ -116,6 +116,7 @@ for script in \
   prisma/seed-catalogue.ts \
   prisma/set-pricing.ts \
   prisma/trim-free-test-2.ts \
+  prisma/apply-50-days-schedule.ts \
   prisma/hide-empty-tests.ts
 do
   if ! sudo -u "$APP_USER" npx tsx "$script"; then

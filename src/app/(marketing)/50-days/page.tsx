@@ -13,7 +13,12 @@ import {
 
 import { EmptyState } from '@/components/ui/states';
 import { BuyButton } from '@/features/checkout/buy-button';
-import { DAILY_CHALLENGE_SLUG } from '@/lib/enums';
+import {
+  DAILY_CHALLENGE_SLUG,
+  KAS_PRELIMS_DATE,
+  KAS_REVISION_FROM,
+  KAS_REVISION_TO,
+} from '@/lib/enums';
 import { cn, formatDate, formatPaise } from '@/lib/utils';
 import { getSession } from '@/server/auth/session';
 import { db } from '@/server/db';
@@ -167,6 +172,20 @@ export default async function FiftyDaysPage({
             <div className="flex items-center gap-1.5">
               <FileText className="size-4 text-primary" aria-hidden="true" />
               {challenge.days.length} Days • {plannedQuestions.toLocaleString('en-IN')} Questions
+            </div>
+
+            {/* What happens after day 50. The schedule does not end with the
+                last paper — a student planning around it needs the revision
+                window and the exam date, which are fixed dates rather than
+                anything derived from the papers. */}
+            <div className="flex items-center gap-1.5">
+              <Trophy className="size-4 text-primary" aria-hidden="true" />
+              {/* Parsed as UTC to match how the day papers are stored. Local
+                  midnight would render a day early for any viewer east of
+                  Greenwich, which is every student here. */}
+              Final Revision: {formatDate(new Date(`${KAS_REVISION_FROM}T00:00:00Z`))} →{' '}
+              {formatDate(new Date(`${KAS_REVISION_TO}T00:00:00Z`))} • Prelims:{' '}
+              {formatDate(new Date(`${KAS_PRELIMS_DATE}T00:00:00Z`))}
             </div>
 
             {/* Progress is shown once there is any: a line reading "0 finished
