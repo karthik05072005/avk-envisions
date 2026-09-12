@@ -421,6 +421,13 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
                 return (
                   <details
                     key={item.testQuestionId}
+                    // Open by default. Collapsed, the page showed a list of
+                    // truncated stems and every question had to be clicked to
+                    // read its options and solution — which is most of the
+                    // reason to open a result at all. It stays a `details` so
+                    // a long review can still be folded away question by
+                    // question.
+                    open
                     className="group rounded-xl border border-border bg-card"
                   >
                     <summary className="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
