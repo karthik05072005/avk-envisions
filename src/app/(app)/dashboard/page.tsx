@@ -178,8 +178,19 @@ export default async function DashboardPage() {
                           {course.blurb}
                         </span>
                       </span>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums text-primary">
-                        {formatPaise(course.priceInPaise)}
+                      {/* Today's price first, with the later one struck
+                          through beside it. Showing the later price alone —
+                          which this did — quotes a buyer more than they would
+                          actually be charged. */}
+                      <span className="shrink-0 text-right">
+                        <span className="block text-sm font-semibold tabular-nums text-primary">
+                          {formatPaise(course.priceInPaise)}
+                        </span>
+                        {course.laterPriceInPaise !== null && (
+                          <span className="block text-xs text-muted-foreground">
+                            <s>{formatPaise(course.laterPriceInPaise)}</s> later
+                          </span>
+                        )}
                       </span>
                     </Link>
                   </li>

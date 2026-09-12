@@ -5,6 +5,7 @@ import {
 } from '@/lib/enums';
 import { db } from '@/server/db';
 import { hasEntitlement } from '@/server/services/entitlement-service';
+import { countEnrolledMany, resolvePricing } from '@/server/services/pricing-service';
 
 /**
  * What a student has bought, and where each purchase is used.
@@ -144,7 +145,10 @@ export interface AvailableCourse {
   name: string;
   href: string;
   blurb: string;
+  /** What a buyer pays today, which is the early-bird price while one is live. */
   priceInPaise: number;
+  /** What it costs once the early-bird seats are gone, or null at full price. */
+  laterPriceInPaise: number | null;
 }
 
 /**
@@ -169,21 +173,45 @@ export async function getAvailableCourses(userId: string): Promise<AvailableCour
       NOT: { slug: { startsWith: `${PYQ_SERIES_PREFIX}2` } },
     },
     orderBy: { sortOrder: 'asc' },
-    select: { id: true, slug: true, name: true, priceInPaise: true },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      priceInPaise: true,
+      tier1PriceInPaise: true,
+      tier1Limit: true,
+      tier2PriceInPaise: true,
+      tier2Limit: true,
+    },
   });
 
+  // Resolved against the live enrolment count, exactly as the pricing page and
+  // checkout do. Reading `priceInPaise` straight off the row shows the price
+  // AFTER the early-bird seats are gone — the dashboard quoted PYQ at ₹199 and
+  // KAS-50 at ₹299 while they were actually selling at ₹49 and ₹99. Quoting a
+  // higher price than a buyer would be charged is the worst direction for that
+  // error to go.
+  const enrolled = await countEnrolledMany(sellable.map((s) => s.id));
   const courses: AvailableCourse[] = [];
 
   for (const series of sellable) {
     if (await hasEntitlement(userId, series.id)) continue;
 
+    const pricing = resolvePricing(series, enrolled.get(series.id) ?? 0);
     const destination = destinationFor(series.slug, series.name);
+
     courses.push({
       id: series.id,
       name: destination.name,
       href: destination.href,
       blurb: destination.blurb,
-      priceInPaise: series.priceInPaise,
+      priceInPaise: pricing.priceInPaise,
+      // Only where it differs, so a series at its regular price shows one
+      // figure rather than the same number twice.
+      laterPriceInPaise:
+        pricing.nextPriceInPaise !== null && pricing.nextPriceInPaise !== pricing.priceInPaise
+          ? pricing.nextPriceInPaise
+          : null,
     });
   }
 

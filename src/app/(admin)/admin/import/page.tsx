@@ -40,7 +40,17 @@ export default async function ImportPage() {
     // paper nobody can reach.
     db.test.findMany({
       where: { deletedAt: null, status: { not: 'ARCHIVED' } },
-      orderBy: [{ testSeriesId: 'asc' }, { title: 'asc' }],
+      // By the series' own order, not by title. Titles are text, so "Day 10"
+      // sorts before "Day 2" and a fifty-day series read 1, 10, 11, 12 — which
+      // makes picking day 7 out of the list a hunt. `sortOrder` is what the
+      // series itself says the order is; slug breaks ties for anything that
+      // shares a position, and title is the last resort.
+      orderBy: [
+        { testSeriesId: 'asc' },
+        { sortOrder: 'asc' },
+        { startDate: 'asc' },
+        { slug: 'asc' },
+      ],
       select: {
         id: true,
         title: true,

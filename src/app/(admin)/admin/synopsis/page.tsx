@@ -40,7 +40,9 @@ export default async function AdminSynopsisPage() {
       tests: {
         where: { deletedAt: null },
         select: { id: true, title: true, slug: true, synopsisFileName: true },
-        orderBy: { slug: 'asc' },
+        // The series' own order, not alphabetical: `kas-paid-10` sorts before
+        // `kas-paid-2` as text, so the list read 1, 10, 11, 2.
+        orderBy: [{ sortOrder: 'asc' }, { startDate: 'asc' }, { slug: 'asc' }],
       },
     },
     orderBy: { slug: 'desc' },

@@ -295,7 +295,10 @@ export async function listPaperGroups(): Promise<PaperGroup[]> {
       testSeries: { select: { name: true, slug: true } },
       _count: { select: { questions: true } },
     },
-    orderBy: { slug: 'asc' },
+    // By the series' own order. Slugs are text, so `kas-paid-10` sorts before
+    // `kas-paid-2` and an eleven-test series reads 1, 10, 11, 2 — which makes
+    // finding test 7 a hunt through a list that looks shuffled.
+    orderBy: [{ sortOrder: 'asc' }, { startDate: 'asc' }, { slug: 'asc' }],
   });
 
   const groups = new Map<string, PaperGroup>();
