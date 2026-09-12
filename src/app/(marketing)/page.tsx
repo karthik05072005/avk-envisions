@@ -14,6 +14,7 @@ import {
   Timer,
 } from 'lucide-react';
 
+import { FeedbackWidget } from '@/components/site/feedback-widget';
 import { TrackCards } from '@/components/site/track-cards';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,12 @@ export default async function HomePage() {
       {testimonials.length > 0 && <Testimonials testimonials={testimonials} />}
       {faqs.length > 0 && <Faqs faqs={faqs} />}
       <FinalCta />
+      {/*
+        Home page only. It used to be mounted in the marketing and app layouts,
+        which put it on every page including the middle of a test — asking for
+        an opinion while someone is being timed.
+      */}
+      <FeedbackWidget />
     </>
   );
 }

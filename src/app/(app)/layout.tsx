@@ -1,7 +1,6 @@
 import { AppHeader, AppSidebar } from '@/components/app/app-nav';
 import { enforceStudent } from '@/server/auth/guards';
 import { getUnreadNotificationCount } from '@/server/services/dashboard-service';
-import { FeedbackWidget } from '@/components/site/feedback-widget';
 
 /**
  * Authenticated student shell.
@@ -26,7 +25,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         <main id="main-content" className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {children}
-      <FeedbackWidget />
         </main>
       </div>
     </div>

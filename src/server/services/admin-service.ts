@@ -154,12 +154,21 @@ export async function listQuestions(filters: QuestionFilters = {}) {
       : {}),
   };
 
+  // A question's position belongs to the paper, not the question: the same
+  // question can sit at 12 on one paper and 40 on another. So a paper-filtered
+  // listing is read from the join table, which is where sortOrder lives.
+  //
+  // It used to order by `code`, which is text — so Q10 sorted before Q2 and a
+  // hundred-question paper read 1, 10, 100, 11, 12. Finding question 40 meant
+  // hunting for it.
+  if (filters.testId) {
+    return listQuestionsForPaper(filters.testId, where, page, pageSize);
+  }
+
   const [rows, total] = await Promise.all([
     db.question.findMany({
       where,
-      // Newest first across the whole bank, but a paper is read in its own
-      // order — an editor checking question 40 wants it between 39 and 41.
-      orderBy: filters.testId ? { code: 'asc' } : { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
       select: {
@@ -187,6 +196,65 @@ export async function listQuestions(filters: QuestionFilters = {}) {
 
   return {
     rows,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
+}
+
+/**
+ * One paper's questions, in the order that paper puts them in.
+ *
+ * Read through `testQuestion` because `sortOrder` is a property of the
+ * attachment rather than the question — the same question can be number 12 on
+ * one paper and 40 on another. The rows are reshaped to match the bank listing
+ * exactly, so the page renders them without knowing which query produced them.
+ */
+async function listQuestionsForPaper(
+  testId: string,
+  where: Record<string, unknown>,
+  page: number,
+  pageSize: number,
+) {
+  const question = {
+    select: {
+      id: true,
+      code: true,
+      body: true,
+      type: true,
+      difficulty: true,
+      status: true,
+      marks: true,
+      negativeMarks: true,
+      source: true,
+      examYear: true,
+      reviewNote: true,
+      createdAt: true,
+      exam: { select: { shortName: true } },
+      subject: { select: { name: true, colorHex: true } },
+      topic: { select: { name: true } },
+      _count: { select: { testQuestions: true } },
+      stat: { select: { attemptCount: true, accuracy: true } },
+    },
+  } as const;
+
+  // The filters apply to the question, so they are nested under it here.
+  const link = { testId, question: where };
+
+  const [rows, total] = await Promise.all([
+    db.testQuestion.findMany({
+      where: link,
+      orderBy: { sortOrder: 'asc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: { question },
+    }),
+    db.testQuestion.count({ where: link }),
+  ]);
+
+  return {
+    rows: rows.map((r) => r.question),
     total,
     page,
     pageSize,

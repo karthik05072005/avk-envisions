@@ -263,14 +263,12 @@ export default async function PyqPaperPage({ params }: { params: Promise<{ slug:
                     </Button>
                   )}
 
-                  {test.hasSynopsis && (
-                    <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                      <Link href={`/synopsis/test/${test.id}`}>
-                        <BookOpenText aria-hidden="true" />
-                        Analysed PDF
-                      </Link>
-                    </Button>
-                  )}
+                  {/*
+                    No analysed PDF on a subject-wise drill. The analysis is
+                    written for the paper as a whole, and offering it against
+                    each subject cut of that paper repeats one document eight
+                    times. It stays on the full-length papers above.
+                  */}
                 </div>
               </div>
             ))}
