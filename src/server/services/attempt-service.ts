@@ -1,7 +1,13 @@
 import 'server-only';
 
 import { AppError, errors } from '@/lib/api';
-import { TERMINAL_ATTEMPT_STATUSES, type AnswerState, type QuestionType } from '@/lib/enums';
+import {
+  TERMINAL_ATTEMPT_STATUSES,
+  isTestOpen,
+  testOpensAt,
+  type AnswerState,
+  type QuestionType,
+} from '@/lib/enums';
 import {
   attemptSnapshotSchema,
   parseJsonColumn,
@@ -139,8 +145,19 @@ export async function startAttempt(params: {
     throw new AppError('TEST_UNAVAILABLE', 'This test is not currently available.');
   }
   const now = new Date();
-  if (test.startDate && test.startDate > now) {
-    throw new AppError('TEST_UNAVAILABLE', 'This test has not opened yet.');
+  if (!isTestOpen(test.startDate, now)) {
+    // Named to the minute rather than "not yet": a student who has been told a
+    // paper opens at ten wants to know it is nine forty, not that they are
+    // early.
+    const opens = testOpensAt(test.startDate!);
+    throw new AppError(
+      'TEST_UNAVAILABLE',
+      `This test opens at ${opens.toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Kolkata',
+      })}.`,
+    );
   }
   if (test.endDate && test.endDate < now) {
     throw new AppError('TEST_UNAVAILABLE', 'This test has closed.');

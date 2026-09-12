@@ -23,6 +23,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { FormField } from '@/components/ui/label';
 import { InlineError } from '@/components/ui/states';
 import { ApiClientError, api } from '@/lib/api-client';
+import { TEST_OPENS_EARLY_MINUTES } from '@/lib/enums';
 import { DeleteQuestion } from '@/features/admin/delete-question';
 import { cn } from '@/lib/utils';
 
@@ -49,6 +50,10 @@ export interface TestDraft {
   durationMinutes: number;
   maxAttempts: number;
   passingMarks: number;
+  /** ISO string, or null to open as soon as the paper is published. */
+  startDate: string | null;
+  /** ISO string, or null to stay open indefinitely. */
+  endDate: string | null;
   negativeMarkingEnabled: boolean;
   defaultNegativeRatio: number;
   randomizeQuestions: boolean;
@@ -110,12 +115,38 @@ function blank(exams: BuilderProps['exams']): TestDraft {
     durationMinutes: 60,
     maxAttempts: 2,
     passingMarks: 0,
+    startDate: null,
+    endDate: null,
     negativeMarkingEnabled: true,
     defaultNegativeRatio: 0.25,
     randomizeQuestions: false,
     randomizeOptions: false,
     showResultImmediately: true,
   };
+}
+
+/**
+ * An ISO instant as a `datetime-local` input wants it.
+ *
+ * `datetime-local` has no timezone: it shows and returns whatever the admin's
+ * own clock reads. The database stores UTC, so the two must be converted
+ * rather than passed straight through — writing the ISO string into the input
+ * would show an Indian admin a time five and a half hours behind the one they
+ * set, and reading it back raw would store the wrong instant.
+ */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return '';
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return '';
+  const offset = at.getTimezoneOffset() * 60_000;
+  return new Date(at.getTime() - offset).toISOString().slice(0, 16);
+}
+
+/** The reverse: what the admin typed, as an ISO instant. */
+function fromLocalInput(value: string): string | null {
+  if (!value) return null;
+  const at = new Date(value);
+  return Number.isNaN(at.getTime()) ? null : at.toISOString();
 }
 
 export function TestBuilder({ exams, series, initial, attached = [] }: BuilderProps) {
@@ -396,6 +427,33 @@ export function TestBuilder({ exams, series, initial, attached = [] }: BuilderPr
                 min={0}
                 value={draft.passingMarks}
                 onChange={(event) => update('passingMarks', Number(event.target.value))}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label="Opens on"
+              htmlFor="t-start"
+              hint={`Leave empty to open immediately. A scheduled paper lets students in ${TEST_OPENS_EARLY_MINUTES} minutes early.`}
+            >
+              <Input
+                id="t-start"
+                type="datetime-local"
+                value={toLocalInput(draft.startDate)}
+                onChange={(event) => update('startDate', fromLocalInput(event.target.value))}
+              />
+            </FormField>
+            <FormField
+              label="Closes on"
+              htmlFor="t-end"
+              hint="Leave empty to stay open indefinitely."
+            >
+              <Input
+                id="t-end"
+                type="datetime-local"
+                value={toLocalInput(draft.endDate)}
+                onChange={(event) => update('endDate', fromLocalInput(event.target.value))}
               />
             </FormField>
           </div>

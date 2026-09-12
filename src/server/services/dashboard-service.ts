@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { TERMINAL_ATTEMPT_STATUSES } from '@/lib/enums';
+import { TERMINAL_ATTEMPT_STATUSES, openThreshold } from '@/lib/enums';
 import { average, percentage, round } from '@/lib/utils';
 import { db } from '@/server/db';
 
@@ -184,7 +184,11 @@ export const getRecommendedTests = cache(async (userId: string, limit = 3) => {
       deletedAt: null,
       accessType: 'FREE',
       ...(attemptedIds.length > 0 ? { id: { notIn: attemptedIds } } : {}),
-      OR: [{ startDate: null }, { startDate: { lte: new Date() } }],
+      // Open, allowing for the early window: a paper counts as available from
+      // fifteen minutes before its scheduled time, which is the same moment
+      // the attempt gate lets someone in. Comparing against `now` alone would
+      // leave a paper listed as upcoming while it was already startable.
+      OR: [{ startDate: null }, { startDate: { lte: openThreshold() } }],
     },
     orderBy: [{ category: 'asc' }, { publishedAt: 'desc' }],
     take: limit,
@@ -204,7 +208,9 @@ export const getRecommendedTests = cache(async (userId: string, limit = 3) => {
 /** Tests scheduled to open in the near future. */
 export const getUpcomingTests = cache(async (limit = 3) =>
   db.test.findMany({
-    where: { status: 'PUBLISHED', deletedAt: null, startDate: { gt: new Date() } },
+    // Still shut. The same threshold as above, so a paper is in exactly one of
+    // the two lists at any moment.
+    where: { status: 'PUBLISHED', deletedAt: null, startDate: { gt: openThreshold() } },
     orderBy: { startDate: 'asc' },
     take: limit,
     select: {

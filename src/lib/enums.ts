@@ -585,3 +585,40 @@ export const DAILY_CHALLENGE_TEST_PREFIX = 'kas-50-days-';
 export const KAS_PRELIMS_DATE = '2026-11-15';
 export const KAS_REVISION_FROM = '2026-11-03';
 export const KAS_REVISION_TO = '2026-11-14';
+
+/**
+ * How long before its scheduled time a paper opens.
+ *
+ * Papers are written and uploaded well in advance, so a scheduled test must
+ * stay shut until its date and then open itself. It opens a quarter of an hour
+ * early so a student can settle in, read the instructions and start on the
+ * hour rather than racing the clock.
+ *
+ * Defined once and read by every caller — the admin listing, the catalogue and
+ * the attempt gate must agree to the minute, or a paper reads "opens soon" on
+ * one screen while another has already let someone in.
+ */
+export const TEST_OPENS_EARLY_MINUTES = 15;
+
+/** The moment a paper scheduled for `startDate` actually opens. */
+export function testOpensAt(startDate: Date): Date {
+  return new Date(startDate.getTime() - TEST_OPENS_EARLY_MINUTES * 60_000);
+}
+
+/** Whether a paper scheduled for `startDate` is open now. */
+export function isTestOpen(startDate: Date | null, now: Date = new Date()): boolean {
+  if (startDate === null) return true;
+  return testOpensAt(startDate) <= now;
+}
+
+/**
+ * The cutoff a database query compares `startDate` against.
+ *
+ * The comparison is the other way round from `isTestOpen`: rather than moving
+ * each paper's opening time back, it moves the clock forward, so a single
+ * `startDate <= openThreshold()` selects every paper that is open. Written as
+ * its own function so the two can never drift apart.
+ */
+export function openThreshold(now: Date = new Date()): Date {
+  return new Date(now.getTime() + TEST_OPENS_EARLY_MINUTES * 60_000);
+}

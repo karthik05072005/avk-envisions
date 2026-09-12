@@ -53,6 +53,10 @@ export default async function EditTestPage({ params }: { params: Promise<{ id: s
         maxAttempts: test.maxAttempts,
         // Nullable in the database; the builder treats "no pass mark" as 0.
         passingMarks: test.passingMarks ?? 0,
+        // Sent as ISO instants. The builder converts to and from the admin's
+        // own clock for the datetime-local inputs.
+        startDate: test.startDate?.toISOString() ?? null,
+        endDate: test.endDate?.toISOString() ?? null,
         negativeMarkingEnabled: test.negativeMarkingEnabled,
         defaultNegativeRatio: test.defaultNegativeRatio,
         randomizeQuestions: test.randomizeQuestions,
