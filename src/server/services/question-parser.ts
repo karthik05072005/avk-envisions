@@ -163,7 +163,7 @@ const OPTIONS_HEADING = /^(?:options?|choices?)\s*[:.]?\s*$/i;
  * needing one set by hand before it could be committed.
  */
 const ANSWER_LINE =
-  /^(?:correct\s*(?:answer|option)|answer|ans|key)\s*(?:key|option)?\s*[:.\-–]\s*\(?([1-9]|[a-hA-H])\)?\s*[.)]?\s*(.*)$/i;
+  /^(?:key|correct|right)?\s*(?:answer|ans|option)\s*(?:key|option)?\s*[:.\-–]?\s*\(?([1-9]|[a-hA-H])\)?\s*[.)]?\s*(.*)$/i;
 
 /** Marker → zero-based index. Handles both numeric and alphabetic papers. */
 function markerToIndex(marker: string): number | null {
@@ -215,9 +215,16 @@ function readExplanation(after: string[]): string | null {
     if (line === '' || EXPLANATION_NOISE.test(line)) continue;
     // The next question's number ends this one, whatever came before it.
     if (QUESTION_START.test(line)) break;
-    // Revision prompts rather than an explanation of this question: bulleted
-    // cross-references, useful in the PDF and confusing in a result page.
-    if (EXPLANATION_ENDS.test(line) || line.startsWith('•')) break;
+    // Revision prompts rather than an explanation of this question: the
+    // cross-references printed under FUTURE ANGLE and its siblings, useful in
+    // the PDF and confusing in a result page.
+    //
+    // Those headings alone end it. A bullet used to end it as well, on the
+    // reasoning that cross-references are bulleted — but so is every ordinary
+    // explanation written as points, and a client paper whose 101 explanations
+    // all opened with "•" imported exactly one of them. The heading is the
+    // signal; the bullet is just how the author writes.
+    if (EXPLANATION_ENDS.test(line)) break;
 
     // A heading that survived stripping introduces the next part; keep it as
     // a heading so the stored text reads the way the document does.

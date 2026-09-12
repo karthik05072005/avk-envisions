@@ -368,3 +368,90 @@ describe('explanations', () => {
     expect(parseQuestionPaper(bare).questions[0]!.explanation).toBeNull();
   });
 });
+
+describe('a paper written to the published format rules', () => {
+  /** Two questions exactly as the format guide asks for them. */
+  const PAPER = [
+    '1. Consider the following statements: The Sardar Patel National Unity Award',
+    'is associated with contributions towards national unity. Which of the',
+    'statements given above is/are correct?',
+    'A. 1 only',
+    'B. 1 and 3 only',
+    'C. 2 and 3 only',
+    'D. 1, 2 and 3',
+    'Key Answer: B. 1 and 3 only',
+    'Explanation:',
+    '• The award is a civilian honour recognising contributions to national unity.',
+    '• It is not a military decoration.',
+    '2. With reference to the anti-defection provisions, which is correct?',
+    'A. 1, 3 and 4 only',
+    'B. 1 and 2 only',
+    'C. 2, 3 and 4 only',
+    'D. 1, 2, 3 and 4',
+    'Key Answer: A. 1, 3 and 4 only',
+    'Explanation:',
+    '• The Tenth Schedule was added by the 52nd Amendment.',
+    '3. A third question, to prove the run continues.',
+    'A. First',
+    'B. Second',
+    'C. Third',
+    'D. Fourth',
+    'Key Answer: C. Third',
+    'Explanation:',
+    '• Because of a reason.',
+  ].join('\n');
+
+  it('reads every question, not just the first few', () => {
+    // "Key Answer:" matched no answer pattern, so a block never closed: a
+    // 101-question paper imported as four, the fourth carrying a 76,000
+    // character stem with every remaining question inside it.
+    const { questions } = parseQuestionPaper(PAPER);
+    expect(questions).toHaveLength(3);
+    expect(questions.map((q) => q.number)).toEqual([1, 2, 3]);
+  });
+
+  it('keys each one from its "Key Answer:" line', () => {
+    const { questions } = parseQuestionPaper(PAPER);
+    expect(questions.map((q) => q.correctIndex)).toEqual([1, 0, 2]);
+  });
+
+  it('keeps a bulleted explanation instead of discarding it', () => {
+    // A bullet used to end the explanation, on the reasoning that FUTURE ANGLE
+    // cross-references are bulleted. So is every explanation written as
+    // points: a paper with 101 bulleted explanations imported one.
+    const { questions } = parseQuestionPaper(PAPER);
+    expect(questions[0]?.explanation).toContain('civilian honour');
+    expect(questions[0]?.explanation).toContain('not a military decoration');
+    expect(questions[1]?.explanation).toContain('52nd Amendment');
+  });
+
+  it('no question swallows the ones after it', () => {
+    const { questions } = parseQuestionPaper(PAPER);
+    for (const question of questions) {
+      expect(question.body.length).toBeLessThan(400);
+      expect(question.options).toHaveLength(4);
+    }
+  });
+
+  it('still reads the older "ANSWER" and "Correct option" forms', () => {
+    const { questions } = parseQuestionPaper(
+      [
+        '1. An older paper?',
+        '1. First',
+        '2. Second',
+        '3. Third',
+        '4. Fourth',
+        'Correct option: 2',
+        '2. And the next?',
+        '1. First',
+        '2. Second',
+        '3. Third',
+        '4. Fourth',
+        'Answer: 3',
+      ].join('\n'),
+    );
+    expect(questions).toHaveLength(2);
+    expect(questions[0]?.correctIndex).toBe(1);
+    expect(questions[1]?.correctIndex).toBe(2);
+  });
+});
