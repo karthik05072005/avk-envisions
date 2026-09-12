@@ -81,3 +81,6 @@ yarn-error.log*
 # actually serves live under prisma/assets, so committing both would carry the
 # same megabytes twice.
 /*.pdf
+
+# OCR intermediates. The parsed result is committed as prisma/data/*.json.
+ocr-*.txt
