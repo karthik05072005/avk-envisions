@@ -397,51 +397,6 @@ export function PracticeRunner({
             )}
           </div>
 
-          {/* Verdict + solution ---------------------------------------- */}
-          {revealed && (
-            <div
-              className={cn(
-                'mt-5 rounded-xl border p-4',
-                revealed.isCorrect
-                  ? 'border-success/30 bg-success/5'
-                  : 'border-destructive/30 bg-destructive/5',
-              )}
-              role="status"
-            >
-              <p
-                className={cn(
-                  'flex items-center gap-2 font-semibold',
-                  revealed.isCorrect ? 'text-success' : 'text-destructive',
-                )}
-              >
-                {revealed.isCorrect ? (
-                  <CheckCircle2 className="size-5" aria-hidden="true" />
-                ) : (
-                  <XCircle className="size-5" aria-hidden="true" />
-                )}
-                {revealed.isCorrect ? 'Correct' : 'Not quite'}
-              </p>
-
-              {(current.detailedSolution || current.explanation) && (
-                <div className="mt-3 border-t border-border/60 pt-3">
-                  <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <Lightbulb className="size-3.5" aria-hidden="true" />
-                    Solution
-                  </p>
-                  {current.detailedSolution ? (
-                    <div
-                      className="prose-avk mt-2"
-                      dangerouslySetInnerHTML={{ __html: current.detailedSolution }}
-                    />
-                  ) : (
-                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                      {current.explanation}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -487,6 +442,59 @@ export function PracticeRunner({
           </Button>
         )}
       </div>
+
+      {/* Verdict + solution ------------------------------------------------
+          Below the controls, not above them. Reading the explanation is the
+          part of practice that teaches, and when it sat between the options
+          and the buttons the Next button was pushed off a phone screen — so
+          moving on meant scrolling back past the whole solution, and the
+          quickest way through was to skip reading it. Now the answer is
+          checked, the buttons stay where the thumb already is, and the
+          explanation reads downward from there. */}
+      {revealed && (
+        <div
+          className={cn(
+            'rounded-xl border p-4',
+            revealed.isCorrect
+              ? 'border-success/30 bg-success/5'
+              : 'border-destructive/30 bg-destructive/5',
+          )}
+          role="status"
+        >
+          <p
+            className={cn(
+              'flex items-center gap-2 font-semibold',
+              revealed.isCorrect ? 'text-success' : 'text-destructive',
+            )}
+          >
+            {revealed.isCorrect ? (
+              <CheckCircle2 className="size-5" aria-hidden="true" />
+            ) : (
+              <XCircle className="size-5" aria-hidden="true" />
+            )}
+            {revealed.isCorrect ? 'Correct' : 'Not quite'}
+          </p>
+
+          {(current.detailedSolution || current.explanation) && (
+            <div className="mt-3 border-t border-border/60 pt-3">
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Lightbulb className="size-3.5" aria-hidden="true" />
+                Solution
+              </p>
+              {current.detailedSolution ? (
+                <div
+                  className="prose-avk mt-2"
+                  dangerouslySetInnerHTML={{ __html: current.detailedSolution }}
+                />
+              ) : (
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                  {current.explanation}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>

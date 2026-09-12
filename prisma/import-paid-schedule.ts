@@ -1,5 +1,5 @@
 /**
- * Lays out the twelve-test paid series from its published timetable.
+ * Lays out the paid test series from its published timetable.
  *
  * The same document students open from the series page is what creates the
  * tests, so the table and the PDF cannot say different things. Each row gives
@@ -101,13 +101,32 @@ function parseCells(cells: Cell[]): Row[] {
     const columns: Record<string, string> = {};
     for (const cell of line.sort((a, b) => a.x - b.x)) {
       const column = columnOf(cell.x);
-      columns[column] = `${columns[column] ?? ''} ${cell.text}`.trim();
+      const existing = columns[column];
+
+      // The coverage column is printed twice, one layer over the other: the
+      // bare subject at y=200.1 and the full text at y=201.6, 1.5pt apart and
+      // at the same x. Joining them titled every test twice over — "Polity
+      // Polity + Current Affairs".
+      //
+      // Where one value already contains the other, the longer is the complete
+      // one and the shorter is the layer beneath it, so the longer wins rather
+      // than the two being concatenated.
+      if (existing) {
+        const a = existing.toLowerCase();
+        const b = cell.text.toLowerCase();
+        if (b.includes(a) || a.includes(b)) {
+          columns[column] = cell.text.length > existing.length ? cell.text : existing;
+          continue;
+        }
+      }
+
+      columns[column] = `${existing ?? ''} ${cell.text}`.trim();
     }
 
     const test = Number(columns.test ?? '');
     const dateText = columns.date ?? '';
 
-    if (Number.isInteger(test) && test >= 1 && test <= 12 && /\d{4}/.test(dateText)) {
+    if (Number.isInteger(test) && test >= 1 && test <= 40 && /\d{4}/.test(dateText)) {
       rows.push({
         test,
         date: new Date(`${dateText} 00:00:00`),
@@ -130,10 +149,23 @@ function parseCells(cells: Cell[]): Row[] {
     if (!open || !columns.subject) continue;
 
     const gap = Math.abs((openY ?? 0) - (line[0]?.y ?? 0));
-    if (gap <= 20) {
-      open.subject = `${open.subject} ${columns.subject}`.trim();
-      openY = line[0]?.y ?? openY;
+    if (gap > 20) continue;
+
+    // Only a genuine wrap, never a restatement.
+    //
+    // The timetable is followed by a list repeating each test's coverage
+    // ("Polity + Current Affairs", "History + Current Affairs", …). Those lines
+    // sit close enough to be taken for continuations, and appending them gave
+    // every test a doubled title — "Polity Polity + Current Affairs". A wrap
+    // continues a phrase; a restatement begins by repeating what the row
+    // already says, so that is what gets rejected.
+    const first = columns.subject.split(/\s+/)[0] ?? '';
+    if (first && new RegExp(`^${first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(open.subject)) {
+      continue;
     }
+
+    open.subject = `${open.subject} ${columns.subject}`.trim();
+    openY = line[0]?.y ?? openY;
   }
 
   return rows.sort((a, b) => a.test - b.test);
@@ -185,13 +217,26 @@ function minutesFrom(timing: string): number {
 }
 
 async function main() {
-  console.log(`\nLaying out the twelve paid tests${DRY_RUN ? ' (dry run)' : ''}...\n`);
+  console.log(`\nLaying out the paid tests${DRY_RUN ? ' (dry run)' : ''}...\n`);
 
   const rows = await readSchedule();
   console.log(`  read ${rows.length} test(s) from the timetable\n`);
 
-  if (rows.length !== 12) {
-    throw new Error(`Expected 12 tests, read ${rows.length}. The layout is not what this expects.`);
+  // The guard used to demand exactly twelve, and the series is now eleven — so
+  // the correct schedule was refused and the dates stayed empty on the site.
+  //
+  // What actually matters is that the document was read whole: the numbering
+  // has to start at one and run without a gap. That catches a half-parsed
+  // table, which is the real failure, without pinning the script to whichever
+  // length the series happens to be this year.
+  const numbers = rows.map((row) => row.test);
+  const consecutive = numbers.every((n, index) => n === index + 1);
+
+  if (rows.length === 0 || !consecutive) {
+    throw new Error(
+      `Read ${rows.length} test(s) numbered ${numbers.join(', ') || '(none)'}. ` +
+        'Expected a complete run starting at 1; the layout is not what this expects.',
+    );
   }
 
   for (const row of rows) {

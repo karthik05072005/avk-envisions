@@ -168,9 +168,15 @@ export default async function DashboardPage() {
               <ul className="mt-4 grid gap-2 sm:grid-cols-2">
                 {available.map((course) => (
                   <li key={course.id}>
+                    {/* Tinted, not plain. These are the only things on the
+                        dashboard a student can act on to get more, and in grey
+                        on white they read as a table of contents rather than
+                        an offer. The tint is the brand's own primary at low
+                        opacity — enough to draw the eye, short of the shouting
+                        that would make a study tool feel like an ad. */}
                     <Link
                       href={course.href}
-                      className="flex h-full items-start gap-3 rounded-xl border border-border px-4 py-3 transition-colors hover:border-primary/40 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="flex h-full items-start gap-3 rounded-xl border border-primary/25 bg-gradient-to-br from-primary-muted/70 to-primary-muted/25 px-4 py-3 shadow-subtle transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block font-semibold leading-tight">{course.name}</span>
@@ -183,13 +189,26 @@ export default async function DashboardPage() {
                           which this did — quotes a buyer more than they would
                           actually be charged. */}
                       <span className="shrink-0 text-right">
-                        <span className="block text-sm font-semibold tabular-nums text-primary">
+                        <span className="block text-base font-bold tabular-nums text-primary">
                           {formatPaise(course.priceInPaise)}
                         </span>
                         {course.laterPriceInPaise !== null && (
-                          <span className="block text-xs text-muted-foreground">
-                            <s>{formatPaise(course.laterPriceInPaise)}</s> later
-                          </span>
+                          <>
+                            <span className="block text-xs text-muted-foreground">
+                              <s>{formatPaise(course.laterPriceInPaise)}</s> later
+                            </span>
+                            {/* What they actually save, worked out rather than
+                                left for the reader to subtract. */}
+                            <span className="mt-1 inline-block rounded-full bg-success/15 px-2 py-0.5 text-[0.7rem] font-semibold text-success">
+                              Save{' '}
+                              {Math.round(
+                                ((course.laterPriceInPaise - course.priceInPaise) /
+                                  course.laterPriceInPaise) *
+                                  100,
+                              )}
+                              %
+                            </span>
+                          </>
                         )}
                       </span>
                     </Link>
@@ -234,24 +253,28 @@ export default async function DashboardPage() {
             label="Tests attempted"
             value={summary.testsAttempted}
             icon={BookOpenCheck}
+            tone="primary"
             hint={isNewStudent ? 'Start with a free mock' : 'Across all exams'}
           />
           <StatCard
             label="Questions solved"
             value={formatNumber(summary.questionsSolved)}
             icon={Target}
+            tone="info"
             hint="Tests and practice combined"
           />
           <StatCard
             label="Average accuracy"
             value={summary.averageAccuracy != null ? `${summary.averageAccuracy}%` : '—'}
             icon={Gauge}
+            tone="success"
             hint={summary.averageAccuracy == null ? 'No attempts yet' : 'Of questions you answered'}
           />
           <StatCard
             label="Study streak"
             value={`${summary.currentStreak} ${summary.currentStreak === 1 ? 'day' : 'days'}`}
             icon={Flame}
+            tone="accent"
             hint={summary.longestStreak > 0 ? `Best: ${summary.longestStreak} days` : 'Start today'}
           />
         </div>
@@ -273,7 +296,15 @@ export default async function DashboardPage() {
                   <li key={action.title}>
                     <Link
                       href={action.href}
-                      className="group flex items-start gap-3.5 rounded-lg border border-border p-4 transition-all hover:-translate-y-0.5 hover:shadow-card"
+                      // The top recommendation is tinted and the rest are not.
+                      // The list is already ordered by what moves a score most,
+                      // but four identical grey rows hid that ranking — so the
+                      // one worth doing first now looks like it.
+                      className={
+                        index === 0
+                          ? 'group flex items-start gap-3.5 rounded-lg border border-primary/30 bg-primary-muted/40 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-card'
+                          : 'group flex items-start gap-3.5 rounded-lg border border-border p-4 transition-all hover:-translate-y-0.5 hover:shadow-card'
+                      }
                     >
                       <span
                         className={

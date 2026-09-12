@@ -36,6 +36,17 @@ const PLANNED_QUESTIONS: Record<string, number> = {
   'kas-prelims-paid-test-series': 100,
 };
 
+/**
+ * The published timetable behind "View Schedule", where a series has one.
+ *
+ * Points at the existing reader rather than the PDF itself: the reader renders
+ * on a phone, which a raw PDF largely does not, and it is already where the
+ * courses pages send people for the same document.
+ */
+const SCHEDULE_PAGES: Record<string, string> = {
+  'kas-prelims-paid-test-series': '/courses/paid-test-series/syllabus',
+};
+
 const SCHEDULE_SERIES = new Set([
   'kas-prelims-free-test-series',
   'kas-prelims-paid-test-series',
@@ -101,6 +112,14 @@ export default async function TestSeriesDetailPage({
         tagline={series.tagline}
         eyebrow={series.priceInPaise > 0 ? 'Paid Test Series' : 'Free Test Series'}
         plannedQuestions={PLANNED_QUESTIONS[slug]}
+        scheduleHref={SCHEDULE_PAGES[slug]}
+        // Only while an early rung is genuinely open. Past that the price on
+        // the page is the standard one, and there is no capped offer to report.
+        enrolment={
+          earlyBird?.limit != null
+            ? { count: enrolled?.get(row!.id) ?? 0, limit: earlyBird.limit }
+            : null
+        }
         purchase={
           series.priceInPaise > 0 ? (
             <div className="w-full shrink-0 rounded-2xl border border-primary/30 bg-primary-muted/40 p-4 sm:w-56">

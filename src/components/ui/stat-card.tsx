@@ -26,10 +26,37 @@ export interface StatCardProps {
      */
     increaseIsGood?: boolean;
   };
+  /**
+   * Colours the icon and its top edge, to tell four tiles apart at a glance.
+   *
+   * Optional, and the default is the plain primary these have always used: the
+   * admin overview shows the same component in a dense grid where uniformity
+   * reads better than variety. Tone is decoration on top of a label and a
+   * number, never the only thing carrying the meaning.
+   */
+  tone?: 'default' | 'primary' | 'success' | 'info' | 'accent';
   className?: string;
 }
 
-export function StatCard({ label, value, hint, icon: Icon, trend, className }: StatCardProps) {
+/** Per-tone classes, spelled out so Tailwind sees them at build time. */
+const TONES: Record<string, { icon: string; edge: string }> = {
+  default: { icon: 'bg-primary-muted text-primary', edge: '' },
+  primary: { icon: 'bg-primary-muted text-primary', edge: 'before:bg-primary' },
+  success: { icon: 'bg-success/15 text-success', edge: 'before:bg-success' },
+  info: { icon: 'bg-info/15 text-info', edge: 'before:bg-info' },
+  accent: { icon: 'bg-accent/20 text-accent-foreground', edge: 'before:bg-accent' },
+};
+
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  trend,
+  tone = 'default',
+  className,
+}: StatCardProps) {
+  const palette = TONES[tone] ?? TONES.default!;
   const direction = !trend || trend.value === 0 ? 'flat' : trend.value > 0 ? 'up' : 'down';
   const increaseIsGood = trend?.increaseIsGood ?? true;
   const isPositive = direction === 'flat' ? null : (direction === 'up') === increaseIsGood;
@@ -39,14 +66,24 @@ export function StatCard({ label, value, hint, icon: Icon, trend, className }: S
   return (
     <div
       className={cn(
-        'group rounded-xl border border-border bg-card p-5 shadow-card transition-all duration-200 hover:shadow-elevated',
+        'group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated',
+        // A coloured strip along the top edge, drawn only where a tone asks
+        // for one so the untoned tiles look exactly as they always did.
+        palette.edge &&
+          'before:absolute before:inset-x-0 before:top-0 before:h-1 before:content-[""]',
+        palette.edge,
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
         {Icon && (
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-muted text-primary">
+          <span
+            className={cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-110',
+              palette.icon,
+            )}
+          >
             <Icon className="size-4" aria-hidden="true" />
           </span>
         )}

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Link from 'next/link';
-import { BookOpen, Clock, FileText, Info, Lock, Play } from 'lucide-react';
+import { BookOpen, Clock, FileText, Info, Lock, Play, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -44,6 +44,39 @@ interface Props {
    * timetable, and the free series has nothing to buy.
    */
   purchase?: React.ReactNode;
+  /**
+   * Where the published timetable PDF is read, for a series that has one.
+   *
+   * The table below lists the papers, but the document is what the schedule
+   * was actually planned and announced as — subjects, dates and the run-up in
+   * one page — and someone deciding whether to buy wants to see the whole plan
+   * before the later papers exist.
+   */
+  scheduleHref?: string;
+  /**
+   * How many have joined, where the series is sold on a limited early price.
+   *
+   * Shown because the early rung is genuinely capped: a student who cannot see
+   * how many seats remain has no way to judge whether the price they are
+   * looking at will still be there tomorrow.
+   */
+  enrolment?: { count: number; limit: number } | null;
+}
+
+/**
+ * A paper's date, as "14 Sep 2026".
+ *
+ * Pinned to IST and to en-IN rather than the viewer's locale: the timetable is
+ * published for one exam in one country, and a date that renders differently
+ * on the server and in the browser would fail hydration.
+ */
+function formatTestDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  }).format(date);
 }
 
 /** Open when it has questions and either no date or a date already past. */
@@ -59,6 +92,8 @@ export function FreeSeriesSchedule({
   eyebrow,
   plannedQuestions,
   purchase,
+  scheduleHref,
+  enrolment,
 }: Props) {
   // The planned length where the series states one, and otherwise the most
   // common written length. Inferring it alone drifted: with two papers of ten
@@ -105,6 +140,24 @@ export function FreeSeriesSchedule({
           )}
         </div>
 
+        {/* The published timetable, and how full the early price is. Both sit
+            above the table because both are read before deciding to buy. */}
+        {(scheduleHref || enrolment) && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {scheduleHref && (
+              <Link
+                href={scheduleHref}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <FileText className="size-4" aria-hidden="true" />
+                View Schedule
+              </Link>
+            )}
+
+            {enrolment && <EnrolmentBar count={enrolment.count} limit={enrolment.limit} />}
+          </div>
+        )}
+
         <dl className="mt-5 grid gap-3 sm:grid-cols-3">
           <Stat icon={FileText} label="Total tests" value={String(tests.length)} />
           <Stat
@@ -131,6 +184,7 @@ export function FreeSeriesSchedule({
               <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
                 <th scope="col" className="w-14 px-4 py-2.5 font-medium">No.</th>
                 <th scope="col" className="px-3 py-2.5 font-medium">Test</th>
+                <th scope="col" className="w-32 px-3 py-2.5 font-medium">Date</th>
                 <th scope="col" className="w-28 px-3 py-2.5 font-medium">Duration</th>
                 <th scope="col" className="w-44 px-3 py-2.5 font-medium">Action</th>
               </tr>
@@ -169,6 +223,20 @@ export function FreeSeriesSchedule({
                           ? `${test.totalQuestions} questions`
                           : 'Questions being added'}
                       </p>
+                    </td>
+
+                    {/* The date the paper opens. A series sold on a published
+                        timetable is bought for its dates as much as its
+                        subjects, and they were carried into this component all
+                        along without ever being shown. */}
+                    <td className="px-3 py-3.5 text-sm">
+                      {test.startDate ? (
+                        <span className={cn('tabular-nums', open && 'text-foreground')}>
+                          {formatTestDate(test.startDate)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Any day</span>
+                      )}
                     </td>
 
                     <td className="px-3 py-3.5 text-sm tabular-nums">
@@ -239,6 +307,60 @@ export function FreeSeriesSchedule({
           Synopsis available
         </span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * How many of the early-price seats are gone.
+ *
+ * Every number here is the real one: `count` is the live entitlement count and
+ * `limit` is the tier's actual cap, so the bar empties because people really
+ * joined. Nothing counts down on its own and nothing is inflated — a scarcity
+ * notice that lies is worth less than none, because a student who joins and
+ * finds the "last 3 seats" still showing next week stops believing the rest of
+ * the page too.
+ *
+ * It disappears once the tier is full, rather than sitting at zero: by then the
+ * price on the page is the standard one and there is no offer left to hurry
+ * for.
+ */
+function EnrolmentBar({ count, limit }: { count: number; limit: number }) {
+  const left = Math.max(0, limit - count);
+  if (left === 0) return null;
+
+  const takenPercent = Math.min(100, Math.round((count / limit) * 100));
+  const nearlyGone = left <= Math.max(5, Math.round(limit * 0.2));
+
+  return (
+    <div className="min-w-[13rem] flex-1 rounded-lg border border-border bg-card px-4 py-2.5 sm:max-w-xs">
+      <div className="flex items-baseline justify-between gap-2 text-xs">
+        <span className="flex items-center gap-1.5 font-semibold">
+          <Users className="size-3.5 text-primary" aria-hidden="true" />
+          {count} {count === 1 ? 'person has' : 'people have'} joined
+        </span>
+        <span className={cn('font-semibold tabular-nums', nearlyGone && 'text-warning')}>
+          {left} left
+        </span>
+      </div>
+
+      <div
+        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-valuenow={count}
+        aria-valuemin={0}
+        aria-valuemax={limit}
+        aria-label={`${count} of ${limit} early-price places taken`}
+      >
+        <div
+          className={cn('h-full rounded-full', nearlyGone ? 'bg-warning' : 'bg-primary')}
+          style={{ width: `${takenPercent}%` }}
+        />
+      </div>
+
+      <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">
+        at this price, for the first {limit} members
+      </p>
     </div>
   );
 }

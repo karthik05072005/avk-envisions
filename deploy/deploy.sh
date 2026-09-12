@@ -119,6 +119,7 @@ for script in \
   prisma/apply-50-days-schedule.ts \
   prisma/rebuild-subject-papers.ts \
   prisma/import-current-affairs.ts \
+  prisma/set-pyq-subject-durations.ts \
   prisma/hide-empty-tests.ts
 do
   if ! sudo -u "$APP_USER" npx tsx "$script"; then
