@@ -107,9 +107,27 @@ const HEADING = /^(?:Q\s*)?(\d{1,3})\.\s+(.*)$/;
 /** `(A) text`, `(1) text`, `A) text`, `A. text`. */
 const OPTION = /^\(?([A-Da-d1-4])[).]\s*(.+)$/;
 
+/**
+ * The answer label used as a heading, which is what proves a block has given
+ * its key.
+ *
+ * Three shapes qualify, and nothing else:
+ *
+ *   ANSWER                      the label alone, key on the next line
+ *   ANSWER (B)  /  Answer: 3    the label with the key beside it
+ *   Key Answer: B. Empowerment  the same, however the paper words the label
+ *
+ * "Answer Options:" and "…answer from the codes given below" do not.
+ */
+const ANSWER_HEADING =
+  /^(?:KEY\s+|CORRECT\s+|RIGHT\s+)?ANS(?:WER|\.)?\s*[:.\s]?\s*(?:$|(?:Option\s*)?\(?[A-Da-d1-4](?:[).:\s]|$))/i;
+
+/** The label standing alone, with the key on the line that follows. */
+const ANSWER_ALONE_LINE = /^(?:KEY\s+|CORRECT\s+|RIGHT\s+)?ANS(?:WER|\.)?\s*:?\s*$/i;
+
 /** The keyed answer, in any of the forms the documents use. */
 const ANSWER_INLINE =
-  /^ANSWER\b[:\s·•—–-]*(?:Option\s*)?\(?([A-Da-d1-4])\)?[).]?\s*(?:[—–:-]\s*)?(.*)$/i;
+  /^(?:KEY\s+|CORRECT\s+|RIGHT\s+)?ANS(?:WER|\.)?\b[:\s·•—–-]*(?:Option\s*)?\(?([A-Da-d1-4])\)?[).]?\s*(?:[—–:-]\s*)?(.*)$/i;
 // The key on its own line, as either "(3) text" or "Option 3 — text".
 const ANSWER_BARE = /^(?:Option\s*)?\(?([A-Da-d1-4])\)?[).]?\s*(?:[—–:-]\s*)?(.*)$/i;
 
@@ -199,11 +217,38 @@ export function parsePyqAnalysis(raw: string): ParseResult {
   // answer, commentary; so a new question can only begin once the current block
   // has passed its answer. Until then a numbered line is an option.
   let answered = false;
+  /** True when the previous line was a bare ANSWER label. */
+  let keyLineNext = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (/^ANSWER/i.test(trimmed) || COMMENTARY.test(trimmed)) answered = true;
+    // The answer label, as a label — not the word "answer" wherever it falls.
+    //
+    // This pattern held a literal backspace where a word boundary was meant,
+    // left by an earlier edit, so it had been matching nothing at all. Writing
+    // it correctly as /^ANSWER\b/ then cost 25 questions across ten papers,
+    // because two other things in these documents also begin with the word:
+    //
+    //   "Answer Options:"                        introduces the option list
+    //   "answer from the codes given below :"    the tail of a wrapped stem
+    //
+    // Both marked a block answered before its options had been read, and the
+    // "1." to "4." that followed opened new blocks. So the label counts only
+    // when it stands alone or is immediately followed by the key.
+    if (ANSWER_HEADING.test(trimmed) || COMMENTARY.test(trimmed)) answered = true;
+
+    // A label standing alone means the key is the NEXT line, written the same
+    // way an option is — "2. Eucalyptus". Since the block has just been marked
+    // answered, that line would otherwise open question 2 and take the rest of
+    // the paper with it. It belongs to this block; the reader picks the key
+    // out of it.
+    if (keyLineNext) {
+      keyLineNext = false;
+      if (current) current.body.push(line);
+      continue;
+    }
+    keyLineNext = ANSWER_ALONE_LINE.test(trimmed);
 
     const heading = HEADING.exec(trimmed);
 
@@ -215,10 +260,24 @@ export function parsePyqAnalysis(raw: string): ParseResult {
     // every remaining question in the paper. Twenty of them, in that case.
     const unambiguous = /^Q\s*\d/i.test(trimmed);
 
+    /**
+     * A number may skip ahead once the current block is finished.
+     *
+     * Insisting on exactly `lastNumber + 1` meant a single missing number
+     * stopped the parser for good: a KAS-50 day paper whose question 8 lost
+     * its "8." to a page break yielded seven questions out of fifty, because
+     * nothing after the gap could ever match again.
+     *
+     * A jump is only allowed where the block has already given its answer,
+     * which is what stops an option list — "3." following "2." inside the
+     * options — from opening one.
+     */
+    const number = heading ? Number(heading[1]) : 0;
+    const inSequence = heading && number === lastNumber + 1;
+    const afterGap = heading && answered && number > lastNumber + 1 && number <= lastNumber + 4;
+
     const opensBlock =
-      heading &&
-      Number(heading[1]) === lastNumber + 1 &&
-      (current === null || answered || unambiguous);
+      (inSequence || afterGap) && (current === null || answered || unambiguous);
 
     if (opensBlock && heading) {
       if (current) blocks.push(current);

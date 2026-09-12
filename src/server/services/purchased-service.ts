@@ -171,6 +171,20 @@ export async function getAvailableCourses(userId: string): Promise<AvailableCour
       // A year inside the previous-year bundle is not sold separately here:
       // the bundle is the product, and listing both invites paying twice.
       NOT: { slug: { startsWith: `${PYQ_SERIES_PREFIX}2` } },
+      // Something to actually sell. The five chapterwise subjects are
+      // published and priced but hold no papers at all — the pricing page
+      // marks them "Coming Soon", while this list was offering them at ₹199
+      // apiece. A course with nothing in it is not on sale.
+      //
+      // Papers, not questions: a series is sold on its published timetable,
+      // and a buyer enrolling in KAS-50 before day 40 is written has bought
+      // exactly what was advertised.
+      //
+      // The previous-year bundle is the exception, and holds no papers of its
+      // own by design: it is the parent that entitles every year, and the
+      // papers sit in those. Requiring tests on the row itself dropped the one
+      // previous-year product actually on sale.
+      OR: [{ tests: { some: { deletedAt: null } } }, { slug: PYQ_BUNDLE_SLUG }],
     },
     orderBy: { sortOrder: 'asc' },
     select: {

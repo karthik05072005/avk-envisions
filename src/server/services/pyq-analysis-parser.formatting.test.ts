@@ -133,3 +133,78 @@ describe('the answer never lands inside an option', () => {
     expect(questions[0]?.correctIndex).toBe(2);
   });
 });
+
+describe('the KAS-50 day-paper layout', () => {
+  it('reads an answer labelled "Key Answer:"', () => {
+    const { questions } = parsePyqAnalysis(
+      [
+        '1. The Citizenship Rules, 2026, are significant because they concern:',
+        'A. Abolition of citizenship by naturalisation',
+        'B. Empowerment of designated District Collectors',
+        'C. Introduction of State citizenship',
+        'D. Automatic citizenship for all persons',
+        'Key Answer: B. Empowerment of designated District Collectors',
+        'Explanation:',
+        '• The 2026 Rules concern administrative processing.',
+        '2. Consider the following statements:',
+        'A. First',
+        'B. Second',
+        'C. Third',
+        'D. Fourth',
+        'Key Answer: C. Third',
+        'Explanation:',
+        '• Something about the third.',
+      ].join('\n'),
+    );
+
+    // Two questions, not one: the paper labels every answer this way, and
+    // matching only a bare "ANSWER" collapsed all fifty into a single block.
+    expect(questions).toHaveLength(2);
+    expect(questions[0]?.correctIndex).toBe(1);
+    expect(questions[1]?.correctIndex).toBe(2);
+    expect(questions[0]?.options).toHaveLength(4);
+  });
+
+  it('carries on past a question whose number the PDF dropped', () => {
+    const lines: string[] = [];
+    for (const n of [1, 2, 4, 5]) {
+      lines.push(
+        `${n}. Question number ${n}?`,
+        'A. First',
+        'B. Second',
+        'C. Third',
+        'D. Fourth',
+        'Key Answer: A. First',
+        'Explanation:',
+        '• Because of a reason.',
+      );
+    }
+
+    // Question 3 lost its heading to a page break. Insisting on the exact next
+    // number stopped the parser dead there, which is how a fifty-question
+    // paper yielded seven.
+    const { questions } = parsePyqAnalysis(lines.join('\n'));
+    expect(questions.map((q) => q.number)).toEqual([1, 2, 4, 5]);
+    expect(questions.every((q) => q.correctIndex === 0)).toBe(true);
+  });
+
+  it('does not mistake "Answer Options:" for the answer', () => {
+    const { questions } = parsePyqAnalysis(
+      [
+        '1. Which of the following is not related to Article 164 (1A)?',
+        'Answer Options:',
+        '1. I only',
+        '2. Both I and II',
+        '3. II only',
+        '4. None of the above',
+        'ANSWER Option 3',
+      ].join('\n'),
+    );
+
+    // The heading introduces the options; it does not give the key. Reading it
+    // as an answer let "2." open a second block mid-list.
+    expect(questions).toHaveLength(1);
+    expect(questions[0]?.options).toHaveLength(4);
+    expect(questions[0]?.correctIndex).toBe(2);
+  });
+});
