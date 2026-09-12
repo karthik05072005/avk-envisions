@@ -30,7 +30,7 @@ const db = new PrismaClient();
 const DRY_RUN = process.argv.includes('--dry-run');
 
 const SERIES_SLUG = 'kas-prelims-paid-test-series';
-const SCHEDULE = path.resolve('prisma/assets/kas-paid-12-test-schedule.pdf');
+const SCHEDULE = path.resolve('prisma/assets/kas-paid-test-schedule.pdf');
 
 /** Column boundaries, in PDF points, read from the document itself. */
 const COLUMN_X = { test: 0, date: 75, day: 165, subject: 215, questions: 420, timing: 465 };

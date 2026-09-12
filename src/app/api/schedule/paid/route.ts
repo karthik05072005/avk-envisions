@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 
 /** Committed with the app: it is small and changes only when the plan does. */
 function schedulePath(): string {
-  return path.resolve('prisma/assets/kas-paid-12-test-schedule.pdf');
+  return path.resolve('prisma/assets/kas-paid-test-schedule.pdf');
 }
 
 export async function GET() {
@@ -37,7 +37,7 @@ export async function GET() {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Length': String(info.size),
-        'Content-Disposition': 'inline; filename="kas-paid-12-test-schedule.pdf"',
+        'Content-Disposition': 'inline; filename="kas-paid-test-schedule.pdf"',
         // Public and cacheable: it is the same file for every visitor and it
         // is not behind any entitlement.
         'Cache-Control': 'public, max-age=3600',

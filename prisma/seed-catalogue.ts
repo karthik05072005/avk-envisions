@@ -565,6 +565,30 @@ async function main() {
       description: entry.syllabus,
     });
   }
+  // Papers left behind when the timetable shortens. The published schedule
+  // dropped from twelve tests to eleven — the standalone Current Affairs test
+  // is now folded into every subject test — and kas-paid-12 would otherwise
+  // stay on the site, dated and buyable, with nothing behind it.
+  //
+  // Soft-deleted rather than erased: if a paper already carries questions, an
+  // admin wrote them, and they stay recoverable.
+  const stale = await db.test.findMany({
+    where: {
+      testSeriesId: paid.id,
+      deletedAt: null,
+      slug: { startsWith: 'kas-paid-' },
+      NOT: { slug: { in: KAS_2026_SCHEDULE.map((t) => `kas-paid-${t.no}`) } },
+    },
+    select: { id: true, slug: true, totalQuestions: true },
+  });
+
+  for (const test of stale) {
+    await db.test.update({ where: { id: test.id }, data: { deletedAt: new Date() } });
+    console.log(
+      `  --  retired ${test.slug} (${test.totalQuestions} question(s)); no longer in the timetable`,
+    );
+  }
+
   console.log(`  ok  paid series + ${KAS_2026_SCHEDULE.length} scheduled tests (100 questions, 2 h)`);
 
   // --- 3. Previous year papers ------------------------------------------

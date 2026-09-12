@@ -29,96 +29,85 @@ export interface ScheduledTest {
 }
 
 export const KAS_2026_SCHEDULE: ScheduledTest[] = [
-  {
+{
     no: 1,
-    date: '2026-09-06',
+    date: '2026-09-13',
     day: 'Sunday',
-    name: 'Polity',
+    name: 'Polity + Current Affairs',
     syllabus:
-      'Complete Indian Polity: Historical background & making of the Constitution; Preamble; salient features; Union & Territory; Citizenship; Fundamental Rights; DPSP; Fundamental Duties; Constitutional Amendments; Basic Structure Doctrine; important Articles & Schedules; federal & unitary features; Centre-State relations; President; Vice-President; Prime Minister & Council of Ministers; Parliament & Parliamentary Committees; Supreme Court; High Courts; Governor; Chief Minister & State Council of Ministers; State Legislature; Panchayati Raj & Municipalities; Election Commission; UPSC/KPSC; CAG; Finance Commission; Attorney General & Advocate General; Constitutional & Statutory Bodies; Tribunals; Emergency provisions; Special Provisions; Anti-Defection; RTI; Lokayukta; Governance & e-Governance.',
+      'Complete Indian Polity: Historical background & making of the Constitution; Preamble; salient features; Union & Territory; Citizenship; Fundamental Rights; DPSP; Fundamental Duties; Constitutional Amendments; Basic Structure Doctrine; important Articles & Schedules; federal & unitary features; Centre-State relations; President; Vice-President; Prime Minister & Council of Ministers; Parliament & Parliamentary Committees; Supreme Court; High Courts; Governor; Chief Minister & State Council of Ministers; State Legislature; Panchayati Raj & Municipalities; Election Commission; UPSC/KPSC; CAG; Finance Commission; Attorney General & Advocate General; Constitutional & Statutory Bodies; Tribunals; Emergency provisions; Special Provisions; Anti-Defection; RTI; Lokayukta; Governance & e-Governance. Current Affairs: Previous 1 Year Current Affairs: National; International; Karnataka; Polity & Governance; Economy; Environment; Science & Technology; Government Schemes; Reports & Indices; International Organisations; Summits & Conventions; Awards; Appointments; Sports; Defence; Space; important personalities, places & events. Special focus: Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; important recent developments relevant to KAS.',
     subject: 'Indian Polity',
     paperNumber: null,
     session: 'MORNING',
   },
-  {
+{
     no: 2,
-    date: '2026-09-13',
+    date: '2026-09-20',
     day: 'Sunday',
-    name: 'History',
+    name: 'History + Current Affairs',
     syllabus:
-      'Complete Indian & Karnataka History: Prehistoric India; Indus Valley Civilization; Vedic Age; Mahajanapadas; Buddhism & Jainism; Mauryas; Sangam Age; Satavahanas; Gupta & post-Gupta period; Cholas; Pallavas; Chalukyas; Rashtrakutas; Delhi Sultanate; Vijayanagara; Bahmani & Deccan Sultanates; Mughals; Bhakti & Sufi movements; Ancient & Medieval Karnataka; Art, Architecture, Literature & Culture; European arrival; British expansion; administration & economic policies; Revolt of 1857; social & religious reform movements; tribal & peasant movements; INC; Swadeshi; revolutionary movement; Gandhian movements; Non-Cooperation; Civil Disobedience; Quit India; Independence & Partition; post-independence developments; Karnataka Freedom Movement; Karnataka Unification; important personalities, reform, art & culture.',
+      'Complete Indian & Karnataka History: Prehistoric India; Indus Valley Civilization; Vedic Age; Mahajanapadas; Buddhism & Jainism; Mauryas; Sangam Age; Satavahanas; Gupta & post-Gupta period; Cholas; Pallavas; Chalukyas; Rashtrakutas; Delhi Sultanate; Vijayanagara; Bahmani & Deccan Sultanates; Mughals; Bhakti & Sufi movements; Ancient & Medieval Karnataka; Art, Architecture, Literature & Culture; European arrival; British expansion; administration & economic policies; Revolt of 1857; social & religious reform movements; tribal & peasant movements; INC; Swadeshi; revolutionary movement; Gandhian movements; Non-Cooperation; Civil Disobedience; Quit India; Independence & Partition; post-independence developments; Karnataka Freedom Movement; Karnataka Unification; important personalities, reform, art & culture. Current Affairs: Previous 1 Year Current Affairs: National; International; Karnataka; Polity & Governance; Economy; Environment; Science & Technology; Government Schemes; Reports & Indices; International Organisations; Summits & Conventions; Awards; Appointments; Sports; Defence; Space; important personalities, places & events. Special focus: Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; important recent developments relevant to KAS.',
     subject: 'History',
     paperNumber: null,
     session: 'MORNING',
   },
-  {
+{
     no: 3,
-    date: '2026-09-20',
+    date: '2026-09-27',
     day: 'Sunday',
-    name: 'Geography',
+    name: 'Geography + Current Affairs',
     syllabus:
-      'Complete World, India & Karnataka Geography: Earth structure; rocks & minerals; plate tectonics; earthquakes & volcanoes; geomorphology; atmosphere; temperature & pressure; winds; monsoon mechanism; cyclones; rainfall; climate types; oceans; tides & currents; marine resources; soils; natural vegetation; biomes; world physical geography; geographical phenomena; India & Karnataka physiography; Himalayas; plains; plateau; coasts & islands; drainage; monsoon & climate; soils; vegetation; agriculture; irrigation; minerals; energy; industries; transport; population; migration; urbanisation; regional development; disasters; Karnataka rivers, forests, resources & regional geography.',
+      'Complete World, India & Karnataka Geography: Earth structure; rocks & minerals; plate tectonics; earthquakes & volcanoes; geomorphology; atmosphere; temperature & pressure; winds; monsoon mechanism; cyclones; rainfall; climate types; oceans; tides & currents; marine resources; soils; natural vegetation; biomes; world physical geography; geographical phenomena; India & Karnataka physiography; Himalayas; plains; plateau; coasts & islands; drainage; monsoon & climate; soils; vegetation; agriculture; irrigation; minerals; energy; industries; transport; population; migration; urbanisation; regional development; disasters; Karnataka rivers, forests, resources & regional geography. Current Affairs: Previous 1 Year Current Affairs: National; International; Karnataka; Polity & Governance; Economy; Environment; Science & Technology; Government Schemes; Reports & Indices; International Organisations; Summits & Conventions; Awards; Appointments; Sports; Defence; Space; important personalities, places & events. Special focus: Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; important recent developments relevant to KAS.',
     subject: 'Geography',
     paperNumber: null,
     session: 'MORNING',
   },
-  {
+{
     no: 4,
-    date: '2026-09-27',
+    date: '2026-10-04',
     day: 'Sunday',
-    name: 'Economy + Budget & Economic Survey',
+    name: 'Economy + Budget & Economic Survey + Current Affairs',
     syllabus:
-      'Complete Indian & Karnataka Economy: Basic economic concepts; national income; GDP/GNP/NNP; economic growth & development; inflation & deflation; unemployment; poverty; inequality; demographic dividend; banking; RBI; monetary policy; money supply; interest rates; financial inclusion; commercial banks; NBFCs; capital & money markets; Balance of Payments; exchange rate; external sector; fiscal policy; taxation; Union Budget; government revenue & expenditure; fiscal deficit; public debt; subsidies; economic planning; NITI Aayog; economic reforms; agriculture; MSP; PDS; food security; rural economy; industries; MSMEs; infrastructure; energy; digital economy; inclusive & sustainable growth; major government schemes; Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; Karnataka Economy; current economic developments.',
+      'Complete Indian & Karnataka Economy: Basic economic concepts; national income; GDP/GNP/NNP; economic growth & development; inflation & deflation; unemployment; poverty; inequality; demographic dividend; banking; RBI; monetary policy; money supply; interest rates; financial inclusion; commercial banks; NBFCs; capital & money markets; Balance of Payments; exchange rate; external sector; fiscal policy; taxation; Union Budget; government revenue & expenditure; fiscal deficit; public debt; subsidies; economic planning; NITI Aayog; economic reforms; agriculture; MSP; PDS; food security; rural economy; industries; MSMEs; infrastructure; energy; digital economy; inclusive & sustainable growth; major government schemes; Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; Karnataka Economy; current economic developments. Current Affairs: Previous 1 Year Current Affairs: National; International; Karnataka; Polity & Governance; Economy; Environment; Science & Technology; Government Schemes; Reports & Indices; International Organisations; Summits & Conventions; Awards; Appointments; Sports; Defence; Space; important personalities, places & events. Special focus: Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; important recent developments relevant to KAS.',
     subject: 'Indian Economy',
     paperNumber: null,
     session: 'MORNING',
   },
-  {
+{
     no: 5,
-    date: '2026-10-04',
+    date: '2026-10-11',
     day: 'Sunday',
-    name: 'Environment & Ecology',
+    name: 'Environment & Ecology + Current Affairs',
     syllabus:
-      'Complete Environment & Ecology: Ecology; ecosystems; energy flow; food chains & food webs; ecological pyramids; nutrient cycles; populations & communities; ecological succession; habitats; biodiversity; biodiversity hotspots; endemic & threatened species; IUCN; protected areas; National Parks; Wildlife Sanctuaries; Biosphere Reserves; conservation; forests; wetlands; marine ecosystems; Karnataka biodiversity; climate change; greenhouse gases; global warming; ozone depletion; El Nino & La Nina; air, water, soil, noise & plastic pollution; waste management; EIA; environmental laws; institutions; NGT; UNFCCC; Kyoto Protocol; Paris Agreement; CBD; CITES; Ramsar; Montreal Protocol; SDGs; sustainable development; renewable energy; carbon markets; Karnataka environmental issues.',
+      'Complete Environment & Ecology: Ecology; ecosystems; energy flow; food chains & food webs; ecological pyramids; nutrient cycles; populations & communities; ecological succession; habitats; biodiversity; biodiversity hotspots; endemic & threatened species; IUCN; protected areas; National Parks; Wildlife Sanctuaries; Biosphere Reserves; conservation; forests; wetlands; marine ecosystems; Karnataka biodiversity; climate change; greenhouse gases; global warming; ozone depletion; El Nino & La Nina; air, water, soil, noise & plastic pollution; waste management; EIA; environmental laws; institutions; NGT; UNFCCC; Kyoto Protocol; Paris Agreement; CBD; CITES; Ramsar; Montreal Protocol; SDGs; sustainable development; renewable energy; carbon markets; Karnataka environmental issues. Current Affairs: Previous 1 Year Current Affairs: National; International; Karnataka; Polity & Governance; Economy; Environment; Science & Technology; Government Schemes; Reports & Indices; International Organisations; Summits & Conventions; Awards; Appointments; Sports; Defence; Space; important personalities, places & events. Special focus: Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; important recent developments relevant to KAS.',
     subject: 'Environment',
     paperNumber: null,
     session: 'MORNING',
   },
-  {
+{
     no: 6,
-    date: '2026-10-11',
+    date: '2026-10-18',
     day: 'Sunday',
-    name: 'Science & Technology',
+    name: 'Science & Technology + Current Affairs',
     syllabus:
-      'Complete Science & Technology: Physics - mechanics, heat, light, sound, electricity, magnetism; Chemistry - atoms & molecules, periodic table, chemical reactions, acids/bases/salts, metals/non-metals, carbon compounds; Biology - cell, tissues, human body, nutrition, diseases, immunity, genetics, evolution, microorganisms, agriculture & food science, everyday science; Space & ISRO; satellites; launch vehicles; astronomy; nuclear technology; defence technology; missiles & drones; biotechnology; genetic engineering; vaccines; stem cells; genomics; nanotechnology; AI/ML; robotics; quantum technology; semiconductors; 5G/6G; IoT; blockchain; cybersecurity; digital technology; supercomputing; green technology; renewable energy; emerging technologies.',
+      'Complete Science & Technology: Physics - mechanics, heat, light, sound, electricity, magnetism; Chemistry - atoms & molecules, periodic table, chemical reactions, acids/bases/salts, metals/non-metals, carbon compounds; Biology - cell, tissues, human body, nutrition, diseases, immunity, genetics, evolution, microorganisms, agriculture & food science, everyday science; Space & ISRO; satellites; launch vehicles; astronomy; nuclear technology; defence technology; missiles & drones; biotechnology; genetic engineering; vaccines; stem cells; genomics; nanotechnology; AI/ML; robotics; quantum technology; semiconductors; 5G/6G; IoT; blockchain; cybersecurity; digital technology; supercomputing; green technology; renewable energy; emerging technologies. Current Affairs: Previous 1 Year Current Affairs: National; International; Karnataka; Polity & Governance; Economy; Environment; Science & Technology; Government Schemes; Reports & Indices; International Organisations; Summits & Conventions; Awards; Appointments; Sports; Defence; Space; important personalities, places & events. Special focus: Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; important recent developments relevant to KAS.',
     subject: 'Science & Technology',
     paperNumber: null,
     session: 'MORNING',
   },
-  {
+{
     no: 7,
-    date: '2026-10-18',
-    day: 'Sunday',
-    name: 'Current Affairs',
-    syllabus:
-      'Previous 1 Year Current Affairs: National; International; Karnataka; Polity & Governance; Economy; Environment; Science & Technology; Government Schemes; Reports & Indices; International Organisations; Summits & Conventions; Awards; Appointments; Sports; Defence; Space; important personalities, places & events. Special focus: Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; important recent developments relevant to KAS.',
-    subject: 'Current Affairs',
-    paperNumber: null,
-    session: 'MORNING',
-  },
-  {
-    no: 8,
     date: '2026-10-25',
     day: 'Sunday',
-    name: 'CSAT',
+    name: 'CSAT + Current Affairs',
     syllabus:
-      'Complete CSAT: Reading comprehension; passages; inference; number system; simplification; fractions & decimals; percentages; ratio & proportion; averages; profit & loss; interest; basic algebra; geometry; mensuration; tables, charts & graphs; data interpretation; logical & analytical reasoning; statements & conclusions; assumptions; syllogism; coding-decoding; blood relations; directions; ranking; sequences; puzzles; data sufficiency; decision making; problem solving; time & work; pipes & cisterns; speed & distance; boats & streams; permutations & combinations basics; probability basics; advanced arithmetic & data interpretation.',
+      'Complete CSAT: Reading comprehension; passages; inference; number system; simplification; fractions & decimals; percentages; ratio & proportion; averages; profit & loss; interest; basic algebra; geometry; mensuration; tables, charts & graphs; data interpretation; logical & analytical reasoning; statements & conclusions; assumptions; syllogism; coding-decoding; blood relations; directions; ranking; sequences; puzzles; data sufficiency; decision making; problem solving; time & work; pipes & cisterns; speed & distance; boats & streams; permutations & combinations basics; probability basics; advanced arithmetic & data interpretation. Current Affairs: Previous 1 Year Current Affairs: National; International; Karnataka; Polity & Governance; Economy; Environment; Science & Technology; Government Schemes; Reports & Indices; International Organisations; Summits & Conventions; Awards; Appointments; Sports; Defence; Space; important personalities, places & events. Special focus: Union Budget; Economic Survey; Karnataka Budget; Karnataka Economic Survey; important recent developments relevant to KAS.',
     subject: 'Mental Ability',
     paperNumber: null,
     session: 'MORNING',
   },
-  {
-    no: 9,
+{
+    no: 8,
     date: '2026-11-01',
     day: 'Sunday',
     name: 'Full Prelims Simulation - 1: Paper I',
@@ -128,8 +117,8 @@ export const KAS_2026_SCHEDULE: ScheduledTest[] = [
     paperNumber: 1,
     session: 'MORNING',
   },
-  {
-    no: 10,
+{
+    no: 9,
     date: '2026-11-01',
     day: 'Sunday',
     name: 'Full Prelims Simulation - 1: Paper II',
@@ -139,8 +128,8 @@ export const KAS_2026_SCHEDULE: ScheduledTest[] = [
     paperNumber: 2,
     session: 'AFTERNOON',
   },
-  {
-    no: 11,
+{
+    no: 10,
     date: '2026-11-08',
     day: 'Sunday',
     name: 'Full Prelims Simulation - 2: Paper I',
@@ -150,8 +139,8 @@ export const KAS_2026_SCHEDULE: ScheduledTest[] = [
     paperNumber: 1,
     session: 'MORNING',
   },
-  {
-    no: 12,
+{
+    no: 11,
     date: '2026-11-08',
     day: 'Sunday',
     name: 'Full Prelims Simulation - 2: Paper II',
