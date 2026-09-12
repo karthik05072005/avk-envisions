@@ -24,10 +24,24 @@ export const passwordSchema = z
   .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
   .max(PASSWORD_MAX_LENGTH, `Password must be at most ${PASSWORD_MAX_LENGTH} characters`);
 
+/**
+ * Mobile number, required at registration.
+ *
+ * The same rule the free-test lead capture uses, so a number captured either
+ * way is stored identically — ten digits, no country code. It is a contact
+ * detail rather than a credential at signup; nothing is sent to it.
+ */
+export const registerPhoneSchema = z
+  .string()
+  .trim()
+  .min(1, 'Mobile number is required')
+  .regex(/^(?:\+91[-\s]?)?[6-9]\d{9}$/, 'Enter a valid 10-digit mobile number');
+
 export const registerSchema = z
   .object({
     name: nameSchema,
     email: emailSchema,
+    phone: registerPhoneSchema,
     password: passwordSchema,
     confirmPassword: z.string(),
     /** Explicit consent, required before an account is created. */
@@ -42,8 +56,35 @@ export const registerSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+/**
+ * What someone types into the sign-in box: an email address or a mobile
+ * number.
+ *
+ * Validated loosely on purpose. A precise rule here would tell an attacker
+ * which of the two they had got wrong, and an existing account whose email
+ * predates the current rule must still be able to sign in. The server decides
+ * which kind it is and looks it up; anything that matches nothing gets the
+ * same answer as a wrong password.
+ */
+export const loginIdentifierSchema = z
+  .string()
+  .trim()
+  .min(1, 'Enter your email address or mobile number')
+  .max(254);
+
+export function isPhoneIdentifier(value: string): boolean {
+  return /^(?:\+91[-\s]?)?[6-9]\d{9}$/.test(value.trim());
+}
+
 export const loginSchema = z.object({
-  email: emailSchema,
+  /**
+   * Either an email address or a 10-digit mobile number.
+   *
+   * Still called `email` on the wire: the field name is part of the API that
+   * the login form, the tests and every existing client already send, and
+   * renaming it would break them for no gain to the person signing in.
+   */
+  email: loginIdentifierSchema,
   /**
    * Deliberately not `passwordSchema`: an existing password predating a policy
    * change must still be accepted at sign-in, and echoing any policy on the

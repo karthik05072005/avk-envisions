@@ -20,6 +20,7 @@ export const POST = route(
     const result = await registerUser({
       name: input.name,
       email: input.email,
+      phone: input.phone,
       password: input.password,
       context: { ipAddress: ip, userAgent, requestId },
     });

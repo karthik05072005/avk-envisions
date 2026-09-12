@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/ui/label';
 import { InlineError } from '@/components/ui/states';
 import { ApiClientError, api, applyFieldErrors } from '@/lib/api-client';
-import { emailSchema } from '@/validations/common';
+import { loginIdentifierSchema } from '@/validations/auth';
 
 /**
  * Client-side login schema.
@@ -24,7 +24,12 @@ import { emailSchema } from '@/validations/common';
  * a login form leaks it to an attacker for no benefit.
  */
 const formSchema = z.object({
-  email: emailSchema,
+  /**
+   * An email address or a mobile number. Kept loose here for the same reason
+   * the server keeps it loose: a precise rule would tell someone which half
+   * they got wrong, and the server decides which kind it is anyway.
+   */
+  email: loginIdentifierSchema,
   password: z.string().min(1, 'Enter your password'),
 });
 
@@ -82,11 +87,18 @@ export function LoginForm({ next }: { next?: string }) {
       <form onSubmit={onSubmit} className="mt-8 space-y-4" noValidate>
         {errors.root && <InlineError message={errors.root.message ?? 'Sign in failed.'} />}
 
-        <FormField label="Email address" htmlFor="email" error={errors.email?.message} required>
+        <FormField
+          label="Email or mobile number"
+          htmlFor="email"
+          error={errors.email?.message}
+          required
+        >
           <Input
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
+            // `text`, not `email`: the browser would otherwise refuse a
+            // mobile number before the form ever sees it.
+            type="text"
+            autoComplete="username"
+            placeholder="you@example.com or 9876543210"
             startIcon={<Mail />}
             invalid={Boolean(errors.email)}
             {...register('email')}

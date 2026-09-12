@@ -24,7 +24,7 @@ interface RegisterResponse {
   redirectTo: string;
 }
 
-const FIELDS = ['name', 'email', 'password', 'confirmPassword', 'acceptTerms'] as const;
+const FIELDS = ['name', 'email', 'phone', 'password', 'confirmPassword', 'acceptTerms'] as const;
 
 export function RegisterForm() {
   const router = useRouter();
@@ -40,7 +40,7 @@ export function RegisterForm() {
   } = useForm<RegisterInput>({
     // The identical schema runs again server-side; this is for fast feedback.
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
+    defaultValues: { name: '', email: '', phone: '', password: '', confirmPassword: '' },
     mode: 'onBlur',
   });
 
@@ -100,6 +100,26 @@ export function RegisterForm() {
             startIcon={<Mail />}
             invalid={Boolean(errors.email)}
             {...register('email')}
+          />
+        </FormField>
+
+        <FormField label="Mobile number" htmlFor="phone" error={errors.phone?.message} required>
+          <Input
+            id="phone"
+            type="tel"
+            // `numeric` rather than `tel`: the tel keypad offers +*# which are
+            // not wanted here, and the field takes ten digits only.
+            inputMode="numeric"
+            maxLength={10}
+            autoComplete="tel-national"
+            placeholder="10-digit mobile number"
+            // A fixed label, not a prefilled value: typing "+91" again then
+            // becomes impossible rather than merely wrong, and what is stored
+            // is always the ten digits beside it.
+            startIcon={<span className="text-sm font-medium tabular-nums">+91</span>}
+            className="pl-12"
+            invalid={Boolean(errors.phone)}
+            {...register('phone')}
           />
         </FormField>
 

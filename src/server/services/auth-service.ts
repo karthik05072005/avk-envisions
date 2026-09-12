@@ -17,6 +17,8 @@ import { db } from '@/server/db';
 import { sendEmail } from '@/server/email';
 import { logger } from '@/server/logger';
 import { rateLimit } from '@/server/rate-limit';
+import { isPhoneIdentifier } from '@/validations/auth';
+import { normalisePhone } from '@/validations/guest';
 
 /**
  * Authentication business logic.
@@ -47,6 +49,8 @@ const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
 export interface RegisterParams {
   name: string;
   email: string;
+  /** Ten digits, no country code. Required for new accounts. */
+  phone: string;
   password: string;
   context?: RequestContext;
 }
@@ -68,10 +72,18 @@ export interface RegisterResult {
 export async function registerUser({
   name,
   email,
+  phone,
   password,
   context,
 }: RegisterParams): Promise<RegisterResult> {
   const emailNormal = email.trim().toLowerCase();
+
+  // Stored as ten bare digits, matching the free-test lead capture, so one
+  // person arriving by either route is recognisable as the same number.
+  const phoneDigits = normalisePhone(phone);
+  if (phoneDigits.length !== 10) {
+    throw errors.validation({ phone: ['Enter a valid 10-digit mobile number'] });
+  }
 
   const strength = checkPasswordStrength(password, { email: emailNormal, name });
   if (!strength.valid) {
@@ -100,6 +112,7 @@ export async function registerUser({
         name: name.trim(),
         email: emailNormal,
         emailNormal,
+        phone: phoneDigits,
         passwordHash,
         role: 'STUDENT' satisfies UserRole,
         status: requireVerification ? 'PENDING_VERIFICATION' : 'ACTIVE',
@@ -176,49 +189,71 @@ export async function authenticate({
 }: AuthenticateParams): Promise<AuthenticatedAccount> {
   const emailNormal = email.trim().toLowerCase();
 
+  // The throttle and lockout key. A number is reduced to its ten digits so
+  // "+91 98765 43210" and "9876543210" share one bucket rather than handing an
+  // attacker a fresh allowance per spelling.
+  const throttleKey = isPhoneIdentifier(email) ? normalisePhone(email) : emailNormal;
+
   // Per-account throttle, layered on top of the per-IP limit applied by the
   // route wrapper.
-  const accountLimit = await rateLimit('loginPerAccount', emailNormal);
+  const accountLimit = await rateLimit('loginPerAccount', throttleKey);
   if (!accountLimit.allowed) {
-    await recordLoginAttempt(emailNormal, context, false, 'rate_limited');
+    await recordLoginAttempt(throttleKey, context, false, 'rate_limited');
     throw new AppError('RATE_LIMITED', 'Too many sign-in attempts. Please try again in a few minutes.');
   }
 
-  if (await isAccountLockedOut(emailNormal)) {
-    await recordLoginAttempt(emailNormal, context, false, 'locked_out');
+  if (await isAccountLockedOut(throttleKey)) {
+    await recordLoginAttempt(throttleKey, context, false, 'locked_out');
     throw new AppError(
       'RATE_LIMITED',
       'Too many failed sign-in attempts for this account. Please wait 15 minutes or reset your password.',
     );
   }
 
-  const user = await db.user.findUnique({
-    where: { emailNormal },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      status: true,
-      passwordHash: true,
-      emailVerified: true,
-      deletedAt: true,
-    },
-  });
+  const account = {
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+    status: true,
+    passwordHash: true,
+    emailVerified: true,
+    deletedAt: true,
+  } as const;
 
-  const invalidCredentials = errors.unauthorized('The email or password you entered is incorrect.');
+  // Email or mobile number. `phone` is not unique — the free-test lead capture
+  // creates a guest account keyed on a number, so one person can hold both a
+  // guest row and a registered one. Only REGISTERED accounts are considered:
+  // a guest is created without a usable password and signing in as one would
+  // be meaningless, so matching it would just deny the person their real
+  // account. Newest first, in the unlikely event of two.
+  const user = isPhoneIdentifier(email)
+    ? await db.user.findFirst({
+        where: {
+          phone: normalisePhone(email),
+          deletedAt: null,
+          signupSource: 'REGISTERED',
+        },
+        select: account,
+        orderBy: { createdAt: 'desc' },
+      })
+    : await db.user.findUnique({ where: { emailNormal }, select: account });
+
+  const invalidCredentials = errors.unauthorized(
+    'The email, mobile number or password you entered is incorrect.',
+  );
 
   if (!user || user.deletedAt) {
     // Burn a comparable amount of CPU so a missing account is not detectably
     // faster than a wrong password.
     await hashPassword(password);
-    await recordLoginAttempt(emailNormal, context, false, 'no_such_user');
+    await recordLoginAttempt(throttleKey, context, false, 'no_such_user');
     throw invalidCredentials;
   }
 
   const passwordValid = await verifyPassword(user.passwordHash, password);
   if (!passwordValid) {
-    await recordLoginAttempt(emailNormal, context, false, 'bad_password');
+    await recordLoginAttempt(throttleKey, context, false, 'bad_password');
     await audit({
       actor: { id: user.id, email: user.email, role: user.role },
       action: AUDIT_ACTIONS.LOGIN_FAILED,
@@ -231,18 +266,18 @@ export async function authenticate({
   }
 
   if (user.status === 'SUSPENDED') {
-    await recordLoginAttempt(emailNormal, context, false, 'suspended');
+    await recordLoginAttempt(throttleKey, context, false, 'suspended');
     throw new AppError(
       'ACCOUNT_SUSPENDED',
       'Your account has been suspended. Please contact support for assistance.',
     );
   }
   if (user.status === 'DELETED') {
-    await recordLoginAttempt(emailNormal, context, false, 'deleted');
+    await recordLoginAttempt(throttleKey, context, false, 'deleted');
     throw invalidCredentials;
   }
 
-  await recordLoginAttempt(emailNormal, context, true);
+  await recordLoginAttempt(throttleKey, context, true);
 
   await db.user.update({
     where: { id: user.id },
