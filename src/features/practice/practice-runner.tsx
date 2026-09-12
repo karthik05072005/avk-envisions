@@ -10,6 +10,7 @@ import {
   BookmarkCheck,
   CheckCircle2,
   Flag,
+  SkipForward,
   Lightbulb,
   XCircle,
 } from 'lucide-react';
@@ -456,6 +457,19 @@ export function PracticeRunner({
         </Button>
 
         <div className="flex-1" />
+
+        {/*
+          Skip. Without it the only way past a question you cannot answer was
+          to guess — which puts a wrong answer in the review list and teaches
+          the wrong thing. Nothing is recorded: the question stays unanswered
+          and can be returned to with Previous.
+        */}
+        {!revealed && !isLast && (
+          <Button variant="ghost" onClick={() => setIndex((i) => i + 1)}>
+            Skip
+            <SkipForward aria-hidden="true" />
+          </Button>
+        )}
 
         {!revealed ? (
           <Button onClick={submitAnswer} disabled={!canSubmit} loading={submitting}>

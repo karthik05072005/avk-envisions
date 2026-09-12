@@ -6,6 +6,7 @@ import { parseJsonColumn, selectedOptionIdsSchema, stringArraySchema, toJsonColu
 import { round, safeDivide, seededShuffle } from '@/lib/utils';
 import { db } from '@/server/db';
 
+import { quizQuestionIds } from './quiz-service';
 import { evaluateAnswer, type QuestionKey, type SubmittedAnswer } from './scoring';
 
 /**
@@ -119,13 +120,20 @@ export async function startPracticeSession(params: StartPracticeParams) {
     );
   }
 
+  // Quiz questions are held back. Practice draws from the whole published
+  // bank, so without this a question written for a quiz would surface inside
+  // ordinary practice — the two are meant to be separate sets, which is the
+  // point of the quiz having its own section.
+  const fromQuizzes = await quizQuestionIds();
+  const withheld = [...new Set([...exclude, ...fromQuizzes])];
+
   const pool = await db.question.findMany({
     where: {
       status: 'PUBLISHED',
       deletedAt: null,
       ...scope,
       ...(restrictTo ? { id: { in: restrictTo } } : {}),
-      ...(exclude.length > 0 ? { id: { notIn: exclude } } : {}),
+      ...(withheld.length > 0 ? { id: { notIn: withheld } } : {}),
     },
     select: { id: true },
     // Over-fetch so the shuffle has room, without loading the whole bank.

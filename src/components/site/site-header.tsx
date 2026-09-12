@@ -46,7 +46,7 @@ const NAV_LINKS = [
   { href: '/50-days', label: 'KAS-50', icon: Target },
   { href: '/test-series/kas-prelims-paid-test-series', label: 'Paid Tests', icon: Crown },
   { href: '/chapterwise', label: 'Chapter-wise', icon: Layers },
-  { href: '/practice', label: 'Quiz', icon: HelpCircle },
+  { href: '/quiz', label: 'Quiz', icon: HelpCircle },
   { href: '/pricing', label: 'Pricing and Payment Details', icon: Tag },
   { href: '/success-stories', label: 'Results', icon: BarChart3 },
   { href: '/blog', label: 'Blog', icon: PenSquare },

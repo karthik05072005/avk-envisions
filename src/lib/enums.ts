@@ -192,6 +192,15 @@ export const TestCategory = buildEnum([
   'TOPIC',
   'PRACTICE',
   'PREVIOUS_YEAR',
+  /**
+   * A short standalone quiz, with its own page and its own questions.
+   *
+   * Modelled as an ordinary test so it inherits the attempt engine, the admin
+   * editor and the PDF import unchanged. The category is what keeps quiz
+   * questions out of the test papers: practice draws from the whole published
+   * bank, which is how quiz material could otherwise surface inside a mock.
+   */
+  'QUIZ',
   'CUSTOM',
 ] as const);
 export type TestCategory = (typeof TestCategory.values)[number];
@@ -203,8 +212,17 @@ export const TEST_CATEGORY_LABELS: Record<TestCategory, string> = {
   TOPIC: 'Topic test',
   PRACTICE: 'Practice test',
   PREVIOUS_YEAR: 'Previous year paper',
+  QUIZ: 'Quiz',
   CUSTOM: 'Custom test',
 };
+
+/**
+ * The quiz series every quiz belongs to.
+ *
+ * One series holds them all, so `/quiz` has something to list and the admin
+ * has one place to add to.
+ */
+export const QUIZ_SERIES_SLUG = 'avk-quizzes';
 
 /**
  * EXAM     — answers and solutions stay hidden until submission.
