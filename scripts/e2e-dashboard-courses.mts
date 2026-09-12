@@ -49,7 +49,27 @@ async function main() {
     }
     for (const o of offered) console.log(`      ${o.name.padEnd(22)} ${o.prices.join(' then ')}`);
 
-    // --- Nothing empty is on sale -------------------------------------------
+    // --- Chapterwise is Coming Soon, so it is not for sale here -------------
+    //
+    // Checked against the series' real names rather than by counting papers.
+    // An earlier version of this asked "does it have at least one test?", and
+    // passed locally while production still showed Polity — a first paper had
+    // been attached there, so the rule let it straight back through.
+    const chapterwise = await db.testSeries.findMany({
+      where: { slug: { startsWith: 'chapterwise-' }, deletedAt: null },
+      select: { name: true },
+    });
+
+    const leaked = offered.filter((o) =>
+      chapterwise.some((c) => o.name === c.name || o.name.includes(c.name)),
+    );
+    log(
+      leaked.length === 0,
+      'no chapterwise subject is offered while the track is Coming Soon',
+      leaked.length ? leaked.map((o) => o.name).join(', ') : `${chapterwise.length} subjects held back`,
+    );
+
+    // And nothing empty either, bundle aside.
     const empty = await db.testSeries.findMany({
       where: {
         deletedAt: null,

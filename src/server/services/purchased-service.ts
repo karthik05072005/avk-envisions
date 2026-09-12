@@ -168,23 +168,27 @@ export async function getAvailableCourses(userId: string): Promise<AvailableCour
       deletedAt: null,
       status: 'PUBLISHED',
       priceInPaise: { gt: 0 },
-      // A year inside the previous-year bundle is not sold separately here:
-      // the bundle is the product, and listing both invites paying twice.
-      NOT: { slug: { startsWith: `${PYQ_SERIES_PREFIX}2` } },
-      // Something to actually sell. The five chapterwise subjects are
-      // published and priced but hold no papers at all — the pricing page
-      // marks them "Coming Soon", while this list was offering them at ₹199
-      // apiece. A course with nothing in it is not on sale.
+      // Two things are held back.
       //
-      // Papers, not questions: a series is sold on its published timetable,
-      // and a buyer enrolling in KAS-50 before day 40 is written has bought
-      // exactly what was advertised.
+      // A year inside the previous-year bundle is not sold separately: the
+      // bundle is the product, and listing both invites paying twice. The
+      // bundle itself stays, and holds no papers of its own by design — it is
+      // the parent that entitles every year.
       //
-      // The previous-year bundle is the exception, and holds no papers of its
-      // own by design: it is the parent that entitles every year, and the
-      // papers sit in those. Requiring tests on the row itself dropped the one
-      // previous-year product actually on sale.
-      OR: [{ tests: { some: { deletedAt: null } } }, { slug: PYQ_BUNDLE_SLUG }],
+      // Not the chapterwise subjects. They are published and priced, but the
+      // pricing page marks the whole track "Coming Soon" — a product decision
+      // rather than anything the data says — while this list was quietly
+      // selling them at ₹199 each.
+      //
+      // Excluded by slug, matching that decision, because inferring it from
+      // the data does not work: a first paper had been attached to Polity in
+      // production, so a "has at least one test" rule let it through again
+      // while the pricing page still called it Coming Soon. The two have to
+      // agree, and the pricing page is where the decision is made.
+      NOT: [
+        { slug: { startsWith: `${PYQ_SERIES_PREFIX}2` } },
+        { slug: { startsWith: 'chapterwise-' } },
+      ],
     },
     orderBy: { sortOrder: 'asc' },
     select: {
