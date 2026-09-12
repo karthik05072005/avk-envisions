@@ -178,6 +178,104 @@ export const POST = route(async ({ request, params, ip }) => {
     };
   }
 
+  if (input.action === 'move') {
+    if (!input.destinationTestId) {
+      throw errors.validation({ destinationTestId: ['Choose a paper to move these questions to.'] });
+    }
+    if (input.destinationTestId === testId) {
+      throw errors.validation({
+        destinationTestId: ['That is the paper they are already on.'],
+      });
+    }
+
+    const destination = await db.test.findFirst({
+      where: { id: input.destinationTestId, deletedAt: null },
+      select: { id: true, title: true },
+    });
+    if (!destination) throw errors.notFound('Destination test');
+
+    // Only questions actually on this paper, in the order this paper puts
+    // them in — a move that scrambles the order is barely better than
+    // detaching and re-attaching by hand, which is what it replaces.
+    const moving = await db.testQuestion.findMany({
+      where: { testId, questionId: { in: input.questionIds } },
+      orderBy: { sortOrder: 'asc' },
+      select: { questionId: true, marks: true, negativeMarks: true },
+    });
+
+    if (moving.length === 0) {
+      throw errors.validation({ questionIds: ['None of those questions are on this paper.'] });
+    }
+
+    // Anything already on the destination is left there rather than
+    // duplicated, but is still taken off this paper: the intent is "these
+    // belong over there".
+    const alreadyThere = new Set(
+      (
+        await db.testQuestion.findMany({
+          where: {
+            testId: destination.id,
+            questionId: { in: moving.map((m) => m.questionId) },
+          },
+          select: { questionId: true },
+        })
+      ).map((r) => r.questionId),
+    );
+
+    const last = await db.testQuestion.aggregate({
+      where: { testId: destination.id },
+      _max: { sortOrder: true },
+    });
+    let next = (last._max.sortOrder ?? 0) + 1;
+
+    const toAttach = moving.filter((m) => !alreadyThere.has(m.questionId));
+
+    await db.$transaction([
+      ...toAttach.map((m) =>
+        db.testQuestion.create({
+          data: {
+            testId: destination.id,
+            questionId: m.questionId,
+            sortOrder: next++,
+            marks: m.marks,
+            negativeMarks: m.negativeMarks,
+          },
+        }),
+      ),
+      db.testQuestion.deleteMany({
+        where: { testId, questionId: { in: moving.map((m) => m.questionId) } },
+      }),
+    ]);
+
+    const [from, to] = await Promise.all([
+      refreshTestTotals(testId),
+      refreshTestTotals(destination.id),
+    ]);
+
+    // Recorded against the paper they came from, naming where they went, so
+    // an accidental move can be traced back.
+    await audit({
+      actor: { id: admin.id, email: admin.email, role: admin.role },
+      action: AUDIT_ACTIONS.TEST_UPDATED,
+      entityType: 'Test',
+      entityId: testId,
+      meta: { moved: toAttach.length, to: destination.id, toTitle: destination.title },
+      ipAddress: ip,
+    });
+
+    void to;
+
+    return {
+      data: { moved: toAttach.length, skipped: alreadyThere.size, ...from },
+      message:
+        `Moved ${toAttach.length} question${toAttach.length === 1 ? '' : 's'} to ` +
+        `${destination.title}.` +
+        (alreadyThere.size > 0
+          ? ` ${alreadyThere.size} were already there and were removed from this paper.`
+          : ''),
+    };
+  }
+
   // --- reorder -------------------------------------------------------------
   const owned = await db.testQuestion.findMany({
     where: { testId },

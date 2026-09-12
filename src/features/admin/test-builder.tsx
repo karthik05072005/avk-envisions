@@ -11,6 +11,7 @@ import {
   Plus,
   Save,
   Search,
+  FileDown,
   Trash2,
   X,
 } from 'lucide-react';
@@ -79,6 +80,14 @@ export interface BuilderProps {
   series: { id: string; name: string }[];
   initial?: TestDraft;
   attached?: AttachedQuestion[];
+  /**
+   * Choices a link made on the admin's behalf, for a new test only.
+   *
+   * "New quiz" arrives with the category and series already set, so making one
+   * does not depend on remembering to change a form that defaults to a full
+   * mock — get either wrong and the quiz never appears at /quiz.
+   */
+  preset?: { category?: string; testSeriesId?: string };
 }
 
 const CATEGORIES = [
@@ -88,6 +97,10 @@ const CATEGORIES = [
   'TOPIC',
   'PRACTICE',
   'PREVIOUS_YEAR',
+  // A quiz is an ordinary test with this category, so it has to be selectable
+  // here — otherwise /admin/quiz can link to "New quiz" and the form would
+  // quietly create something else.
+  'QUIZ',
   'CUSTOM',
 ] as const;
 
@@ -149,11 +162,18 @@ function fromLocalInput(value: string): string | null {
   return Number.isNaN(at.getTime()) ? null : at.toISOString();
 }
 
-export function TestBuilder({ exams, series, initial, attached = [] }: BuilderProps) {
+export function TestBuilder({ exams, series, initial, attached = [], preset }: BuilderProps) {
   const router = useRouter();
   const isEdit = Boolean(initial?.id);
 
-  const [draft, setDraft] = React.useState<TestDraft>(initial ?? blank(exams));
+  const [draft, setDraft] = React.useState<TestDraft>(() => {
+    if (initial) return initial;
+    const fresh = blank(exams);
+    // A preset only seeds a new test; an existing one keeps what it has.
+    if (preset?.category) fresh.category = preset.category;
+    if (preset?.testSeriesId) fresh.testSeriesId = preset.testSeriesId;
+    return fresh;
+  });
   const [rows, setRows] = React.useState<AttachedQuestion[]>(attached);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -546,6 +566,22 @@ export function TestBuilder({ exams, series, initial, attached = [] }: BuilderPr
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {/* The paper as a printable page, answers and explanations
+                    included, for proof-reading away from the screen. Opens in
+                    a new tab; the browser's own print dialog saves the PDF. */}
+                {isEdit && rows.length > 0 && (
+                  <Button asChild size="sm" variant="outline">
+                    <a
+                      href={`/api/admin/tests/${draft.id}/export`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <FileDown aria-hidden="true" />
+                      Print / PDF
+                    </a>
+                  </Button>
+                )}
+
                 {/* Emptying the whole paper, for when it is being rebuilt from
                     a corrected document. Removing a hundred questions one at a
                     time is not a workflow. */}

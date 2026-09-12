@@ -164,10 +164,18 @@ export const testQuestionsSchema = z.object({
    * questions have to go before the new ones arrive, and removing a hundred
    * one at a time is not a workflow.
    */
-  action: z.enum(['attach', 'detach', 'reorder', 'publish', 'clear']),
+  /**
+   * `move` takes questions off this paper and puts them on another in one
+   * step. Importing to the wrong destination happens, and undoing it by
+   * detaching a hundred questions here and attaching them there loses their
+   * order and takes an afternoon.
+   */
+  action: z.enum(['attach', 'detach', 'reorder', 'publish', 'clear', 'move']),
   questionIds: z.array(cuidSchema).max(500).default([]),
   /** For reorder: the full ordered list of testQuestion ids. */
   order: z.array(cuidSchema).max(500).default([]),
+  /** For move: the paper the questions are going to. */
+  destinationTestId: cuidSchema.optional(),
 });
 
 /**

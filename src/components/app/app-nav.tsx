@@ -137,7 +137,12 @@ export interface AppNavProps {
 
 export function AppSidebar({ user }: { user: AppNavProps['user'] }) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card lg:flex">
+    // Shown from `md` rather than `lg`. The list was hidden on a tablet and
+    // reachable only through the slide-out, which is where the request to
+    // "let it appear like the picture instead of a hidden list" came from —
+    // an iPad sits below `lg`. A phone still gets the slide-out, because a
+    // fixed 16rem column there would leave no room for the page.
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
       <div className="flex h-16 items-center border-b border-border px-5">
         <Logo />
       </div>
@@ -180,14 +185,14 @@ export function AppHeader({ user, unreadCount }: AppNavProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          className="lg:hidden"
+          className="md:hidden"
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation"
         >
           <Menu aria-hidden="true" />
         </Button>
 
-        <div className="lg:hidden">
+        <div className="md:hidden">
           <Logo showText={false} />
         </div>
 
@@ -245,7 +250,7 @@ export function AppHeader({ user, unreadCount }: AppNavProps) {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 md:hidden">
           <button
             className="absolute inset-0 bg-foreground/40 backdrop-blur-[2px]"
             onClick={() => setMobileOpen(false)}

@@ -20,7 +20,7 @@ import { Progress } from '@/components/ui/progress';
 import { StatCard } from '@/components/ui/stat-card';
 import { EmptyState } from '@/components/ui/states';
 import { TEST_CATEGORY_LABELS, type TestCategory } from '@/lib/enums';
-import { formatDate, formatDuration, formatNumber, ordinal } from '@/lib/utils';
+import { formatDate, formatDuration, formatNumber, formatPaise, ordinal } from '@/lib/utils';
 import { enforceStudent } from '@/server/auth/guards';
 import {
   buildRecommendations,
@@ -32,7 +32,7 @@ import {
   getUpcomingTests,
 } from '@/server/services/dashboard-service';
 import { db } from '@/server/db';
-import { getPurchasedCourses } from '@/server/services/purchased-service';
+import { getAvailableCourses, getPurchasedCourses } from '@/server/services/purchased-service';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -50,7 +50,17 @@ function greeting() {
 export default async function DashboardPage() {
   const user = await enforceStudent();
 
-  const [summary, resumable, insights, subjects, recommended, upcoming, incorrectCount, purchased] =
+  const [
+    summary,
+    resumable,
+    insights,
+    subjects,
+    recommended,
+    upcoming,
+    incorrectCount,
+    purchased,
+    available,
+  ] =
     await Promise.all([
       getDashboardSummary(user.id),
       getResumableAttempt(user.id),
@@ -60,6 +70,7 @@ export default async function DashboardPage() {
       getUpcomingTests(),
       db.testAnswer.count({ where: { attempt: { userId: user.id }, isCorrect: false } }),
       getPurchasedCourses(user.id),
+      getAvailableCourses(user.id),
     ]);
 
   const isNewStudent = summary.testsAttempted === 0;
@@ -130,6 +141,50 @@ export default async function DashboardPage() {
                   </li>
                 ))}
               </ol>
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
+      {/*
+        What else is on offer. Until now this lived only on the public
+        catalogue, which a signed-in student has little reason to go back to —
+        so someone who had bought one course had no way to see the others
+        without leaving the app.
+      */}
+      {available.length > 0 && (
+        <section aria-labelledby="available-heading">
+          <Card>
+            <CardContent className="p-5 sm:p-6">
+              <h2 id="available-heading" className="font-semibold tracking-tight">
+                Courses available to purchase
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {purchased.length > 0
+                  ? 'Add another course to what you already have.'
+                  : 'Pick a course to get started.'}
+              </p>
+
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                {available.map((course) => (
+                  <li key={course.id}>
+                    <Link
+                      href={course.href}
+                      className="flex h-full items-start gap-3 rounded-xl border border-border px-4 py-3 transition-colors hover:border-primary/40 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold leading-tight">{course.name}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          {course.blurb}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-primary">
+                        {formatPaise(course.priceInPaise)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
         </section>

@@ -4,6 +4,7 @@ import {
   PYQ_SERIES_PREFIX,
 } from '@/lib/enums';
 import { db } from '@/server/db';
+import { hasEntitlement } from '@/server/services/entitlement-service';
 
 /**
  * What a student has bought, and where each purchase is used.
@@ -132,6 +133,57 @@ export async function getPurchasedCourses(userId: string): Promise<PurchasedCour
       href: destination.href,
       blurb: destination.blurb,
       purchasedAt: row.createdAt,
+    });
+  }
+
+  return courses;
+}
+
+export interface AvailableCourse {
+  id: string;
+  name: string;
+  href: string;
+  blurb: string;
+  priceInPaise: number;
+}
+
+/**
+ * Courses the student could buy but has not.
+ *
+ * Shown beneath what they own, so the dashboard answers both "what do I have"
+ * and "what else is there" — the second was only on the public catalogue,
+ * which a signed-in student has little reason to revisit.
+ *
+ * Anything already owned is left out, through the same entitlement check the
+ * rest of the site uses, so a previous-year bundle correctly suppresses every
+ * individual year rather than advertising years the student can already open.
+ */
+export async function getAvailableCourses(userId: string): Promise<AvailableCourse[]> {
+  const sellable = await db.testSeries.findMany({
+    where: {
+      deletedAt: null,
+      status: 'PUBLISHED',
+      priceInPaise: { gt: 0 },
+      // A year inside the previous-year bundle is not sold separately here:
+      // the bundle is the product, and listing both invites paying twice.
+      NOT: { slug: { startsWith: `${PYQ_SERIES_PREFIX}2` } },
+    },
+    orderBy: { sortOrder: 'asc' },
+    select: { id: true, slug: true, name: true, priceInPaise: true },
+  });
+
+  const courses: AvailableCourse[] = [];
+
+  for (const series of sellable) {
+    if (await hasEntitlement(userId, series.id)) continue;
+
+    const destination = destinationFor(series.slug, series.name);
+    courses.push({
+      id: series.id,
+      name: destination.name,
+      href: destination.href,
+      blurb: destination.blurb,
+      priceInPaise: series.priceInPaise,
     });
   }
 
