@@ -211,6 +211,73 @@ export async function listQuestions(filters: QuestionFilters = {}) {
  * one paper and 40 on another. The rows are reshaped to match the bank listing
  * exactly, so the page renders them without knowing which query produced them.
  */
+/**
+ * A paper's questions in full, for editing them in place.
+ *
+ * The bank listing deliberately fetches only a preview — a body, a status, a
+ * count — because it may be showing a thousand rows. Reviewing one paper is
+ * the opposite case: every option and explanation is wanted at once, so they
+ * can be read and corrected without opening each question in turn.
+ *
+ * Ordered by the paper's own sortOrder, so question 40 sits between 39 and 41
+ * rather than wherever its code sorts alphabetically.
+ */
+export async function listPaperForReview(testId: string) {
+  const rows = await db.testQuestion.findMany({
+    where: { testId, question: { deletedAt: null } },
+    orderBy: { sortOrder: 'asc' },
+    select: {
+      sortOrder: true,
+      question: {
+        select: {
+          id: true,
+          code: true,
+          status: true,
+          difficulty: true,
+          body: true,
+          explanation: true,
+          marks: true,
+          negativeMarks: true,
+          reviewNote: true,
+          examId: true,
+          subjectId: true,
+          type: true,
+          subject: { select: { name: true } },
+          _count: { select: { testQuestions: true } },
+          options: {
+            orderBy: { sortOrder: 'asc' },
+            select: { id: true, label: true, body: true, isCorrect: true },
+          },
+        },
+      },
+    },
+  });
+
+  return rows.map((row, index) => {
+    const q = row.question;
+    return {
+      id: q.id,
+      code: q.code,
+      // Its place on this paper, counted from one — not sortOrder, which can
+      // have gaps after questions are detached.
+      position: index + 1,
+      status: q.status,
+      difficulty: q.difficulty,
+      subjectName: q.subject?.name ?? null,
+      body: q.body,
+      explanation: q.explanation,
+      marks: q.marks,
+      negativeMarks: q.negativeMarks,
+      reviewNote: q.reviewNote,
+      attachedTo: q._count.testQuestions,
+      examId: q.examId,
+      subjectId: q.subjectId ?? '',
+      type: q.type,
+      options: q.options,
+    };
+  });
+}
+
 async function listQuestionsForPaper(
   testId: string,
   where: Record<string, unknown>,

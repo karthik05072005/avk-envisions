@@ -7,9 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/states';
 import { DeleteQuestion } from '@/features/admin/delete-question';
+import { PaperReview } from '@/features/admin/paper-review';
 import { formatDate } from '@/lib/utils';
 import { enforceAdminArea } from '@/server/auth/guards';
-import { getTaxonomyTree, listPaperGroups, listQuestions } from '@/server/services/admin-service';
+import {
+  getTaxonomyTree,
+  listPaperForReview,
+  listPaperGroups,
+  listQuestions,
+} from '@/server/services/admin-service';
 
 export const metadata: Metadata = {
   title: 'Question bank',
@@ -41,7 +47,19 @@ export default async function AdminQuestionsPage({
   const browsing =
     !params.testId && !params.q && !params.subjectId && !params.status && !params.difficulty && params.flagged !== '1';
 
-  const [result, exams, groups] = await Promise.all([
+  // A paper opened on its own is opened to be proof-read, so it comes back
+  // whole and editable — the same layout the PDF import shows after a parse.
+  // Narrow it with a filter and it falls back to the paged list, because then
+  // the question is "which ones match", not "read all hundred".
+  const reviewing =
+    Boolean(params.testId) &&
+    !params.q &&
+    !params.subjectId &&
+    !params.status &&
+    !params.difficulty &&
+    params.flagged !== '1';
+
+  const [result, exams, groups, review] = await Promise.all([
     listQuestions({
       search: params.q,
       examId: params.examId,
@@ -54,6 +72,7 @@ export default async function AdminQuestionsPage({
     }),
     getTaxonomyTree(),
     browsing ? listPaperGroups() : Promise.resolve([]),
+    reviewing ? listPaperForReview(params.testId!) : Promise.resolve([]),
   ]);
 
   const paper = params.testId
@@ -256,7 +275,21 @@ export default async function AdminQuestionsPage({
       )}
 
       {/* Results --------------------------------------------------------- */}
-      {browsing ? null : result.rows.length === 0 ? (
+      {browsing ? null : reviewing ? (
+        review.length === 0 ? (
+          <EmptyState
+            icon={FileQuestion}
+            title="This paper has no questions yet"
+            description="Import them from a PDF, or add the first one by hand."
+            action={{
+              label: 'Add a question',
+              href: `/admin/questions/new?testId=${params.testId}`,
+            }}
+          />
+        ) : (
+          <PaperReview paperTitle={paper?.title ?? 'this paper'} questions={review} />
+        )
+      ) : result.rows.length === 0 ? (
         <EmptyState
           icon={FileQuestion}
           title="No questions match"
@@ -353,7 +386,7 @@ export default async function AdminQuestionsPage({
       )}
 
       {/* Pagination ------------------------------------------------------ */}
-      {result.totalPages > 1 && (
+      {!reviewing && result.totalPages > 1 && (
         <nav className="flex items-center justify-center gap-3" aria-label="Pagination">
           <Button asChild variant="outline" size="sm" disabled={page <= 1}>
             <Link href={pageHref(page - 1)}>Previous</Link>
