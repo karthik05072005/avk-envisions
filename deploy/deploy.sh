@@ -117,6 +117,7 @@ for script in \
   prisma/set-pricing.ts \
   prisma/trim-free-test-2.ts \
   prisma/apply-50-days-schedule.ts \
+  prisma/import-paid-schedule.ts \
   prisma/rebuild-subject-papers.ts \
   prisma/import-current-affairs.ts \
   prisma/set-pyq-subject-durations.ts \
