@@ -1,0 +1,135 @@
+import { describe, expect, it } from 'vitest';
+
+import { parsePyqAnalysis } from './pyq-analysis-parser';
+
+/**
+ * The two faults reported against the import: explanations arriving as one
+ * paragraph, and the answer line ending up inside the last option.
+ *
+ * Both are written as fixtures rather than run against the real PDFs so they
+ * fail fast and say exactly what broke. Three earlier attempts at this parser
+ * collapsed whole papers to a single question; scripts/parser-baseline.mts
+ * covers that scale, and these cover the shape.
+ */
+
+describe('explanations keep the shape the document printed', () => {
+  it('keeps each point on its own line instead of running them together', () => {
+    const { questions } = parsePyqAnalysis(
+      [
+        'Q1. Which of these is correct?',
+        'OPTIONS',
+        '(A) First',
+        '(B) Second',
+        '(C) Third',
+        '(D) Fourth',
+        'ANSWER',
+        '(B) Second',
+        'ABOUT THE QUESTION',
+        '• Statement 1 is correct because of the first reason.',
+        '• Statement 2 is incorrect because of the second reason.',
+        '• Statement 3 is correct.',
+      ].join('\n'),
+    );
+
+    const explanation = questions[0]?.explanation ?? '';
+    expect(explanation.split('\n')).toHaveLength(3);
+    expect(explanation).toContain('• Statement 1 is correct');
+    // The old parser joined with spaces, producing one long line.
+    expect(explanation).not.toMatch(/reason\. • Statement 2/);
+  });
+
+  it('rejoins a line the PDF wrapped mid-sentence', () => {
+    const { questions } = parsePyqAnalysis(
+      [
+        'Q1. Which of these is correct?',
+        'OPTIONS',
+        '(A) First',
+        '(B) Second',
+        '(C) Third',
+        '(D) Fourth',
+        'ANSWER',
+        '(A) First',
+        'ABOUT THE QUESTION',
+        'The Asian-Pacific Postal Union functions as a Restricted Union of the',
+        'Universal Postal Union.',
+      ].join('\n'),
+    );
+
+    // A wrap is the PDF's column width, not the author's intent.
+    expect(questions[0]?.explanation).toBe(
+      'The Asian-Pacific Postal Union functions as a Restricted Union of the Universal Postal Union.',
+    );
+  });
+});
+
+describe('the answer never lands inside an option', () => {
+  it('ends the option list at an ANSWER line written as prose', () => {
+    const { questions } = parsePyqAnalysis(
+      [
+        'Q1. Consider the following statements regarding GCCs:',
+        'OPTIONS',
+        '(A) 1 and 2 only',
+        '(B) 1, 2 and 4 only',
+        '(C) 2, 3 and 4 only',
+        '(D) 1, 2, 3 and 4',
+        // No marker after ANSWER — the form that used to glue onto option D.
+        'ANSWER Statements 1, 2 and 4 are correct. Karnataka GCC strategy is',
+        'intended to promote higher-value technology.',
+      ].join('\n'),
+    );
+
+    const question = questions[0]!;
+    expect(question.options).toHaveLength(4);
+    expect(question.options[3]!.text).toBe('1, 2, 3 and 4');
+    for (const option of question.options) {
+      expect(option.text).not.toMatch(/ANSWER/i);
+    }
+    expect(question.explanation).toContain('Statements 1, 2 and 4 are correct');
+  });
+
+  it('reads the options, not the statements, in a statement-based question', () => {
+    const { questions } = parsePyqAnalysis(
+      [
+        'Q1. Consider the following statements :',
+        'A. The World Wetlands Day is observed every year on 2nd February.',
+        'B. The theme for 2017 is Wetlands for our Future.',
+        'C. World Wetlands Day 2017 was celebrated in Chilika Lake.',
+        'Which of the above statements is/are correct ?',
+        '(A) A only',
+        '(B) A and B only',
+        '(C) A and C only',
+        '(D) A, B and C',
+        'ANSWER',
+        '(A) A only',
+      ].join('\n'),
+    );
+
+    const question = questions[0]!;
+    // The bracketed list is the options; the bare A./B./C. list is the stem.
+    expect(question.options.map((o) => o.text)).toEqual([
+      'A only',
+      'A and B only',
+      'A and C only',
+      'A, B and C',
+    ]);
+    expect(question.correctIndex).toBe(0);
+    expect(question.stem).toContain('World Wetlands Day is observed');
+  });
+
+  it('still reads a document that marks its options without brackets', () => {
+    const { questions } = parsePyqAnalysis(
+      [
+        'Q1. Which one of the following is correct?',
+        '1. First option',
+        '2. Second option',
+        '3. Third option',
+        '4. Fourth option',
+        'ANSWER',
+        '3. Third option',
+      ].join('\n'),
+    );
+
+    expect(questions[0]?.options).toHaveLength(4);
+    expect(questions[0]?.correctIndex).toBe(2);
+  });
+});

@@ -113,6 +113,41 @@ const ANSWER_INLINE =
 // The key on its own line, as either "(3) text" or "Option 3 — text".
 const ANSWER_BARE = /^(?:Option\s*)?\(?([A-Da-d1-4])\)?[).]?\s*(?:[—–:-]\s*)?(.*)$/i;
 
+/**
+ * Joins the explanation lines back into text, keeping the shape the document
+ * printed.
+ *
+ * This used to be `join(' ')` with all whitespace collapsed, which turned a
+ * point-wise explanation into one long paragraph — every bullet and line break
+ * gone. The reader renders with `whitespace-pre-line`, so the structure only
+ * had to survive parsing to reach the screen.
+ *
+ * A line that begins a new point keeps its own line; a line that is merely the
+ * wrapped continuation of the previous one is joined back onto it, because the
+ * break there is an artefact of the PDF's column width rather than the
+ * author's intent.
+ */
+function joinExplanation(lines: string[]): string | null {
+  const out: string[] = [];
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line === '') continue;
+
+    // A bullet, a numbered point, or a sentence starting after one that ended.
+    const startsPoint = /^([-•*·▪]|\(?\d{1,2}[).]|[A-Da-d][).]|Statement\b)/.test(line);
+    const previous = out[out.length - 1];
+    const previousEnded = previous ? /[.!?:;]$/.test(previous) : true;
+
+    if (out.length === 0 || startsPoint || previousEnded) out.push(line);
+    else out[out.length - 1] = `${previous} ${line}`;
+  }
+
+  // Collapse runs of blank lines but keep single breaks between points.
+  const text = out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return text || null;
+}
+
 function markerToIndex(marker: string): number | null {
   const m = marker.toUpperCase();
   if (m >= 'A' && m <= 'D') return m.charCodeAt(0) - 65;
@@ -212,6 +247,23 @@ export function parsePyqAnalysis(raw: string): ParseResult {
     // the label and ignore anything that looks like an option before it.
     const hasOptionsLabel = block.body.some((l) => /^OPTIONS?\s*:?\s*$/i.test(l.trim()));
 
+    /**
+     * Whether this question brackets its option markers.
+     *
+     * Statement-based questions list their statements as "A." / "B." / "C."
+     * and then their options as "(A)" / "(B)" / "(C)" / "(D)". Both look like
+     * options to the line matcher, and the statements come first — so the
+     * statements were read as the options, the real options were swallowed as
+     * wrapped text, and the tail of the stem ended up inside option 3.
+     *
+     * Where a question uses brackets at all, only bracketed markers can open
+     * its option list. Documents that never bracket are unaffected: roughly a
+     * third of the papers here mark options bare, and they still work by the
+     * ordering rule below.
+     */
+    const bracketed = block.body.filter((l) => /^\([A-Da-d1-4]\)\s*\S/.test(l.trim()));
+    const requiresBrackets = bracketed.length >= 3;
+
     const stemLines: string[] = inline ? [inline] : [];
     const options: ParsedOption[] = [];
     const explanation: string[] = [];
@@ -249,6 +301,7 @@ export function parsePyqAnalysis(raw: string): ParseResult {
         continue;
       }
 
+
       if (COMMENTARY.test(line)) {
         mode = 'EXPLANATION';
         continue;
@@ -263,7 +316,11 @@ export function parsePyqAnalysis(raw: string): ParseResult {
       }
 
       const option = OPTION.exec(line);
-      const mayOpenOptions = hasOptionsLabel ? mode === 'OPTIONS' : mode === 'OPTIONS' || mode === 'STEM';
+      // In a bracketing question, a bare "A." is a statement, not an option.
+      const wellFormed = !requiresBrackets || /^\(/.test(line);
+      const mayOpenOptions =
+        wellFormed &&
+        (hasOptionsLabel ? mode === 'OPTIONS' : mode === 'OPTIONS' || mode === 'STEM');
       if (option && mayOpenOptions) {
         const idx = markerToIndex(option[1] ?? '');
         // Options must arrive in order; a stray "(1)" mid-stem does not open
@@ -276,7 +333,19 @@ export function parsePyqAnalysis(raw: string): ParseResult {
       }
 
       if (mode === 'OPTIONS' && options.length > 0) {
-        // Wrapped option text.
+        // An option's text can wrap onto the next line, and that continuation
+        // is joined back on here. But a line beginning "ANSWER" is never part
+        // of an option: where the document writes the key as prose — "ANSWER
+        // Statements 1, 2 and 4 are correct" — ANSWER_INLINE finds no marker
+        // to match, and the line used to land here and take the key and the
+        // entire commentary after it into option D's text.
+        if (/^ANSWER\b/i.test(line)) {
+          const rest = line.replace(/^ANSWER\b[:\s·•—–-]*/i, '').trim();
+          if (rest) explanation.push(rest);
+          mode = 'EXPLANATION';
+          continue;
+        }
+
         const last = options[options.length - 1];
         if (last) last.text = `${last.text} ${line}`.trim();
         continue;
@@ -315,7 +384,7 @@ export function parsePyqAnalysis(raw: string): ParseResult {
       stem,
       options,
       correctIndex,
-      explanation: explanation.join(' ').replace(/\s+/g, ' ').trim() || null,
+      explanation: joinExplanation(explanation),
       warnings: local,
     };
   });
