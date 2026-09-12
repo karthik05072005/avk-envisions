@@ -155,7 +155,7 @@ async function main() {
       select: { body: true, explanation: true },
     });
 
-    const marker = `  [reviewed ${Date.now()}]`;
+    const marker = ` [reviewed ${Date.now()}]`;
     const bodyBox = page.locator('textarea[aria-label="Question 1 text"]');
     await bodyBox.fill(`${before.body}${marker}`);
 
@@ -181,8 +181,73 @@ async function main() {
       'the page did not reload away from the review',
     );
 
-    // Put it back the way it was.
+    // Put the text back, then reload so the page's copy matches the database
+    // again. Restoring only the database would leave the marker sitting in the
+    // open editor, and the next section's Save would write it straight back.
     await db.question.update({ where: { id: target.id }, data: { body: before.body } });
+    await page.reload({ waitUntil: 'networkidle' });
+
+    // ------------------------------------------------- attaching a diagram
+    //
+    // The import can only hand over figures it found inside the PDF, and a
+    // scanned paper hides its diagrams in the page image. The question that
+    // most needs a figure is the one that arrives without one, so it has to be
+    // attachable here by hand.
+    console.log('\n-- Attaching a diagram by hand --');
+
+    const uploadInput = first.locator('input[type="file"]');
+    log((await uploadInput.count()) === 1, 'every question offers an image upload');
+
+    // A real 1x1 PNG, so the endpoint's byte-sniffing accepts it.
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    await uploadInput.setInputFiles({ name: 'diagram.png', mimeType: 'image/png', buffer: png });
+
+    await first.locator('img[alt^="Diagram for question"]').waitFor({ timeout: 15_000 });
+    log(true, 'the uploaded image appears on the question straight away');
+
+    // Uploading alone must not write to the question — Save is what commits.
+    const midway = await db.question.findUniqueOrThrow({
+      where: { id: target.id },
+      select: { imageUrl: true },
+    });
+    log(
+      midway.imageUrl === null,
+      'uploading alone does not change the question until Save',
+      `stored: ${midway.imageUrl ?? 'none'}`,
+    );
+
+    await first.getByRole('button', { name: /^save$/i }).click();
+    await page.getByText(/^Q1 saved\.$/).waitFor({ timeout: 10_000 });
+
+    const withImage = await db.question.findUniqueOrThrow({
+      where: { id: target.id },
+      select: { imageUrl: true },
+    });
+    log(
+      typeof withImage.imageUrl === 'string' && withImage.imageUrl.startsWith('/'),
+      'and Save stores the image on the question',
+      withImage.imageUrl ?? 'none',
+    );
+
+    // The stored URL has to actually serve the picture back.
+    if (withImage.imageUrl) {
+      const fetched = await page.request.get(`${BASE}${withImage.imageUrl}`);
+      log(fetched.ok(), 'the stored image is served back', `HTTP ${fetched.status()}`);
+    }
+
+    // Removing it clears the field rather than leaving a dead path behind.
+    await first.getByRole('button', { name: /^remove$/i }).click();
+    await first.getByRole('button', { name: /^save$/i }).click();
+    await page.getByText(/^Q1 saved\.$/).last().waitFor({ timeout: 10_000 });
+
+    const cleared = await db.question.findUniqueOrThrow({
+      where: { id: target.id },
+      select: { imageUrl: true },
+    });
+    log(cleared.imageUrl === null, 'and Remove clears it', `stored: ${cleared.imageUrl ?? 'none'}`);
 
     // ------------------------------------------- filters still get a list
     console.log('\n-- Filtering inside a paper still lists matches --');

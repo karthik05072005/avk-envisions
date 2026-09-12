@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, Check, Loader2, Save } from 'lucide-react';
+import { AlertTriangle, Check, ImageIcon, Loader2, Save, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge, StatusBadge } from '@/components/ui/badge';
@@ -42,6 +42,8 @@ export interface ReviewQuestion {
   subjectName: string | null;
   body: string;
   explanation: string | null;
+  /** The diagram this question is unanswerable without, where it has one. */
+  imageUrl: string | null;
   marks: number;
   negativeMarks: number;
   reviewNote: string | null;
@@ -63,8 +65,21 @@ interface Props {
 interface Draft {
   body: string;
   explanation: string;
+  /** Empty string means the question carries no diagram. */
+  imageUrl: string;
   options: { id: string; body: string }[];
   correctIndex: number;
+}
+
+/**
+ * Whether the wording implies a diagram the question cannot be answered
+ * without. Used only to warn — the same test the PDF import applies, so a
+ * question flagged there is flagged here too.
+ */
+function needsFigure(body: string): boolean {
+  return /(figure|diagram|map|graph|chart|image|picture|given below|shown above|following pattern)/i.test(
+    body,
+  );
 }
 
 /**
@@ -84,6 +99,7 @@ function draftOf(question: ReviewQuestion): Draft {
   return {
     body: question.body,
     explanation: question.explanation ?? '',
+    imageUrl: question.imageUrl ?? '',
     options: question.options.map((o) => ({ id: o.id, body: o.body })),
     correctIndex: question.options.findIndex((o) => o.isCorrect),
   };
@@ -94,6 +110,7 @@ export function PaperReview({ paperTitle, questions }: Props) {
     Object.fromEntries(questions.map((q) => [q.id, draftOf(q)])),
   );
   const [saving, setSaving] = React.useState<string | null>(null);
+  const [uploading, setUploading] = React.useState<string | null>(null);
   const [saved, setSaved] = React.useState<Set<string>>(new Set());
 
   const original = React.useMemo(
@@ -132,9 +149,51 @@ export function PaperReview({ paperTitle, questions }: Props) {
     return (
       draft.body !== was.body ||
       draft.explanation !== was.explanation ||
+      draft.imageUrl !== was.imageUrl ||
       draft.correctIndex !== was.correctIndex ||
       draft.options.some((o, i) => o.body !== was.options[i]?.body)
     );
+  }
+
+  /**
+   * Attaches a diagram from the reviewer's own machine.
+   *
+   * The import can only hand over figures it found inside the PDF. A scanned
+   * paper bakes its diagrams into the page image where no extractor reaches
+   * them, so the question that most needs a figure is exactly the one that
+   * arrives without one — and it has to be croppable and attachable by hand.
+   *
+   * Uploaded immediately rather than held until Save: the file has to become a
+   * URL before it can be stored on the question, and seeing the picture appear
+   * is how the reviewer knows they picked the right crop.
+   */
+  async function attachImage(question: ReviewQuestion, file: File) {
+    setUploading(question.id);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+
+      // Not `api.post`: this is multipart, so the JSON content-type must not be
+      // set — the browser supplies the boundary.
+      const response = await fetch('/api/admin/figures', {
+        method: 'POST',
+        body: form,
+        credentials: 'same-origin',
+      });
+      const payload = await response.json();
+
+      if (!payload.success) {
+        toast.error(payload.error?.message ?? 'That image could not be uploaded.');
+        return;
+      }
+
+      edit(question.id, { imageUrl: payload.data.url as string });
+      toast.success(`Image attached to Q${question.position}. Save to keep it.`);
+    } catch {
+      toast.error('That image could not be uploaded.');
+    } finally {
+      setUploading(null);
+    }
   }
 
   async function save(question: ReviewQuestion) {
@@ -155,6 +214,7 @@ export function PaperReview({ paperTitle, questions }: Props) {
         status: question.status,
         body: draft.body,
         explanation: draft.explanation || null,
+        imageUrl: draft.imageUrl || null,
         marks: question.marks,
         negativeMarks: question.negativeMarks,
         options: draft.options.map((option, index) => ({
@@ -283,6 +343,70 @@ export function PaperReview({ paperTitle, questions }: Props) {
                 className="mt-3 min-h-0"
                 aria-label={`Question ${question.position} text`}
               />
+
+              {draft.imageUrl ? (
+                <div className="mt-3 rounded-lg border border-border bg-muted/40 p-2.5">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                    <span className="text-xs text-muted-foreground">
+                      Diagram shown with this question
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto h-7 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={() => edit(question.id, { imageUrl: '' })}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={draft.imageUrl}
+                    alt={`Diagram for question ${question.position}`}
+                    className="mt-2 max-h-56 rounded border border-border bg-white"
+                  />
+                </div>
+              ) : (
+                needsFigure(draft.body) && (
+                  <p className="mt-2 flex items-start gap-1.5 text-xs text-warning">
+                    <AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
+                    This question refers to a figure but has none.
+                  </p>
+                )
+              )}
+
+              <div className="mt-2">
+                <label
+                  className={cn(
+                    'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-input px-2.5 py-1.5',
+                    'text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
+                    'focus-within:outline-none focus-within:ring-2 focus-within:ring-ring',
+                    uploading === question.id && 'pointer-events-none opacity-60',
+                  )}
+                >
+                  {uploading === question.id ? (
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Upload className="size-3.5" aria-hidden="true" />
+                  )}
+                  {draft.imageUrl ? 'Replace image' : 'Upload image'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    className="sr-only"
+                    aria-label={`Upload an image for question ${question.position}`}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      // Cleared so choosing the same file twice still fires,
+                      // which happens whenever a crop is re-exported and
+                      // re-picked under the same name.
+                      event.target.value = '';
+                      if (file) void attachImage(question, file);
+                    }}
+                  />
+                </label>
+              </div>
 
               <ul className="mt-2.5 space-y-2">
                 {draft.options.map((option, index) => (
